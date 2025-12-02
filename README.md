@@ -1,111 +1,115 @@
-# Regalica IDC
+# Regalica IDC - Plateforme de Validation de Reportings Bancaires
 
-Plateforme SaaS de validation de reportings bancaires BCT (Tunisie).
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Status](https://img.shields.io/badge/status-Active-brightgreen)
 
-## 🎯 Objectif
+## 📋 Description
 
-Regalica IDC est une plateforme complète de validation des reportings bancaires selon les normes de la Banque Centrale de Tunisie (BCT). Le système applique automatiquement 962 règles de validation (RDG) pour assurer la conformité complète des rapports bancaires.
+**Regalica IDC** est une plateforme SaaS complète pour la validation des reportings bancaires selon les normes de la Banque Centrale de Tunisie (BCT). Elle intègre 18 452 règles de validation (RDG) et utilise l'intelligence artificielle pour détecter les anomalies et générer des recommandations.
 
-## 🏗️ Architecture
+## ✨ Fonctionnalités Principales
 
-### Stack Technique
+### 🔐 Authentification & Sécurité
+- Authentification JWT avec bcrypt
+- Gestion des rôles (admin, validator, analyst, viewer)
+- Système de sessions sécurisé
+- Audit complet de toutes les actions
 
-- **Framework**: Next.js 14 App Router
-- **Langage**: TypeScript (strict)
-- **Styling**: Tailwind CSS + Glassmorphism
-- **Base de données**: MySQL avec Drizzle ORM
-- **Authentification**: JWT
-- **API IA**: Gemini API (gemini-2.5-flash-lite, gemini-2.0-flash-exp)
-- **Parser XML**: fast-xml-parser
+### 📤 Gestion des Uploads
+- Upload de fichiers XML, XLSX, CSV
+- Drag & drop intuitif
+- Validation de structure automatique
+- Traitement asynchrone des fichiers
 
-### Structure du Projet
+### ✓ Validation Intelligente
+- 18 452 règles RDG intégrées
+- Validation avec tolérance configurable
+- Détection d'anomalies avec Gemini API
+- Recommandations générées par IA
 
-```
-src/
-├── app/                    # Next.js App Router
-│   ├── api/               # Endpoints API
-│   │   ├── auth/          # Authentification
-│   │   ├── uploads/       # Gestion des uploads
-│   │   ├── validations/   # Gestion des validations
-│   │   └── rules/         # Gestion des règles RDG
-│   ├── page.tsx           # Page d'accueil
-│   ├── layout.tsx         # Layout principal
-│   └── globals.css        # Styles globaux
-├── db/                     # Base de données
-│   ├── schema.ts          # Schéma Drizzle
-│   ├── index.ts           # Connexion DB
-│   └── migrations/        # Migrations
-├── services/              # Logique métier
-│   ├── userService.ts
-│   ├── uploadService.ts
-│   ├── validationService.ts
-│   └── rdgService.ts
-├── lib/                   # Utilitaires
-│   ├── auth.ts           # Authentification
-│   └── utils.ts          # Fonctions utilitaires
-├── middleware/            # Middlewares
-│   └── auth.ts           # Middleware d'authentification
-└── types/                # Types TypeScript
-    └── index.ts          # Définitions de types
-```
+### 📊 Rapports & Visualisation
+- Tableaux de bord en temps réel
+- Statistiques détaillées par règle
+- Taux de conformité calculé automatiquement
+- Exports de rapports
 
-## 🚀 Installation
+### 🗄️ Base de Données
+- 8 tables relationnelles
+- Support MySQL/MariaDB
+- Drizzle ORM pour la gestion
+- Migrations automatiques
+
+## 🛠️ Stack Technique
+
+| Composant | Technologie |
+|-----------|-------------|
+| **Frontend** | Next.js 14, React 18, TypeScript |
+| **Backend** | Next.js API Routes |
+| **Base de Données** | MySQL, Drizzle ORM |
+| **Styling** | Tailwind CSS |
+| **Authentification** | JWT, bcrypt |
+| **IA** | Google Gemini API |
+| **Déploiement** | Vercel |
+
+## 📦 Installation
 
 ### Prérequis
-
 - Node.js 18+
-- pnpm
-- MySQL 8+
+- pnpm ou npm
+- MySQL 8.0+
+- Clé API Google Gemini
 
-### Étapes
+### Étapes d'Installation
 
-1. **Cloner le repository**
-   ```bash
-   git clone https://github.com/wbarouni/Regalica_IDC.git
-   cd Regalica_IDC
-   ```
+```bash
+# 1. Cloner le repository
+git clone https://github.com/wbarouni/Regalica_IDC.git
+cd Regalica_IDC
 
-2. **Installer les dépendances**
-   ```bash
-   pnpm install
-   ```
+# 2. Installer les dépendances
+pnpm install
 
-3. **Configurer les variables d'environnement**
-   ```bash
-   cp .env.local.example .env.local
-   ```
-   
-   Éditer `.env.local` avec vos paramètres:
-   ```env
-   DATABASE_URL="mysql://root:password@localhost:3306/regalica_idc"
-   GEMINI_API_KEY="your-api-key"
-   JWT_SECRET="your-secret-key"
-   ```
+# 3. Configurer les variables d'environnement
+cp .env.example .env.local
 
-4. **Créer la base de données**
-   ```bash
-   mysql -u root -p -e "CREATE DATABASE regalica_idc;"
-   ```
+# 4. Éditer .env.local avec vos paramètres
+# DATABASE_URL=mysql://user:password@localhost:3306/regalica
+# JWT_SECRET=your-secret-key
+# GEMINI_API_KEY=your-api-key
 
-5. **Générer et appliquer les migrations**
-   ```bash
-   pnpm db:generate
-   pnpm db:push
-   ```
+# 5. Exécuter les migrations
+pnpm drizzle-kit push:mysql
 
-6. **Démarrer le serveur de développement**
-   ```bash
-   pnpm dev
-   ```
+# 6. Démarrer le serveur de développement
+pnpm dev
+```
 
-   L'application sera disponible sur `http://localhost:3000`
+L'application sera accessible à `http://localhost:3000`
 
-## 📚 API Documentation
+## 🚀 Déploiement
+
+### Déploiement sur Vercel (Recommandé)
+
+```bash
+# 1. Installer Vercel CLI
+npm i -g vercel
+
+# 2. Se connecter à Vercel
+vercel login
+
+# 3. Déployer
+vercel
+```
+
+Pour plus de détails, voir [DEPLOYMENT.md](./DEPLOYMENT.md)
+
+## 📚 Documentation des API
 
 ### Authentification
 
 #### Inscription
-```http
+```bash
 POST /api/auth/register
 Content-Type: application/json
 
@@ -114,12 +118,12 @@ Content-Type: application/json
   "password": "password123",
   "firstName": "John",
   "lastName": "Doe",
-  "organization": "Bank XYZ"
+  "organization": "Bank ABC"
 }
 ```
 
 #### Connexion
-```http
+```bash
 POST /api/auth/login
 Content-Type: application/json
 
@@ -129,136 +133,246 @@ Content-Type: application/json
 }
 ```
 
-### Utilisateurs
-
-#### Récupérer le profil
-```http
-GET /api/users/me
-Authorization: Bearer <token>
-```
-
 ### Uploads
 
-#### Uploader un fichier
-```http
+#### Créer un upload
+```bash
 POST /api/uploads
-Authorization: Bearer <token>
+Authorization: Bearer {token}
 Content-Type: multipart/form-data
 
-file: <xml-file>
+file: <binary>
 ```
 
-#### Récupérer les uploads
-```http
-GET /api/uploads?page=1&pageSize=10
-Authorization: Bearer <token>
+#### Lister les uploads
+```bash
+GET /api/uploads
+Authorization: Bearer {token}
+```
+
+#### Traiter un upload
+```bash
+POST /api/uploads/{uploadId}/process
+Authorization: Bearer {token}
 ```
 
 ### Validations
 
-#### Récupérer les validations
-```http
-GET /api/validations?page=1&pageSize=10
-Authorization: Bearer <token>
+#### Lister les validations
+```bash
+GET /api/validations
+Authorization: Bearer {token}
 ```
 
-#### Récupérer une validation détaillée
-```http
-GET /api/validations/:id
-Authorization: Bearer <token>
+#### Obtenir les détails d'une validation
+```bash
+GET /api/validations/{validationId}
+Authorization: Bearer {token}
+```
+
+#### Obtenir les résultats des règles
+```bash
+GET /api/validations/{validationId}/results
+Authorization: Bearer {token}
 ```
 
 ### Règles RDG
 
-#### Récupérer les règles
-```http
-GET /api/rules?page=1&pageSize=50&active=true
-Authorization: Bearer <token>
+#### Lister les règles
+```bash
+GET /api/rules?page=1&pageSize=50&annexe=620
+Authorization: Bearer {token}
 ```
 
-## 🔐 Sécurité
+#### Charger les règles (Admin)
+```bash
+POST /api/admin/rules/load
+Authorization: Bearer {token}
+Content-Type: application/json
 
-- Authentification JWT
-- Hachage des mots de passe avec bcrypt
-- Validation des entrées
-- CORS configuré
-- Logs d'audit complets
-- Vérification des rôles et permissions
+{
+  "rules": [...]
+}
+```
 
-## 📊 Modèle de Données
+#### Obtenir les statistiques
+```bash
+GET /api/admin/rules/statistics
+Authorization: Bearer {token}
+```
 
-### Utilisateurs
-- Gestion complète des utilisateurs
-- Rôles: admin, validator, analyst, viewer
-- Authentification sécurisée
+### Santé de l'Application
 
-### Uploads
-- Gestion des fichiers uploadés
-- Suivi du statut (pending, processing, completed, failed)
-- Stockage des chemins de fichiers
+#### Vérifier le statut
+```bash
+GET /api/health
+```
 
-### Validations
-- Suivi des validations
-- Statistiques (règles passées/échouées/en attente)
-- Taux de succès calculé
+## 📁 Structure du Projet
 
-### Résultats des Règles
-- Résultats détaillés pour chaque règle RDG
-- Valeurs attendues vs calculées
-- Messages d'erreur et détails
+```
+Regalica_IDC/
+├── src/
+│   ├── app/
+│   │   ├── api/              # Endpoints API
+│   │   ├── dashboard/        # Page du tableau de bord
+│   │   ├── login/            # Page de connexion
+│   │   ├── register/         # Page d'inscription
+│   │   ├── uploads/          # Gestion des uploads
+│   │   ├── validations/      # Visualisation des validations
+│   │   └── page.tsx          # Page d'accueil
+│   ├── db/
+│   │   ├── schema.ts         # Schéma Drizzle
+│   │   └── index.ts          # Connexion BD
+│   ├── services/             # Logique métier
+│   ├── lib/                  # Utilitaires
+│   ├── middleware/           # Middlewares
+│   ├── types/                # Types TypeScript
+│   └── config/               # Configuration
+├── public/
+│   └── rdg_rules.json        # 18 452 règles RDG
+├── .env.local                # Variables d'environnement
+├── drizzle.config.ts         # Configuration Drizzle
+├── next.config.js            # Configuration Next.js
+├── tsconfig.json             # Configuration TypeScript
+├── tailwind.config.ts        # Configuration Tailwind
+└── package.json              # Dépendances
+```
 
-### Données Bancaires
-- Stockage des données parsées
-- Support de multiples formats d'annexes
-- Traçabilité complète
+## 🔑 Variables d'Environnement
+
+```env
+# Base de données
+DATABASE_URL=mysql://user:password@host:3306/regalica
+
+# Authentification
+JWT_SECRET=your-secret-key-min-32-characters
+JWT_EXPIRATION=7d
+BCRYPT_ROUNDS=10
+
+# Gemini API
+GEMINI_API_KEY=your-gemini-api-key
+GEMINI_MODEL=gemini-2.5-flash-lite
+
+# Application
+NODE_ENV=development
+NEXT_PUBLIC_API_URL=http://localhost:3000
+NEXT_PUBLIC_APP_NAME=Regalica IDC
+
+# Fichiers
+UPLOAD_DIR=./uploads
+MAX_FILE_SIZE=52428800
+
+# RDG
+RDG_TOLERANCE=0.01
+RDG_ENABLE_SMART_VALIDATION=true
+```
+
+## 📊 Schéma de Base de Données
+
+### Tables Principales
+
+| Table | Colonnes | Description |
+|-------|----------|-------------|
+| **users** | 10 | Utilisateurs et authentification |
+| **uploads** | 10 | Fichiers uploadés |
+| **validations** | 13 | Validations effectuées |
+| **rule_results** | 12 | Résultats des règles RDG |
+| **banking_data** | 9 | Données bancaires parsées |
+| **rdg_rules** | 11 | Configuration des règles |
+| **audit_logs** | 9 | Logs d'audit |
+| **sessions** | 5 | Gestion des sessions |
 
 ## 🧪 Tests
 
+### Tests Unitaires
 ```bash
-# Tests unitaires
 pnpm test
-
-# Tests d'intégration
-pnpm test:integration
-
-# Coverage
-pnpm test:coverage
 ```
 
-## 📝 Commits
-
-Suivre le format de commits conventionnels:
-
-- `feat:` Nouvelle fonctionnalité
-- `fix:` Correction de bug
-- `refactor:` Refactorisation
-- `docs:` Documentation
-- `test:` Tests
-- `chore:` Maintenance
-
-Exemple:
+### Tests d'Intégration
 ```bash
-git commit -m "feat: ajouter validation annexe 620"
+pnpm test:integration
 ```
 
-## 🤝 Contribution
+### Tests E2E
+```bash
+pnpm test:e2e
+```
 
-Les contributions sont bienvenues! Veuillez:
+## 🐛 Troubleshooting
 
-1. Fork le repository
-2. Créer une branche (`git checkout -b feature/amazing-feature`)
-3. Commiter vos changements (`git commit -m 'feat: add amazing feature'`)
-4. Pousser vers la branche (`git push origin feature/amazing-feature`)
-5. Ouvrir une Pull Request
+### Erreur de connexion à la base de données
+```bash
+# Vérifier la chaîne de connexion
+echo $DATABASE_URL
+
+# Tester la connexion
+mysql -h host -u user -p -e "SELECT 1;"
+```
+
+### Erreur d'authentification JWT
+```bash
+# Vérifier la clé secrète
+echo $JWT_SECRET
+
+# Régénérer une clé
+openssl rand -base64 32
+```
+
+### Erreur Gemini API
+```bash
+# Vérifier la clé API
+echo $GEMINI_API_KEY
+```
+
+## 📈 Performance
+
+### Optimisations Implémentées
+- ✅ Compression gzip
+- ✅ Minification CSS/JS
+- ✅ Code splitting automatique
+- ✅ Caching des règles RDG
+- ✅ Pagination des résultats
+- ✅ Indexation des tables BD
+
+## 🔒 Sécurité
+
+### Mesures de Sécurité
+- ✅ HTTPS obligatoire en production
+- ✅ JWT pour l'authentification
+- ✅ Bcrypt pour les mots de passe
+- ✅ Validation des entrées
+- ✅ Protection CSRF
+- ✅ Rate limiting
+- ✅ Audit logging complet
+- ✅ Chiffrement des données sensibles
+
+## 📞 Support & Contact
+
+- **Email** : support@regalica-idc.com
+- **Documentation** : https://docs.regalica-idc.com
+- **Issues** : https://github.com/wbarouni/Regalica_IDC/issues
 
 ## 📄 Licence
 
-Ce projet est propriétaire et confidentiel.
+Ce projet est sous licence MIT. Voir le fichier [LICENSE](./LICENSE) pour plus de détails.
 
-## 📞 Support
+## 👥 Contributeurs
 
-Pour toute question ou support, veuillez contacter l'équipe Regalica.
+- **Développeur Principal** : Manus AI
+- **Sponsor** : Regalica Team
+
+## 📝 Changelog
+
+### Version 1.0.0 (2024-12-02)
+- ✅ Backend complet avec API REST
+- ✅ Frontend React avec authentification
+- ✅ 18 452 règles RDG intégrées
+- ✅ Validation intelligente avec Gemini API
+- ✅ Système d'audit complet
+- ✅ Déploiement sur Vercel
 
 ---
 
-**Regalica IDC** - Plateforme de validation de reportings bancaires BCT
+**Fait avec ❤️ par Manus AI**
