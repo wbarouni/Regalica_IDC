@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createUser } from '@/services/userService'
-import { generateToken } from '@/lib/auth'
-import { validateEmail } from '@/lib/utils'
-import { CreateUserInput, ApiResponse } from '@/types'
+import { createUser } from '../../../../services/userService'
+import { generateToken } from '../../../../lib/auth'
+import { validateEmail } from '../../../../lib/utils'
+import { CreateUserInput, ApiResponse } from '../../../../types'
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {

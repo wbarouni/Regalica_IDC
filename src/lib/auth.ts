@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
-import { User } from '@/types'
+import { User } from '../types'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 const JWT_EXPIRY = '7d'
@@ -35,7 +35,7 @@ export function verifyToken(token: string): { id: string; email: string; role: s
   }
 }
 
-export function getTokenFromHeader(authHeader?: string): string | null {
+export function getTokenFromHeader(authHeader?: string | null): string | null {
   if (!authHeader) return null
   const parts = authHeader.split(' ')
   if (parts.length === 2 && parts[0] === 'Bearer') {

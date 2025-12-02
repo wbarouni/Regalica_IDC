@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createUpload, getUploadsByUserId } from '@/services/uploadService'
-import { createValidation } from '@/services/validationService'
-import { verifyToken, getTokenFromHeader } from '@/lib/auth'
-import { ApiResponse, PaginatedResponse } from '@/types'
+import { createUpload, getUploadsByUserId } from '../../../services/uploadService'
+import { createValidation } from '../../../services/validationService'
+import { verifyToken, getTokenFromHeader } from '../../../lib/auth'
+import { ApiResponse, PaginatedResponse } from '../../../types'
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {

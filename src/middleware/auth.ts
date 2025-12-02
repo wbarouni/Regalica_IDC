@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyToken, getTokenFromHeader } from '@/lib/auth'
+import { verifyToken, getTokenFromHeader } from '../lib/auth'
 
 export function withAuth(handler: (req: NextRequest, context: any) => Promise<NextResponse>) {
   return async (req: NextRequest, context: any) => {
@@ -22,10 +22,9 @@ export function withAuth(handler: (req: NextRequest, context: any) => Promise<Ne
     }
 
     // Ajouter les informations d'utilisateur à la requête
-    const requestWithUser = req.clone()
-    ;(requestWithUser as any).user = decoded
+    ;(req as any).user = decoded
 
-    return handler(requestWithUser, context)
+    return handler(req, context)
   }
 }
 
@@ -57,10 +56,9 @@ export function withRole(...allowedRoles: string[]) {
         )
       }
 
-      const requestWithUser = req.clone()
-      ;(requestWithUser as any).user = decoded
+      ;(req as any).user = decoded
 
-      return handler(requestWithUser, context)
+      return handler(req, context)
     }
   }
 }

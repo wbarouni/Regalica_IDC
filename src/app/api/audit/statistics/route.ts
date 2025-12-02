@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getValidationById, getRuleResultsByValidationId } from '../../../../services/validationService'
+import { getAuditStatistics } from '../../../../services/auditService'
 import { verifyToken, getTokenFromHeader } from '../../../../lib/auth'
 import { ApiResponse } from '../../../../types'
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-): Promise<NextResponse> {
+export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const authHeader = req.headers.get('authorization')
     const token = getTokenFromHeader(authHeader)
@@ -26,38 +23,26 @@ export async function GET(
       )
     }
 
-    const validation = await getValidationById(params.id)
-
-    if (!validation) {
+    // Vérifier que l'utilisateur est admin
+    if (decoded.role !== 'admin') {
       return NextResponse.json(
-        { success: false, error: 'Validation non trouvée' } as ApiResponse,
-        { status: 404 }
-      )
-    }
-
-    // Vérifier que l'utilisateur a accès à cette validation
-    if (validation.userId !== decoded.id && decoded.role !== 'admin') {
-      return NextResponse.json(
-        { success: false, error: 'Accès refusé' } as ApiResponse,
+        { success: false, error: 'Accès refusé - Seuls les administrateurs peuvent voir les statistiques d\'audit' } as ApiResponse,
         { status: 403 }
       )
     }
 
-    const ruleResults = await getRuleResultsByValidationId(params.id)
+    const stats = await getAuditStatistics()
 
     return NextResponse.json(
       {
         success: true,
-        data: {
-          validation,
-          ruleResults,
-        },
+        data: stats,
       } as ApiResponse,
       { status: 200 }
     )
   } catch (error: any) {
     return NextResponse.json(
-      { success: false, error: error.message || 'Erreur lors de la récupération de la validation' } as ApiResponse,
+      { success: false, error: error.message || 'Erreur lors de la récupération des statistiques d\'audit' } as ApiResponse,
       { status: 500 }
     )
   }

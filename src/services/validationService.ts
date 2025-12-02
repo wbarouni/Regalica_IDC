@@ -1,14 +1,14 @@
-import { db } from '@/db'
-import { validations, ruleResults, uploads } from '@/db/schema'
+import { db } from '../db'
+import { validations, ruleResults } from '../db/schema'
 import { eq } from 'drizzle-orm'
-import { Validation, RuleResult, ValidationStatus } from '@/types'
-import { generateId, calculateSuccessRate } from '@/lib/utils'
+import { Validation, RuleResult, ValidationStatus, RuleStatus } from '../types'
+import { generateId, calculateSuccessRate } from '../lib/utils'
 
 export async function createValidation(uploadId: string, userId: string): Promise<Validation> {
   const id = generateId()
   const now = new Date()
 
-  const validation = await db.insert(validations).values({
+  await db.insert(validations).values({
     id,
     uploadId,
     userId,
@@ -18,7 +18,7 @@ export async function createValidation(uploadId: string, userId: string): Promis
     failedRules: 0,
     warningRules: 0,
     pendingRules: 0,
-    successRate: 0,
+    successRate: '0',
     createdAt: now,
   })
 
@@ -48,16 +48,16 @@ export async function getValidationById(id: string): Promise<Validation | null> 
     id: validation.id,
     uploadId: validation.uploadId,
     userId: validation.userId,
-    status: validation.status,
-    totalRules: validation.totalRules,
-    passedRules: validation.passedRules,
-    failedRules: validation.failedRules,
-    warningRules: validation.warningRules,
-    pendingRules: validation.pendingRules,
+    status: (validation.status || 'pending') as ValidationStatus,
+    totalRules: validation.totalRules || 0,
+    passedRules: validation.passedRules || 0,
+    failedRules: validation.failedRules || 0,
+    warningRules: validation.warningRules || 0,
+    pendingRules: validation.pendingRules || 0,
     successRate: Number(validation.successRate),
     startedAt: validation.startedAt || undefined,
     completedAt: validation.completedAt || undefined,
-    createdAt: validation.createdAt,
+    createdAt: validation.createdAt || new Date(),
   }
 }
 
@@ -75,7 +75,7 @@ export async function updateValidationStatus(id: string, status: ValidationStatu
   return getValidationById(id)
 }
 
-export async function addRuleResult(validationId: string, result: Omit<RuleResult, 'id' | 'createdAt'>): Promise<RuleResult> {
+export async function addRuleResult(validationId: string, result: Omit<RuleResult, 'id' | 'createdAt' | 'validationId'>): Promise<RuleResult> {
   const id = generateId()
   const now = new Date()
 
@@ -88,7 +88,7 @@ export async function addRuleResult(validationId: string, result: Omit<RuleResul
     status: result.status,
     expectedValue: result.expectedValue,
     calculatedValue: result.calculatedValue,
-    tolerance: result.tolerance,
+    tolerance: result.tolerance ? result.tolerance.toString() : undefined,
     message: result.message,
     details: result.details,
     createdAt: now,
@@ -121,13 +121,13 @@ export async function getRuleResultsByValidationId(validationId: string): Promis
     ruleId: result.ruleId,
     ruleName: result.ruleName || undefined,
     ruleCategory: result.ruleCategory || undefined,
-    status: result.status,
+    status: (result.status || 'pending') as RuleStatus,
     expectedValue: result.expectedValue || undefined,
     calculatedValue: result.calculatedValue || undefined,
     tolerance: result.tolerance ? Number(result.tolerance) : undefined,
     message: result.message || undefined,
-    details: result.details || undefined,
-    createdAt: result.createdAt,
+    details: (result.details as Record<string, unknown>) || undefined,
+    createdAt: result.createdAt || new Date(),
   }))
 }
 
@@ -146,7 +146,7 @@ export async function updateValidationStats(validationId: string): Promise<Valid
 
   await db.update(validations).set({
     ...stats,
-    successRate,
+    successRate: successRate.toString(),
   }).where(eq(validations.id, validationId))
 
   return getValidationById(validationId)
@@ -161,16 +161,16 @@ export async function getValidationsByUploadId(uploadId: string): Promise<Valida
     id: v.id,
     uploadId: v.uploadId,
     userId: v.userId,
-    status: v.status,
-    totalRules: v.totalRules,
-    passedRules: v.passedRules,
-    failedRules: v.failedRules,
-    warningRules: v.warningRules,
-    pendingRules: v.pendingRules,
+    status: (v.status || 'pending') as ValidationStatus,
+    totalRules: v.totalRules || 0,
+    passedRules: v.passedRules || 0,
+    failedRules: v.failedRules || 0,
+    warningRules: v.warningRules || 0,
+    pendingRules: v.pendingRules || 0,
     successRate: Number(v.successRate),
     startedAt: v.startedAt || undefined,
     completedAt: v.completedAt || undefined,
-    createdAt: v.createdAt,
+    createdAt: v.createdAt || new Date(),
   }))
 }
 
@@ -185,15 +185,15 @@ export async function getValidationsByUserId(userId: string, limit: number = 10,
     id: v.id,
     uploadId: v.uploadId,
     userId: v.userId,
-    status: v.status,
-    totalRules: v.totalRules,
-    passedRules: v.passedRules,
-    failedRules: v.failedRules,
-    warningRules: v.warningRules,
-    pendingRules: v.pendingRules,
+    status: (v.status || 'pending') as ValidationStatus,
+    totalRules: v.totalRules || 0,
+    passedRules: v.passedRules || 0,
+    failedRules: v.failedRules || 0,
+    warningRules: v.warningRules || 0,
+    pendingRules: v.pendingRules || 0,
     successRate: Number(v.successRate),
     startedAt: v.startedAt || undefined,
     completedAt: v.completedAt || undefined,
-    createdAt: v.createdAt,
+    createdAt: v.createdAt || new Date(),
   }))
 }

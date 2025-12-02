@@ -1,4 +1,4 @@
-import { mysqlTable, mysqlEnum, varchar, text, int, decimal, datetime, boolean, json, primaryKey } from 'drizzle-orm/mysql-core'
+import { mysqlTable, mysqlEnum, varchar, text, int, decimal, datetime, boolean, json } from 'drizzle-orm/mysql-core'
 import { relations } from 'drizzle-orm'
 
 // ============================================================================
@@ -14,8 +14,8 @@ export const users = mysqlTable('users', {
   organization: varchar('organization', { length: 255 }),
   role: mysqlEnum('role', ['admin', 'validator', 'analyst', 'viewer']).default('viewer'),
   isActive: boolean('is_active').default(true),
-  createdAt: datetime('created_at').defaultNow(),
-  updatedAt: datetime('updated_at').defaultNow().onUpdateNow(),
+  createdAt: datetime('created_at').default(new Date()),
+  updatedAt: datetime('updated_at').default(new Date()).default(new Date()),
 })
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -36,7 +36,7 @@ export const uploads = mysqlTable('uploads', {
   fileType: varchar('file_type', { length: 50 }).default('xml'),
   status: mysqlEnum('status', ['pending', 'processing', 'completed', 'failed']).default('pending'),
   errorMessage: text('error_message'),
-  uploadedAt: datetime('uploaded_at').defaultNow(),
+  uploadedAt: datetime('uploaded_at').default(new Date()),
   processedAt: datetime('processed_at'),
 })
 
@@ -62,7 +62,7 @@ export const validations = mysqlTable('validations', {
   successRate: decimal('success_rate', { precision: 5, scale: 2 }).default('0.00'),
   startedAt: datetime('started_at'),
   completedAt: datetime('completed_at'),
-  createdAt: datetime('created_at').defaultNow(),
+  createdAt: datetime('created_at').default(new Date()),
 })
 
 export const validationsRelations = relations(validations, ({ one, many }) => ({
@@ -87,7 +87,7 @@ export const ruleResults = mysqlTable('rule_results', {
   tolerance: decimal('tolerance', { precision: 10, scale: 4 }).default('0.01'),
   message: text('message'),
   details: json('details'),
-  createdAt: datetime('created_at').defaultNow(),
+  createdAt: datetime('created_at').default(new Date()),
 })
 
 export const ruleResultsRelations = relations(ruleResults, ({ one }) => ({
@@ -107,7 +107,7 @@ export const bankingData = mysqlTable('banking_data', {
   annexNumber: varchar('annex_number', { length: 50 }),
   rawData: json('raw_data'),
   parsedData: json('parsed_data'),
-  createdAt: datetime('created_at').defaultNow(),
+  createdAt: datetime('created_at').default(new Date()),
 })
 
 export const bankingDataRelations = relations(bankingData, ({ one }) => ({
@@ -128,8 +128,8 @@ export const rdgRules = mysqlTable('rdg_rules', {
   tolerance: decimal('tolerance', { precision: 10, scale: 4 }).default('0.01'),
   isActive: boolean('is_active').default(true),
   priority: int('priority').default(0),
-  createdAt: datetime('created_at').defaultNow(),
-  updatedAt: datetime('updated_at').defaultNow().onUpdateNow(),
+  createdAt: datetime('created_at').default(new Date()),
+  updatedAt: datetime('updated_at').default(new Date()).default(new Date()),
 })
 
 // ============================================================================
@@ -145,7 +145,7 @@ export const auditLogs = mysqlTable('audit_logs', {
   changes: json('changes'),
   ipAddress: varchar('ip_address', { length: 45 }),
   userAgent: text('user_agent'),
-  createdAt: datetime('created_at').defaultNow(),
+  createdAt: datetime('created_at').default(new Date()),
 })
 
 export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
@@ -161,7 +161,7 @@ export const sessions = mysqlTable('sessions', {
   userId: varchar('user_id', { length: 36 }).notNull(),
   token: text('token'),
   expiresAt: datetime('expires_at'),
-  createdAt: datetime('created_at').defaultNow(),
+  createdAt: datetime('created_at').default(new Date()),
 })
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({

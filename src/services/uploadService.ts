@@ -1,8 +1,8 @@
-import { db } from '@/db'
-import { uploads } from '@/db/schema'
+import { db } from '../db'
+import { uploads } from '../db/schema'
 import { eq } from 'drizzle-orm'
-import { Upload, UploadStatus } from '@/types'
-import { generateId } from '@/lib/utils'
+import { Upload, UploadStatus } from '../types'
+import { generateId } from '../lib/utils'
 
 export async function createUpload(
   userId: string,
@@ -47,10 +47,10 @@ export async function getUploadById(id: string): Promise<Upload | null> {
     fileName: upload.fileName,
     filePath: upload.filePath || undefined,
     fileSize: upload.fileSize || undefined,
-    fileType: upload.fileType,
-    status: upload.status,
+    fileType: upload.fileType || 'xml',
+    status: upload.status || 'pending',
     errorMessage: upload.errorMessage || undefined,
-    uploadedAt: upload.uploadedAt,
+    uploadedAt: upload.uploadedAt || new Date(),
     processedAt: upload.processedAt || undefined,
   }
 }
@@ -88,10 +88,10 @@ export async function getUploadsByUserId(userId: string, limit: number = 10, off
     fileName: u.fileName,
     filePath: u.filePath || undefined,
     fileSize: u.fileSize || undefined,
-    fileType: u.fileType,
-    status: u.status,
+    fileType: u.fileType || 'xml',
+    status: u.status || 'pending',
     errorMessage: u.errorMessage || undefined,
-    uploadedAt: u.uploadedAt,
+    uploadedAt: u.uploadedAt || new Date(),
     processedAt: u.processedAt || undefined,
   }))
 }

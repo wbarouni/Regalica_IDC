@@ -1,9 +1,9 @@
-import { db } from '@/db'
-import { users } from '@/db/schema'
+import { db } from '../db'
+import { users } from '../db/schema'
 import { eq } from 'drizzle-orm'
-import { User, CreateUserInput } from '@/types'
-import { hashPassword, verifyPassword } from '@/lib/auth'
-import { generateId, validateEmail } from '@/lib/utils'
+import { User, CreateUserInput } from '../types'
+import { hashPassword, verifyPassword } from '../lib/auth'
+import { generateId, validateEmail } from '../lib/utils'
 
 export async function createUser(input: CreateUserInput): Promise<User> {
   if (!validateEmail(input.email)) {
@@ -21,7 +21,7 @@ export async function createUser(input: CreateUserInput): Promise<User> {
   const hashedPassword = await hashPassword(input.password)
   const id = generateId()
 
-  const newUser = await db.insert(users).values({
+  await db.insert(users).values({
     id,
     email: input.email,
     password: hashedPassword,
@@ -58,10 +58,10 @@ export async function getUserById(id: string): Promise<User | null> {
     firstName: user.firstName || undefined,
     lastName: user.lastName || undefined,
     organization: user.organization || undefined,
-    role: user.role,
-    isActive: user.isActive,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
+    role: user.role || 'viewer',
+    isActive: user.isActive || true,
+    createdAt: user.createdAt || new Date(),
+    updatedAt: user.updatedAt || new Date(),
   }
 }
 
@@ -78,10 +78,10 @@ export async function getUserByEmail(email: string): Promise<User | null> {
     firstName: user.firstName || undefined,
     lastName: user.lastName || undefined,
     organization: user.organization || undefined,
-    role: user.role,
-    isActive: user.isActive,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
+    role: user.role || 'viewer',
+    isActive: user.isActive || true,
+    createdAt: user.createdAt || new Date(),
+    updatedAt: user.updatedAt || new Date(),
   }
 }
 
@@ -101,10 +101,10 @@ export async function authenticateUser(email: string, password: string): Promise
     firstName: user.firstName || undefined,
     lastName: user.lastName || undefined,
     organization: user.organization || undefined,
-    role: user.role,
-    isActive: user.isActive,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
+    role: user.role || 'viewer',
+    isActive: user.isActive || true,
+    createdAt: user.createdAt || new Date(),
+    updatedAt: user.updatedAt || new Date(),
   }
 }
 
@@ -114,7 +114,7 @@ export async function updateUser(id: string, updates: Partial<User>): Promise<Us
 }
 
 export async function deleteUser(id: string): Promise<boolean> {
-  const result = await db.delete(users).where(eq(users.id, id))
+  await db.delete(users).where(eq(users.id, id))
   return true
 }
 
@@ -130,9 +130,9 @@ export async function listUsers(limit: number = 10, offset: number = 0): Promise
     firstName: user.firstName || undefined,
     lastName: user.lastName || undefined,
     organization: user.organization || undefined,
-    role: user.role,
-    isActive: user.isActive,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
+    role: user.role || 'viewer',
+    isActive: user.isActive || true,
+    createdAt: user.createdAt || new Date(),
+    updatedAt: user.updatedAt || new Date(),
   }))
 }

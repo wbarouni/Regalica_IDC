@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { authenticateUser } from '@/services/userService'
-import { generateToken } from '@/lib/auth'
-import { ApiResponse } from '@/types'
+import { authenticateUser } from '../../../../services/userService'
+import { generateToken } from '../../../../lib/auth'
+import { ApiResponse } from '../../../../types'
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getValidationsByUserId } from '@/services/validationService'
-import { verifyToken, getTokenFromHeader } from '@/lib/auth'
-import { ApiResponse, PaginatedResponse } from '@/types'
+import { getValidationsByUserId } from '../../../services/validationService'
+import { verifyToken, getTokenFromHeader } from '../../../lib/auth'
+import { ApiResponse, PaginatedResponse } from '../../../types'
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {

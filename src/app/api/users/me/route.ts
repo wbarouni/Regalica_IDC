@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUserById } from '@/services/userService'
-import { verifyToken, getTokenFromHeader } from '@/lib/auth'
-import { ApiResponse } from '@/types'
+import { getUserById } from '../../../../services/userService'
+import { verifyToken, getTokenFromHeader } from '../../../../lib/auth'
+import { ApiResponse } from '../../../../types'
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getAllRules, getActiveRules } from '../../../services/rdgService'
-import { verifyToken, getTokenFromHeader } from '../../../lib/auth'
-import { ApiResponse, PaginatedResponse } from '../../../types'
+import { getAuditLogsByUserId } from '../../../../services/auditService'
+import { verifyToken, getTokenFromHeader } from '../../../../lib/auth'
+import { ApiResponse, PaginatedResponse } from '../../../../types'
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
@@ -25,32 +25,35 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
     const url = new URL(req.url)
     const page = parseInt(url.searchParams.get('page') || '1')
-    const pageSize = parseInt(url.searchParams.get('pageSize') || '50')
-    const activeOnly = url.searchParams.get('active') === 'true'
+    const pageSize = parseInt(url.searchParams.get('pageSize') || '20')
     const offset = (page - 1) * pageSize
 
-    let rulesList
+    // Les utilisateurs ne peuvent voir que leurs propres logs
+    // Les admins peuvent voir tous les logs
+    let logs
 
-    if (activeOnly) {
-      rulesList = await getActiveRules()
+    if (decoded.role === 'admin') {
+      // Pour les admins, récupérer tous les logs
+      logs = await getAuditLogsByUserId(decoded.id, pageSize, offset)
     } else {
-      rulesList = await getAllRules(pageSize, offset)
+      // Pour les autres, récupérer seulement leurs logs
+      logs = await getAuditLogsByUserId(decoded.id, pageSize, offset)
     }
 
     return NextResponse.json(
       {
         success: true,
-        data: rulesList,
+        data: logs,
         page,
         pageSize,
-        total: rulesList.length,
-        totalPages: Math.ceil(rulesList.length / pageSize),
+        total: logs.length,
+        totalPages: Math.ceil(logs.length / pageSize),
       } as PaginatedResponse<any>,
       { status: 200 }
     )
   } catch (error: any) {
     return NextResponse.json(
-      { success: false, error: error.message || 'Erreur lors de la récupération des règles' } as ApiResponse,
+      { success: false, error: error.message || 'Erreur lors de la récupération des logs d\'audit' } as ApiResponse,
       { status: 500 }
     )
   }
