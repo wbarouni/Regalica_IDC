@@ -197,3 +197,8 @@ export async function getValidationsByUserId(userId: string, limit: number = 10,
     createdAt: v.createdAt || new Date(),
   }))
 }
+
+export async function deleteValidation(id: string): Promise<boolean> {
+  await db.delete(validations).where(eq(validations.id, id))
+  return true
+}

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { loadRDGRulesFromJSON, getRulesStatistics } from '../../../../../services/rdgRulesLoaderService'
+import { loadRDGRules, getRulesStatistics } from '../../../../../services/rdgRulesService'
 import { verifyToken, getTokenFromHeader } from '../../../../../lib/auth'
 import { ApiResponse } from '../../../../../types'
 
@@ -26,37 +26,25 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // Vérifier que l'utilisateur est admin
     if (decoded.role !== 'admin') {
       return NextResponse.json(
-        { success: false, error: 'Accès refusé - Seuls les administrateurs peuvent charger les règles' } as ApiResponse,
+        { success: false, error: 'Accès refusé - Administrateur requis' } as ApiResponse,
         { status: 403 }
       )
     }
 
-    const body = await req.json()
-    const { rules } = body
-
-    if (!Array.isArray(rules)) {
-      return NextResponse.json(
-        { success: false, error: 'Les règles doivent être un tableau' } as ApiResponse,
-        { status: 400 }
-      )
-    }
-
     // Charger les règles
-    const loadedCount = await loadRDGRulesFromJSON(rules)
-
-    // Obtenir les statistiques
+    const rules = await loadRDGRules()
     const stats = await getRulesStatistics()
 
     return NextResponse.json(
       {
         success: true,
         data: {
-          loadedCount,
+          rulesLoaded: rules.length,
           statistics: stats,
         },
-        message: `${loadedCount} règles chargées avec succès`,
+        message: `${rules.length} règles RDG chargées avec succès`,
       } as ApiResponse,
-      { status: 201 }
+      { status: 200 }
     )
   } catch (error: any) {
     return NextResponse.json(

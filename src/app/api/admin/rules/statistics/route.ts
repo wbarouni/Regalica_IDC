@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getRulesStatistics, getRulesGroupedByCategory } from '../../../../../services/rdgRulesLoaderService'
+import { getRulesStatistics } from '../../../../../services/rdgRulesService'
 import { verifyToken, getTokenFromHeader } from '../../../../../lib/auth'
 import { ApiResponse } from '../../../../../types'
 
@@ -23,29 +23,20 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       )
     }
 
-    // Vérifier que l'utilisateur est admin
-    if (decoded.role !== 'admin') {
+    // Vérifier que l'utilisateur est admin ou analyst
+    if (decoded.role !== 'admin' && decoded.role !== 'analyst') {
       return NextResponse.json(
-        { success: false, error: 'Accès refusé - Seuls les administrateurs peuvent voir les statistiques' } as ApiResponse,
+        { success: false, error: 'Accès refusé' } as ApiResponse,
         { status: 403 }
       )
     }
 
     const stats = await getRulesStatistics()
-    const grouped = await getRulesGroupedByCategory()
 
     return NextResponse.json(
       {
         success: true,
-        data: {
-          statistics: stats,
-          categoriesCount: Object.keys(grouped).length,
-          categories: Object.keys(grouped).map((cat) => ({
-            name: cat,
-            count: grouped[cat].length,
-            active: grouped[cat].filter((r) => r.isActive).length,
-          })),
-        },
+        data: stats,
       } as ApiResponse,
       { status: 200 }
     )

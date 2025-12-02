@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getValidationById, getRuleResultsByValidationId, deleteValidation } from '../../../../services/validationService'
+import { getUploadById, deleteUpload } from '../../../../services/uploadService'
 import { verifyToken, getTokenFromHeader } from '../../../../lib/auth'
 import { ApiResponse } from '../../../../types'
 
@@ -26,38 +26,33 @@ export async function GET(
       )
     }
 
-    const validation = await getValidationById(params.id)
+    const upload = await getUploadById(params.id)
 
-    if (!validation) {
+    if (!upload) {
       return NextResponse.json(
-        { success: false, error: 'Validation non trouvée' } as ApiResponse,
+        { success: false, error: 'Upload non trouvé' } as ApiResponse,
         { status: 404 }
       )
     }
 
-    // Vérifier que l'utilisateur a accès à cette validation
-    if (validation.userId !== decoded.id && decoded.role !== 'admin' && decoded.role !== 'analyst') {
+    // Vérifier que l'utilisateur est propriétaire de l'upload
+    if (upload.userId !== decoded.id && decoded.role !== 'admin') {
       return NextResponse.json(
         { success: false, error: 'Accès refusé' } as ApiResponse,
         { status: 403 }
       )
     }
 
-    const ruleResults = await getRuleResultsByValidationId(params.id)
-
     return NextResponse.json(
       {
         success: true,
-        data: {
-          validation,
-          ruleResults,
-        },
+        data: upload,
       } as ApiResponse,
       { status: 200 }
     )
   } catch (error: any) {
     return NextResponse.json(
-      { success: false, error: error.message || 'Erreur lors de la récupération de la validation' } as ApiResponse,
+      { success: false, error: error.message || 'Erreur lors de la récupération de l\'upload' } as ApiResponse,
       { status: 500 }
     )
   }
@@ -86,28 +81,28 @@ export async function DELETE(
       )
     }
 
-    const validation = await getValidationById(params.id)
+    const upload = await getUploadById(params.id)
 
-    if (!validation) {
+    if (!upload) {
       return NextResponse.json(
-        { success: false, error: 'Validation non trouvée' } as ApiResponse,
+        { success: false, error: 'Upload non trouvé' } as ApiResponse,
         { status: 404 }
       )
     }
 
-    // Vérifier les permissions - seulement l'admin peut supprimer
-    if (decoded.role !== 'admin') {
+    // Vérifier que l'utilisateur est propriétaire de l'upload ou admin
+    if (upload.userId !== decoded.id && decoded.role !== 'admin') {
       return NextResponse.json(
         { success: false, error: 'Accès refusé' } as ApiResponse,
         { status: 403 }
       )
     }
 
-    const success = await deleteValidation(params.id)
+    const success = await deleteUpload(params.id)
 
     if (!success) {
       return NextResponse.json(
-        { success: false, error: 'Erreur lors de la suppression de la validation' } as ApiResponse,
+        { success: false, error: 'Erreur lors de la suppression de l\'upload' } as ApiResponse,
         { status: 500 }
       )
     }
@@ -115,13 +110,13 @@ export async function DELETE(
     return NextResponse.json(
       {
         success: true,
-        message: 'Validation supprimée avec succès',
+        message: 'Upload supprimé avec succès',
       } as ApiResponse,
       { status: 200 }
     )
   } catch (error: any) {
     return NextResponse.json(
-      { success: false, error: error.message || 'Erreur lors de la suppression de la validation' } as ApiResponse,
+      { success: false, error: error.message || 'Erreur lors de la suppression de l\'upload' } as ApiResponse,
       { status: 500 }
     )
   }

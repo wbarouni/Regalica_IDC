@@ -7,6 +7,7 @@ import { verifyToken, getTokenFromHeader } from '../../../../../lib/auth'
 import { ApiResponse } from '../../../../../types'
 import { db } from '../../../../../db'
 import { bankingData } from '../../../../../db/schema'
+import { createAuditLog } from '../../../../../services/auditService'
 
 export async function POST(
   req: NextRequest,
@@ -74,6 +75,16 @@ export async function POST(
         `Erreur de structure XML: ${validation.errors.join(', ')}`
       )
 
+      await createAuditLog({
+        userId: decoded.id,
+        action: 'upload_failed',
+        entityType: 'upload',
+        entityId: params.id,
+        changes: {
+          error: `Erreur de structure XML: ${validation.errors.join(', ')}`,
+        },
+      })
+
       return NextResponse.json(
         {
           success: false,
@@ -129,6 +140,18 @@ export async function POST(
     // Mettre à jour le statut de l'upload à "completed"
     await updateUploadStatus(params.id, 'completed')
 
+    // Enregistrer dans l'audit
+    await createAuditLog({
+      userId: decoded.id,
+      action: 'upload_processed',
+      entityType: 'upload',
+      entityId: params.id,
+      changes: {
+        bankingDataCount: bankingDataList.length,
+        validationResultsCount: results.length,
+      },
+    })
+
     return NextResponse.json(
       {
         success: true,
@@ -149,6 +172,24 @@ export async function POST(
   } catch (error: any) {
     // Mettre à jour le statut de l'upload à "failed"
     await updateUploadStatus(params.id, 'failed', error.message)
+
+    // Enregistrer l'erreur dans l'audit
+    const authHeader = req.headers.get('authorization')
+    const token = getTokenFromHeader(authHeader)
+    if (token) {
+      const decoded = verifyToken(token)
+      if (decoded) {
+        await createAuditLog({
+          userId: decoded.id,
+          action: 'upload_error',
+          entityType: 'upload',
+          entityId: params.id,
+          changes: {
+            error: error.message,
+          },
+        })
+      }
+    }
 
     return NextResponse.json(
       { success: false, error: error.message || 'Erreur lors du traitement du fichier' } as ApiResponse,
