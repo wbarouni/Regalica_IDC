@@ -1,0 +1,41 @@
+{
+  "name": "Regalica IDC",
+  "version": 2,
+  "public": false,
+  "buildCommand": "pnpm build",
+  "devCommand": "pnpm dev",
+  "installCommand": "pnpm install",
+  "framework": "nextjs",
+  "env": [
+    {
+      "key": "DATABASE_URL",
+      "description": "URL de connexion à la base de données MySQL",
+      "value": "",
+      "type": "secret"
+    },
+    {
+      "key": "JWT_SECRET",
+      "description": "Clé secrète pour les tokens JWT",
+      "value": "",
+      "type": "secret"
+    },
+    {
+      "key": "GEMINI_API_KEY",
+      "description": "Clé API Google Gemini pour la validation intelligente",
+      "value": "",
+      "type": "secret"
+    },
+    {
+      "key": "NODE_ENV",
+      "description": "Environnement d'exécution",
+      "value": "production"
+    }
+  ],
+  "regions": ["cdg1"],
+  "functions": {
+    "api/**/*.ts": {
+      "memory": 1024,
+      "maxDuration": 60
+    }
+  }
+}
