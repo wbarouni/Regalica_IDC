@@ -1,0 +1,22 @@
+{
+  "name": "@regalica/bct-xml-parser",
+  "version": "0.0.0",
+  "private": true,
+  "description": "BCT XML parser — streams annexes into normalised rubriques for the evaluator (Phase 1)",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"(bct-xml-parser) parser arrives in Phase 1\" && exit 0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}

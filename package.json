@@ -1,0 +1,31 @@
+{
+  "name": "regalica-idc",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Regalica IDC — SaaS multi-tenant de conformité réglementaire BCT à tolérance zéro",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wbarouni/Regalica_IDC.git"
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "lint": "pnpm -r --if-present lint",
+    "lint:fix": "pnpm -r --if-present lint:fix",
+    "test": "pnpm -r --if-present test",
+    "build": "pnpm -r --if-present build",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "dev": "docker compose up",
+    "dev:down": "docker compose down",
+    "typecheck": "pnpm -r --if-present typecheck"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.3"
+  }
+}

@@ -1,0 +1,804 @@
+<Document>
+  <Entete>
+    <CodeBanque>23</CodeBanque>
+    <DateAnnexe>20240331</DateAnnexe>
+    <CodeAnnexe>51</CodeAnnexe>
+  </Entete>
+  <Annexe id="51">
+    <Rubrique id="CH1">
+      <Colonne id="1">23148.683</Colonne>
+    </Rubrique>
+    <Rubrique id="CH11">
+      <Colonne id="1">744.655</Colonne>
+    </Rubrique>
+    <Rubrique id="CH111">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH112">
+      <Colonne id="1">5.734</Colonne>
+    </Rubrique>
+    <Rubrique id="CH113">
+      <Colonne id="1">38.446</Colonne>
+    </Rubrique>
+    <Rubrique id="CH1131">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH1132">
+      <Colonne id="1">38.446</Colonne>
+    </Rubrique>
+    <Rubrique id="CH114">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH1141">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH1142">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH115">
+      <Colonne id="1">700.475</Colonne>
+    </Rubrique>
+    <Rubrique id="CH1151">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH1152">
+      <Colonne id="1">700.475</Colonne>
+    </Rubrique>
+    <Rubrique id="CH119">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH12">
+      <Colonne id="1">21750.599</Colonne>
+    </Rubrique>
+    <Rubrique id="CH121">
+      <Colonne id="1">368.941</Colonne>
+    </Rubrique>
+    <Rubrique id="CH1211">
+      <Colonne id="1">368.941</Colonne>
+    </Rubrique>
+    <Rubrique id="CH1212">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH12121">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH12129">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH1213">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH122">
+      <Colonne id="1">2291.891</Colonne>
+    </Rubrique>
+    <Rubrique id="CH1221">
+      <Colonne id="1">2291.891</Colonne>
+    </Rubrique>
+    <Rubrique id="CH1222">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH1229">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH123">
+      <Colonne id="1">13297.296</Colonne>
+    </Rubrique>
+    <Rubrique id="CH1231">
+      <Colonne id="1">8121.283</Colonne>
+    </Rubrique>
+    <Rubrique id="CH1232">
+      <Colonne id="1">478.437</Colonne>
+    </Rubrique>
+    <Rubrique id="CH1233">
+      <Colonne id="1">3394.850</Colonne>
+    </Rubrique>
+    <Rubrique id="CH1239">
+      <Colonne id="1">1302.726</Colonne>
+    </Rubrique>
+    <Rubrique id="CH124">
+      <Colonne id="1">5792.471</Colonne>
+    </Rubrique>
+    <Rubrique id="CH13">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH131">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH132">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH133">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH14">
+      <Colonne id="1">653.429</Colonne>
+    </Rubrique>
+    <Rubrique id="CH141">
+      <Colonne id="1">68.063</Colonne>
+    </Rubrique>
+    <Rubrique id="CH1411">
+      <Colonne id="1">68.063</Colonne>
+    </Rubrique>
+    <Rubrique id="CH1412">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH142">
+      <Colonne id="1">585.366</Colonne>
+    </Rubrique>
+    <Rubrique id="CH149">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH2">
+      <Colonne id="1">672.760</Colonne>
+    </Rubrique>
+    <Rubrique id="CH3">
+      <Colonne id="1">1.444</Colonne>
+    </Rubrique>
+    <Rubrique id="CH31">
+      <Colonne id="1">1.444</Colonne>
+    </Rubrique>
+    <Rubrique id="CH311">
+      <Colonne id="1">1.444</Colonne>
+    </Rubrique>
+    <Rubrique id="CH32">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH321">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH322">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH33">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH331">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH332">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH4">
+      <Colonne id="1">15778.932</Colonne>
+    </Rubrique>
+    <Rubrique id="CH41">
+      <Colonne id="1">14925.451</Colonne>
+    </Rubrique>
+    <Rubrique id="CH42">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH43">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH44">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH45">
+      <Colonne id="1">853.481</Colonne>
+    </Rubrique>
+    <Rubrique id="CH5">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH51">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH52">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH6">
+      <Colonne id="1">12322.089</Colonne>
+    </Rubrique>
+    <Rubrique id="CH61">
+      <Colonne id="1">8602.538</Colonne>
+    </Rubrique>
+    <Rubrique id="CH611">
+      <Colonne id="1">7646.316</Colonne>
+    </Rubrique>
+    <Rubrique id="CH612">
+      <Colonne id="1">25.195</Colonne>
+    </Rubrique>
+    <Rubrique id="CH613">
+      <Colonne id="1">222.049</Colonne>
+    </Rubrique>
+    <Rubrique id="CH614">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH615">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH616">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH617">
+      <Colonne id="1">292.192</Colonne>
+    </Rubrique>
+    <Rubrique id="CH619">
+      <Colonne id="1">416.786</Colonne>
+    </Rubrique>
+    <Rubrique id="CH62">
+      <Colonne id="1">12.710</Colonne>
+    </Rubrique>
+    <Rubrique id="CH63">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH64">
+      <Colonne id="1">1105.263</Colonne>
+    </Rubrique>
+    <Rubrique id="CH69">
+      <Colonne id="1">2601.578</Colonne>
+    </Rubrique>
+    <Rubrique id="CH7">
+      <Colonne id="1">4556.939</Colonne>
+    </Rubrique>
+    <Rubrique id="CH71">
+      <Colonne id="1">229.656</Colonne>
+    </Rubrique>
+    <Rubrique id="CH72">
+      <Colonne id="1">1645.332</Colonne>
+    </Rubrique>
+    <Rubrique id="CH721">
+      <Colonne id="1">356.639</Colonne>
+    </Rubrique>
+    <Rubrique id="CH7211">
+      <Colonne id="1">303.819</Colonne>
+    </Rubrique>
+    <Rubrique id="CH7212">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH7219">
+      <Colonne id="1">52.820</Colonne>
+    </Rubrique>
+    <Rubrique id="CH722">
+      <Colonne id="1">1118.124</Colonne>
+    </Rubrique>
+    <Rubrique id="CH723">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH724">
+      <Colonne id="1">166.596</Colonne>
+    </Rubrique>
+    <Rubrique id="CH725">
+      <Colonne id="1">3.973</Colonne>
+    </Rubrique>
+    <Rubrique id="CH726">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH73">
+      <Colonne id="1">1507.040</Colonne>
+    </Rubrique>
+    <Rubrique id="CH731">
+      <Colonne id="1">882.040</Colonne>
+    </Rubrique>
+    <Rubrique id="CH732">
+      <Colonne id="1">625.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH74">
+      <Colonne id="1">19.709</Colonne>
+    </Rubrique>
+    <Rubrique id="CH75">
+      <Colonne id="1">15.159</Colonne>
+    </Rubrique>
+    <Rubrique id="CH76">
+      <Colonne id="1">805.340</Colonne>
+    </Rubrique>
+    <Rubrique id="CH761">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH762">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH763">
+      <Colonne id="1">115.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH764">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH765">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH766">
+      <Colonne id="1">34.973</Colonne>
+    </Rubrique>
+    <Rubrique id="CH767">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH768">
+      <Colonne id="1">655.367</Colonne>
+    </Rubrique>
+    <Rubrique id="CH77">
+      <Colonne id="1">29.703</Colonne>
+    </Rubrique>
+    <Rubrique id="CH79">
+      <Colonne id="1">305.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH8">
+      <Colonne id="1">699.467</Colonne>
+    </Rubrique>
+    <Rubrique id="CH9">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH91">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH92">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH93">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CH99">
+      <Colonne id="1">23822.887</Colonne>
+    </Rubrique>
+    <Rubrique id="CI10">
+      <Colonne id="1">90.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CP11">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="EMC99">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PNB99">
+      <Colonne id="1">16391.951</Colonne>
+    </Rubrique>
+    <Rubrique id="PR1">
+      <Colonne id="1">26787.799</Colonne>
+    </Rubrique>
+    <Rubrique id="PR11">
+      <Colonne id="1">4326.274</Colonne>
+    </Rubrique>
+    <Rubrique id="PR111">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR112">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR113">
+      <Colonne id="1">2836.303</Colonne>
+    </Rubrique>
+    <Rubrique id="PR1131">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR1132">
+      <Colonne id="1">2836.303</Colonne>
+    </Rubrique>
+    <Rubrique id="PR114">
+      <Colonne id="1">15.285</Colonne>
+    </Rubrique>
+    <Rubrique id="PR1141">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR1142">
+      <Colonne id="1">15.285</Colonne>
+    </Rubrique>
+    <Rubrique id="PR115">
+      <Colonne id="1">1474.686</Colonne>
+    </Rubrique>
+    <Rubrique id="PR1151">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR11511">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR11512">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR1152">
+      <Colonne id="1">1474.686</Colonne>
+    </Rubrique>
+    <Rubrique id="PR11521">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR11522">
+      <Colonne id="1">1474.686</Colonne>
+    </Rubrique>
+    <Rubrique id="PR119">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR12">
+      <Colonne id="1">21848.975</Colonne>
+    </Rubrique>
+    <Rubrique id="PR121">
+      <Colonne id="1">19194.771</Colonne>
+    </Rubrique>
+    <Rubrique id="PR1211">
+      <Colonne id="1">3944.563</Colonne>
+    </Rubrique>
+    <Rubrique id="PR1212">
+      <Colonne id="1">61.047</Colonne>
+    </Rubrique>
+    <Rubrique id="PR1213">
+      <Colonne id="1">756.300</Colonne>
+    </Rubrique>
+    <Rubrique id="PR12131">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR12139">
+      <Colonne id="1">756.300</Colonne>
+    </Rubrique>
+    <Rubrique id="PR1214">
+      <Colonne id="1">14432.861</Colonne>
+    </Rubrique>
+    <Rubrique id="PR12141">
+      <Colonne id="1">1872.256</Colonne>
+    </Rubrique>
+    <Rubrique id="PR12149">
+      <Colonne id="1">12560.605</Colonne>
+    </Rubrique>
+    <Rubrique id="PR122">
+      <Colonne id="1">1221.748</Colonne>
+    </Rubrique>
+    <Rubrique id="PR123">
+      <Colonne id="1">486.281</Colonne>
+    </Rubrique>
+    <Rubrique id="PR124">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR125">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR126">
+      <Colonne id="1">330.218</Colonne>
+    </Rubrique>
+    <Rubrique id="PR127">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR128">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR129">
+      <Colonne id="1">615.957</Colonne>
+    </Rubrique>
+    <Rubrique id="PR13">
+      <Colonne id="1">612.550</Colonne>
+    </Rubrique>
+    <Rubrique id="PR131">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR1311">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR1312">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR13121">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR13122">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR132">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR133">
+      <Colonne id="1">172.063</Colonne>
+    </Rubrique>
+    <Rubrique id="PR134">
+      <Colonne id="1">267.460</Colonne>
+    </Rubrique>
+    <Rubrique id="PR139">
+      <Colonne id="1">173.027</Colonne>
+    </Rubrique>
+    <Rubrique id="PR2">
+      <Colonne id="1">1502.479</Colonne>
+    </Rubrique>
+    <Rubrique id="PR21">
+      <Colonne id="1">336.688</Colonne>
+    </Rubrique>
+    <Rubrique id="PR211">
+      <Colonne id="1">8.443</Colonne>
+    </Rubrique>
+    <Rubrique id="PR2111">
+      <Colonne id="1">8.443</Colonne>
+    </Rubrique>
+    <Rubrique id="PR2119">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR212">
+      <Colonne id="1">127.406</Colonne>
+    </Rubrique>
+    <Rubrique id="PR2121">
+      <Colonne id="1">25.727</Colonne>
+    </Rubrique>
+    <Rubrique id="PR2122">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR2123">
+      <Colonne id="1">9.119</Colonne>
+    </Rubrique>
+    <Rubrique id="PR2124">
+      <Colonne id="1">92.560</Colonne>
+    </Rubrique>
+    <Rubrique id="PR2125">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR2129">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR213">
+      <Colonne id="1">120.810</Colonne>
+    </Rubrique>
+    <Rubrique id="PR2131">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR2132">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR2133">
+      <Colonne id="1">80.404</Colonne>
+    </Rubrique>
+    <Rubrique id="PR2139">
+      <Colonne id="1">40.406</Colonne>
+    </Rubrique>
+    <Rubrique id="PR214">
+      <Colonne id="1">80.029</Colonne>
+    </Rubrique>
+    <Rubrique id="PR2141">
+      <Colonne id="1">20.231</Colonne>
+    </Rubrique>
+    <Rubrique id="PR21411">
+      <Colonne id="1">20.231</Colonne>
+    </Rubrique>
+    <Rubrique id="PR21412">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR2142">
+      <Colonne id="1">59.798</Colonne>
+    </Rubrique>
+    <Rubrique id="PR21421">
+      <Colonne id="1">59.798</Colonne>
+    </Rubrique>
+    <Rubrique id="PR21422">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR2149">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR215">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR216">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR22">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR221">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR222">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR223">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR229">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR23">
+      <Colonne id="1">126.240</Colonne>
+    </Rubrique>
+    <Rubrique id="PR231">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR232">
+      <Colonne id="1">1.800</Colonne>
+    </Rubrique>
+    <Rubrique id="PR233">
+      <Colonne id="1">104.797</Colonne>
+    </Rubrique>
+    <Rubrique id="PR234">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR235">
+      <Colonne id="1">19.643</Colonne>
+    </Rubrique>
+    <Rubrique id="PR236">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR24">
+      <Colonne id="1">495.533</Colonne>
+    </Rubrique>
+    <Rubrique id="PR241">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR242">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR243">
+      <Colonne id="1">62.393</Colonne>
+    </Rubrique>
+    <Rubrique id="PR244">
+      <Colonne id="1">17.192</Colonne>
+    </Rubrique>
+    <Rubrique id="PR245">
+      <Colonne id="1">389.861</Colonne>
+    </Rubrique>
+    <Rubrique id="PR246">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR247">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR249">
+      <Colonne id="1">26.087</Colonne>
+    </Rubrique>
+    <Rubrique id="PR25">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR251">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR259">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR26">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR27">
+      <Colonne id="1">544.018</Colonne>
+    </Rubrique>
+    <Rubrique id="PR271">
+      <Colonne id="1">168.599</Colonne>
+    </Rubrique>
+    <Rubrique id="PR2711">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR2712">
+      <Colonne id="1">168.599</Colonne>
+    </Rubrique>
+    <Rubrique id="PR2713">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR2714">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR2719">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR272">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR273">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR279">
+      <Colonne id="1">375.419</Colonne>
+    </Rubrique>
+    <Rubrique id="PR3">
+      <Colonne id="1">1124.776</Colonne>
+    </Rubrique>
+    <Rubrique id="PR31">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR311">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR312">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR313">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR32">
+      <Colonne id="1">25.584</Colonne>
+    </Rubrique>
+    <Rubrique id="PR321">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR322">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR323">
+      <Colonne id="1">25.584</Colonne>
+    </Rubrique>
+    <Rubrique id="PR324">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR33">
+      <Colonne id="1">1099.192</Colonne>
+    </Rubrique>
+    <Rubrique id="PR331">
+      <Colonne id="1">1099.192</Colonne>
+    </Rubrique>
+    <Rubrique id="PR332">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR4">
+      <Colonne id="1">10799.784</Colonne>
+    </Rubrique>
+    <Rubrique id="PR41">
+      <Colonne id="1">10799.784</Colonne>
+    </Rubrique>
+    <Rubrique id="PR42">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR43">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR44">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR5">
+      <Colonne id="1">1498.422</Colonne>
+    </Rubrique>
+    <Rubrique id="PR51">
+      <Colonne id="1">549.406</Colonne>
+    </Rubrique>
+    <Rubrique id="PR52">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR53">
+      <Colonne id="1">735.749</Colonne>
+    </Rubrique>
+    <Rubrique id="PR54">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR55">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR56">
+      <Colonne id="1">213.267</Colonne>
+    </Rubrique>
+    <Rubrique id="PR5CH4">
+      <Colonne id="1">14280.510</Colonne>
+    </Rubrique>
+    <Rubrique id="PR6">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR61">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR62">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR6CH5">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR7">
+      <Colonne id="1">0.300</Colonne>
+    </Rubrique>
+    <Rubrique id="PR71">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR79">
+      <Colonne id="1">0.300</Colonne>
+    </Rubrique>
+    <Rubrique id="PR8">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR81">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR82">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR89">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR8CH9">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR9">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PR99">
+      <Colonne id="1">40214.838</Colonne>
+    </Rubrique>
+    <Rubrique id="PR9CP11">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="RAMC99">
+      <Colonne id="1">-15556.754</Colonne>
+    </Rubrique>
+    <Rubrique id="RAO99">
+      <Colonne id="1">-15556.754</Colonne>
+    </Rubrique>
+    <Rubrique id="RE99">
+      <Colonne id="1">-15466.754</Colonne>
+    </Rubrique>
+    <Rubrique id="RNE99">
+      <Colonne id="1">-15556.754</Colonne>
+    </Rubrique>
+  </Annexe>
+</Document>

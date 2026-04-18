@@ -1,0 +1,11 @@
+node_modules
+dist
+build
+coverage
+.angular
+.next
+pnpm-lock.yaml
+uv.lock
+apps/frontend/dist
+apps/chatbot-py
+tests/fixtures

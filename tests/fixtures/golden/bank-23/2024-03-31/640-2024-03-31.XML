@@ -1,0 +1,48 @@
+<Document>
+  <Entete>
+    <CodeBanque>23</CodeBanque>
+    <DateAnnexe>20240331</DateAnnexe>
+    <CodeAnnexe>640</CodeAnnexe>
+  </Entete>
+  <Annexe id="640">
+    <Rubrique id="AC030000000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">193622.124</Colonne>
+      <Colonne id="3">959950.524</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">177597.676</Colonne>
+      <Colonne id="8">0.000</Colonne>
+      <Colonne id="9">1331170.324</Colonne>
+      <Colonne id="10">13880.859</Colonne>
+      <Colonne id="11">1345051.183</Colonne>
+    </Rubrique>
+    <Rubrique id="AC030000000001">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">155292.998</Colonne>
+      <Colonne id="3">908441.621</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">177534.491</Colonne>
+      <Colonne id="8">0.000</Colonne>
+      <Colonne id="9">1241269.110</Colonne>
+      <Colonne id="10">13850.195</Colonne>
+      <Colonne id="11">1255119.305</Colonne>
+    </Rubrique>
+    <Rubrique id="AC030000000002">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">38329.126</Colonne>
+      <Colonne id="3">51508.903</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">63.185</Colonne>
+      <Colonne id="8">0.000</Colonne>
+      <Colonne id="9">89901.214</Colonne>
+      <Colonne id="10">30.664</Colonne>
+      <Colonne id="11">89931.878</Colonne>
+    </Rubrique>
+  </Annexe>
+</Document>

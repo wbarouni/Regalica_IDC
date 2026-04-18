@@ -1,0 +1,5 @@
+packages:
+  - 'apps/api'
+  - 'apps/chatbot-node'
+  - 'apps/frontend'
+  - 'packages/*'

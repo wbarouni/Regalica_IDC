@@ -1,0 +1,49 @@
+<main class="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-slate-100 flex items-center justify-center p-6">
+  <div class="glass-card w-full max-w-2xl p-10 space-y-8">
+    <header class="space-y-3">
+      <p class="text-xs uppercase tracking-[0.22em] text-indigo-300">ALGORIA Factory · Phase 0</p>
+      <h1 class="text-4xl font-semibold text-white">Regalica <span class="text-indigo-300">IDC</span></h1>
+      <p class="text-slate-300">
+        Plateforme SaaS multi-tenant de conformité réglementaire BCT à tolérance zéro.
+      </p>
+    </header>
+
+    <section>
+      <h2 class="text-xs uppercase tracking-[0.22em] text-indigo-300 mb-4">Backend status</h2>
+      @if (loading()) {
+        <p class="text-slate-400 animate-pulse-soft">Checking /api/health…</p>
+      } @else if (error()) {
+        <div class="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm">
+          <p class="text-rose-300 font-medium">✗ API unreachable</p>
+          <p class="text-rose-200/70 mt-1 font-mono text-xs">{{ error() }}</p>
+        </div>
+      } @else if (health(); as h) {
+        <dl class="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <dt class="text-slate-400 text-xs uppercase tracking-wider">Service</dt>
+            <dd class="text-white font-mono mt-1">{{ h.service }}</dd>
+          </div>
+          <div>
+            <dt class="text-slate-400 text-xs uppercase tracking-wider">Status</dt>
+            <dd class="text-emerald-300 font-mono mt-1">● {{ h.status }}</dd>
+          </div>
+          <div>
+            <dt class="text-slate-400 text-xs uppercase tracking-wider">Version</dt>
+            <dd class="text-white font-mono mt-1">{{ h.version }}</dd>
+          </div>
+          <div>
+            <dt class="text-slate-400 text-xs uppercase tracking-wider">Uptime</dt>
+            <dd class="text-white font-mono mt-1">{{ h.uptime.toFixed(1) }}s</dd>
+          </div>
+        </dl>
+      }
+    </section>
+
+    <footer class="pt-4 border-t border-white/10 text-xs text-slate-500">
+      Phase 0 bootstrap ·
+      <a href="https://github.com/wbarouni/Regalica_IDC" target="_blank" rel="noopener" class="underline hover:text-slate-300">github.com/wbarouni/Regalica_IDC</a>
+    </footer>
+  </div>
+
+  <router-outlet />
+</main>

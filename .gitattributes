@@ -1,0 +1,26 @@
+# Force LF line endings everywhere except Windows scripts
+* text=auto eol=lf
+
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+*.ps1   text eol=crlf
+
+# Binary files
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.pdf   binary
+*.xlsx  binary
+*.xls   binary
+*.zip   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.eot   binary
+
+# Linguist overrides (keep GitHub stats accurate)
+docs/**   linguist-documentation
+tests/fixtures/** linguist-generated
+*.md      linguist-detectable=true

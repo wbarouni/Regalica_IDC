@@ -1,0 +1,200 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'v2-from-scratch', 'feature/**', 'fix/**']
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+  PYTHON_VERSION: '3.12'
+  PNPM_VERSION: '10.33.0'
+
+jobs:
+  # =========================================================================
+  # Lint & format (fail-fast)
+  # =========================================================================
+  lint-ts:
+    name: Lint TS + format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install
+      - run: pnpm format:check
+      - run: pnpm -r --filter '!@regalica/frontend' --if-present lint
+
+  lint-python:
+    name: Lint Python (ruff + mypy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - name: uv sync
+        working-directory: apps/chatbot-py
+        run: uv sync
+      - name: ruff check
+        working-directory: apps/chatbot-py
+        run: uv run ruff check .
+      - name: ruff format --check
+        working-directory: apps/chatbot-py
+        run: uv run ruff format --check .
+      - name: mypy
+        working-directory: apps/chatbot-py
+        run: uv run mypy app
+
+  # =========================================================================
+  # Typecheck
+  # =========================================================================
+  typecheck-ts:
+    name: Typecheck TS (all packages)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install
+      - run: pnpm -r --if-present typecheck
+
+  # =========================================================================
+  # Unit tests
+  # =========================================================================
+  test-api:
+    name: Test @regalica/api (Jest + pg)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: regalica_app
+          POSTGRES_PASSWORD: ci_password
+          POSTGRES_DB: regalica_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U regalica_app -d regalica_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install
+      - name: Run @regalica/api tests
+        working-directory: apps/api
+        env:
+          DATABASE_URL: postgresql://regalica_app:ci_password@localhost:5432/regalica_test
+          NODE_ENV: test
+          JWT_SECRET: test_secret_at_least_thirty_two_characters_long
+        run: pnpm test --coverage
+
+  test-chatbot-node:
+    name: Test @regalica/chatbot-node (Jest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install
+      - run: pnpm --filter @regalica/chatbot-node test
+
+  test-chatbot-py:
+    name: Test chatbot-py (pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - working-directory: apps/chatbot-py
+        run: uv sync
+      - working-directory: apps/chatbot-py
+        run: uv run pytest --cov=app --cov-report=term-missing
+
+  test-frontend:
+    name: Test @regalica/frontend (Karma headless Chrome)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install
+      - working-directory: apps/frontend
+        run: pnpm test
+
+  # =========================================================================
+  # Docker build smoke (one job per image, parallel)
+  # =========================================================================
+  build-images:
+    name: Build Docker images (smoke)
+    runs-on: ubuntu-latest
+    needs: [lint-ts, typecheck-ts]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: api
+            context: .
+            dockerfile: apps/api/Dockerfile
+          - service: chatbot-node
+            context: .
+            dockerfile: apps/chatbot-node/Dockerfile
+          - service: chatbot-py
+            context: apps/chatbot-py
+            dockerfile: apps/chatbot-py/Dockerfile
+          - service: frontend
+            context: .
+            dockerfile: apps/frontend/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build ${{ matrix.service }} image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: false
+          load: true
+          tags: regalica-idc/${{ matrix.service }}:ci
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}

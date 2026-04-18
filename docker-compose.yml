@@ -1,0 +1,112 @@
+name: regalica-idc
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: regalica-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-regalica_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_in_local_env}
+      POSTGRES_DB: ${POSTGRES_DB:-regalica}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/docker/postgres-init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-regalica_app} -d ${POSTGRES_DB:-regalica}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: regalica-ollama
+    restart: unless-stopped
+    volumes:
+      - ollama-models:/root/.ollama
+    ports:
+      - "11434:11434"
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: regalica-api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+      DATABASE_URL: postgresql://${POSTGRES_USER:-regalica_app}:${POSTGRES_PASSWORD:-change_me_in_local_env}@postgres:5432/${POSTGRES_DB:-regalica}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+
+  chatbot-py:
+    build:
+      context: apps/chatbot-py
+      dockerfile: Dockerfile
+    container_name: regalica-chatbot-py
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-regalica_app}:${POSTGRES_PASSWORD:-change_me_in_local_env}@postgres:5432/${POSTGRES_DB:-regalica}
+      OLLAMA_URL: http://ollama:11434
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    ports:
+      - "8000:8000"
+
+  chatbot-node:
+    build:
+      context: .
+      dockerfile: apps/chatbot-node/Dockerfile
+    container_name: regalica-chatbot-node
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-regalica_app}:${POSTGRES_PASSWORD:-change_me_in_local_env}@postgres:5432/${POSTGRES_DB:-regalica}
+      CHATBOT_PY_URL: http://chatbot-py:8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      chatbot-py:
+        condition: service_started
+    ports:
+      - "3001:3001"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+    container_name: regalica-frontend
+    restart: unless-stopped
+    ports:
+      - "4200:80"
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: regalica-nginx
+    restart: unless-stopped
+    depends_on:
+      - api
+      - chatbot-node
+      - frontend
+    ports:
+      - "80:80"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+
+volumes:
+  pgdata:
+  ollama-models:
