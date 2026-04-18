@@ -11,6 +11,8 @@ import { config } from './config';
 import { logger } from './logger';
 import { errorHandler } from './middleware/error-handler';
 import { healthRouter } from './routes/health';
+import { evaluationRouter } from './routes/evaluation';
+import { createUploadsRouter } from './routes/uploads';
 
 export function createApp(): Express {
   const app = express();
@@ -22,6 +24,7 @@ export function createApp(): Express {
   app.use(pinoHttp({ logger }));
 
   app.use('/health', healthRouter);
+  app.use('/api/evaluation', evaluationRouter);
 
   app.use(errorHandler);
 
@@ -34,5 +37,9 @@ export function createHttpServer(app: Express): { server: HttpServer; io: Socket
     cors: { origin: config.corsOrigin, credentials: true },
     transports: ['websocket', 'polling'],
   });
+
+  // Mount uploads router after io is available
+  app.use('/api/uploads', createUploadsRouter(io));
+
   return { server, io };
 }

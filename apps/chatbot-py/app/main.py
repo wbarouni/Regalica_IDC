@@ -7,6 +7,7 @@ from fastapi import FastAPI
 
 from app.config import settings
 from app.logger import configure_logger, get_logger
+from app.routes.chat import router as chat_router
 from app.routes.health import router as health_router
 
 configure_logger(settings.log_level)
@@ -29,3 +30,4 @@ app = FastAPI(
 )
 
 app.include_router(health_router, prefix="/health", tags=["health"])
+app.include_router(chat_router, prefix="", tags=["chat"])
