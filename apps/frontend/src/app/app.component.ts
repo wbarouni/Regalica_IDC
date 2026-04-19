@@ -8,6 +8,7 @@ import { NgClass, DatePipe, DecimalPipe } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { catchError, of } from 'rxjs';
+import { io, Socket } from 'socket.io-client';
 
 // ── Icon lib (SVG inline, no font deps) ─────────────────────────────────────
 const I: Record<string, string> = {
@@ -36,8 +37,33 @@ export interface UploadedFile {
 }
 
 export interface VerdictItem {
-  ruleId: string; annexeCode: string; numRegle: number;
-  gap: string; domaine: string; rubrique: string;
+  ruleId: string;
+  annexeCode: string;
+  numRegle: number;
+  operRegle: string;
+  status: string;
+  lhs: string | null;
+  rhs: string | null;
+  gap: string | null;
+  skipReason: string | null;
+}
+
+interface EvalResult {
+  runId: string;
+  pass: number;
+  fail: number;
+  skip: number;
+  verdicts: Array<{
+    ruleId: string;
+    annexeCode: string;
+    numRegle: number;
+    operRegle: string;
+    status: string;
+    lhs: string | null;
+    rhs: string | null;
+    gap: string | null;
+    skipReason: string | null;
+  }>;
 }
 
 const WELCOME: ChatMessage = {
@@ -60,6 +86,12 @@ export class AppComponent implements OnInit {
 
   @ViewChild('chatBottom') chatBottom?: ElementRef<HTMLElement>;
   @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
+
+  // ── Socket.IO ──────────────────────────────────────────────────────────────
+  private socket!: Socket;
+
+  // ── File object registry (id → raw File for FormData) ─────────────────────
+  private fileObjects = new Map<string, File>();
 
   // ── State ──────────────────────────────────────────────────────────────────
   readonly messages  = signal<ChatMessage[]>([WELCOME]);
@@ -86,7 +118,7 @@ export class AppComponent implements OnInit {
     return { circ, dash: circ * pct, gap: circ * (1 - pct) };
   });
 
-  readonly hasFiles   = computed(() => this.files().length > 0);
+  readonly hasFiles    = computed(() => this.files().length > 0);
   readonly hasVerdicts = computed(() => this.verdicts().length > 0);
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
@@ -94,6 +126,16 @@ export class AppComponent implements OnInit {
     this.http.get('/api/health').pipe(
       catchError(() => { this.apiOk.set(false); return of(null); }),
     ).subscribe(r => { if (r) this.apiOk.set(true); });
+
+    this.socket = io('http://localhost:3000', { transports: ['websocket', 'polling'] });
+
+    this.socket.on('progress', (data: { runId: string; percentage: number }) => {
+      this.progress.set(data.percentage);
+    });
+
+    this.socket.on('verdict', (v: VerdictItem) => {
+      this.verdicts.update(vs => [...vs, v]);
+    });
   }
 
   // ── Icon helper ────────────────────────────────────────────────────────────
@@ -120,63 +162,91 @@ export class AppComponent implements OnInit {
 
   private handleFiles(raw: File[]): void {
     if (!raw.length) return;
-    const newFiles: UploadedFile[] = raw.map(f => ({
-      id: crypto.randomUUID(), name: f.name, status: 'pending',
-    }));
+    const newFiles: UploadedFile[] = raw.map(f => {
+      const id = crypto.randomUUID();
+      this.fileObjects.set(id, f);
+      return { id, name: f.name, status: 'pending' };
+    });
     this.files.update(fs => [...fs, ...newFiles]);
-    void this.simulateAnalysis(newFiles);
+    void this.realAnalysis(newFiles);
   }
 
-  private async simulateAnalysis(newFiles: UploadedFile[]): Promise<void> {
+  private async realAnalysis(newFiles: UploadedFile[]): Promise<void> {
     this.analyzing.set(true);
     this.progress.set(0);
-    this.addAiMessage(`Analyse en cours pour **${newFiles.length}** fichier(s)… Validation structure + ${newFiles.length * 1054} règles RDG applicables.`);
+    this.addAiMessage(`Analyse en cours pour **${newFiles.length}** fichier(s)…`);
 
-    for (const f of newFiles) {
+    // Mark all as 'analyzing'
+    newFiles.forEach(f => {
       this.files.update(fs => fs.map(x => x.id === f.id ? { ...x, status: 'analyzing' } : x));
-      await this.sleep(800 + Math.random() * 600);
+    });
 
-      const isFail = f.name.includes('640');
-      const pass = isFail ? 744 : Math.floor(900 + Math.random() * 150);
-      const fail = isFail ? 12 : Math.floor(1 + Math.random() * 3);
-      const skip = Math.floor(15 + Math.random() * 30);
-      const s = (pass / (pass + fail)) * 100;
+    const formData = new FormData();
+    for (const f of newFiles) {
+      const file = this.fileObjects.get(f.id);
+      if (file) formData.append('files', file);
+    }
 
-      this.files.update(fs => fs.map(x =>
-        x.id === f.id ? { ...x, status: isFail ? 'fail' : 'ok', score: s, pass, fail, skip } : x,
-      ));
+    try {
+      const result = await this.http.post<EvalResult>(
+        '/api/uploads/evaluate',
+        formData,
+        { headers: { 'x-tenant-id': '00000000-0000-0000-0000-000000000001' } },
+      ).toPromise();
 
-      if (isFail) {
-        this.verdicts.update(vs => [...vs, {
-          ruleId: crypto.randomUUID(),
-          annexeCode: '630', numRegle: 47,
-          gap: '-57985.000', domaine: 'REPORTING COMPTABLE',
-          rubrique: 'PA030202000000',
-        }]);
+      if (result) {
+        // Aggregate counts per annexeCode to map back to uploaded files by filename
+        const countsByAnnexe = new Map<string, { pass: number; fail: number; skip: number }>();
+        for (const v of result.verdicts) {
+          const entry = countsByAnnexe.get(v.annexeCode) ?? { pass: 0, fail: 0, skip: 0 };
+          if (v.status === 'PASS') { entry.pass++; }
+          else if (v.status === 'FAIL') { entry.fail++; }
+          else { entry.skip++; }
+          countsByAnnexe.set(v.annexeCode, entry);
+        }
+
+        // Map each uploaded file to verdict counts by matching annexeCode in filename
+        this.files.update(fs => fs.map(x => {
+          if (!newFiles.find(nf => nf.id === x.id)) return x;
+
+          // Try to find the annexeCode that appears in this file's name
+          let matched: { pass: number; fail: number; skip: number } | undefined;
+          for (const [annexeCode, counts] of countsByAnnexe) {
+            if (x.name.includes(annexeCode)) { matched = counts; break; }
+          }
+
+          // Fall back to totals from the overall result when a file-level match is unavailable
+          const pass = matched?.pass ?? result.pass;
+          const fail = matched?.fail ?? result.fail;
+          const skip = matched?.skip ?? result.skip;
+          const scored = pass + fail;
+          const score = scored > 0 ? (pass / scored) * 100 : 100;
+          const status: UploadedFile['status'] = fail > 0 ? 'fail' : 'ok';
+
+          return { ...x, status, score, pass, fail, skip };
+        }));
+
+        // Build AI summary message
+        if (result.fail > 0) {
+          this.addAiMessage(
+            `Analyse terminée. J'ai détecté **${result.fail} écart(s) réglementaire(s) SEVERE** dans vos annexes.\n\nConsultez la liste des verdicts pour le détail des rubriques en écart et les valeurs attendues vs déclarées.\n\nSouhaitez-vous que j'effectue une analyse approfondie de ces FAIL ?`,
+            ['kb:bct-circulaire-2014-14'],
+          );
+        } else {
+          this.addAiMessage(
+            `Toutes les annexes sont conformes — aucun écart réglementaire détecté. Score global : **${this.score().toFixed(1)}%**.\n\nVous pouvez procéder à la signature et au dépôt BCT.`,
+            ['kb:procedure-depot-bct'],
+          );
+        }
       }
-
-      this.progress.set(Math.round(((newFiles.indexOf(f) + 1) / newFiles.length) * 100));
+    } catch (_err) {
+      newFiles.forEach(f => {
+        this.files.update(fs => fs.map(x => x.id === f.id ? { ...x, status: 'fail' } : x));
+      });
+      this.addAiMessage('Erreur lors de l\'analyse. Vérifiez la connexion à l\'API.');
     }
 
-    await this.sleep(400);
     this.analyzing.set(false);
-
-    const totalFail = newFiles.reduce((s, f) => {
-      const found = this.files().find(x => x.id === f.id);
-      return s + (found?.fail ?? 0);
-    }, 0);
-
-    if (totalFail > 0) {
-      this.addAiMessage(
-        `Analyse terminée. J'ai détecté **${totalFail} écart(s) réglementaire(s) SEVERE** dans vos annexes.\n\nLa rubrique **PA030202000000** (Ventilation des Ressources, annexe 630) présente un écart de **−57 985 TND** — exactement le type d'incohérence inter-annexe qui peut déclencher une observation BCT.\n\nSouhaitez-vous que j'effectue une analyse approfondie de ces FAIL ?`,
-        ['rule:630-47', 'kb:bct-circulaire-2014-14'],
-      );
-    } else {
-      this.addAiMessage(
-        `✓ Toutes les annexes sont conformes — aucun écart réglementaire détecté. Score global : **${this.score().toFixed(1)}%**.\n\nVous pouvez procéder à la signature et au dépôt BCT.`,
-        ['kb:procedure-depot-bct'],
-      );
-    }
     this.scrollChat();
   }
 
@@ -206,7 +276,7 @@ export class AppComponent implements OnInit {
     let citations: string[] = [];
 
     if (q.includes('fail') || q.includes('écart') || q.includes('pa030')) {
-      reply = `La rubrique **PA030202000000** correspond à la ventilation sectorielle des ressources clientèle (Ventilation par secteur institutionnel — annexe 630).\n\nL'écart de **−57 985 TND** signifie que la somme déclarée en colonne 1 diffère de la valeur attendue calculée à partir des annexes 00 et 51.\n\n**Correction suggérée :** Vérifiez la ligne PA030202 dans votre fichier \`640-2024-03-31.XML\` — la valeur en colonne 1 doit être égale à AC050100.col8 − PA030100.col3.\n\n*Pilier 4 — Suggest Don't Repair : c'est vous qui effectuez la correction dans votre XML.*`;
+      reply = `La rubrique **PA030202000000** correspond à la ventilation sectorielle des ressources clientèle (Ventilation par secteur institutionnel — annexe 630).\n\nL'écart détecté signifie que la somme déclarée en colonne 1 diffère de la valeur attendue calculée à partir des annexes 00 et 51.\n\n**Correction suggérée :** Vérifiez la ligne PA030202 dans votre fichier XML — la valeur en colonne 1 doit être égale à AC050100.col8 − PA030100.col3.\n\n*Pilier 4 — Suggest Don't Repair : c'est vous qui effectuez la correction dans votre XML.*`;
       citations = ['rule:630-47', 'kb:bct-rubrique-PA030202', 'circulaire:2014-14'];
     } else if (q.includes('score') || q.includes('conformité')) {
       reply = `Le score de conformité global est calculé comme : **PASS / (PASS + FAIL) × 100**.\n\nAvec ${this.totalPass().toLocaleString('fr')} règles satisfaites et ${this.totalFail()} écarts, vous atteignez **${this.score().toFixed(1)}%** — ce qui est dans la fourchette acceptable pour une banque tunisienne de taille moyenne.`;
@@ -230,10 +300,6 @@ export class AppComponent implements OnInit {
 
   private scrollChat(): void {
     setTimeout(() => this.chatBottom?.nativeElement.scrollIntoView({ behavior: 'smooth' }), 50);
-  }
-
-  private sleep(ms: number): Promise<void> {
-    return new Promise(r => setTimeout(r, ms));
   }
 
   // ── Markdown-lite renderer ─────────────────────────────────────────────────

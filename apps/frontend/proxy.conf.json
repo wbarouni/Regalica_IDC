@@ -3,7 +3,13 @@
     "target": "http://localhost:3000",
     "secure": false,
     "changeOrigin": true,
-    "pathRewrite": { "^/api": "" },
+    "logLevel": "warn"
+  },
+  "/socket.io": {
+    "target": "http://localhost:3000",
+    "secure": false,
+    "changeOrigin": true,
+    "ws": true,
     "logLevel": "warn"
   },
   "/chat": {
@@ -12,10 +18,5 @@
     "changeOrigin": true,
     "pathRewrite": { "^/chat": "" },
     "logLevel": "warn"
-  },
-  "/ws": {
-    "target": "ws://localhost:3000",
-    "ws": true,
-    "secure": false
   }
 }

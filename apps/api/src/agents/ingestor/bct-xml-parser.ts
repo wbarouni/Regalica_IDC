@@ -69,6 +69,10 @@ export function parseBctXml(xmlContent: string): ParsedXml {
 
   const cells: CellMatrix = new Map();
 
+  if (!doc.Annexe) {
+    return { bankCode, dateAnnexe, annexeCode, cells };
+  }
+
   const annexes: RawAnnexe[] = Array.isArray(doc.Annexe) ? doc.Annexe : [doc.Annexe];
 
   for (const annexe of annexes) {
