@@ -3,7 +3,7 @@ import {
   OnInit, ViewChild, computed, inject, signal,
 } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { RouterOutlet } from '@angular/router';
+import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { NgClass, DatePipe, DecimalPipe } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
@@ -93,7 +93,7 @@ const WELCOME: ChatMessage = {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, NgClass, DatePipe, DecimalPipe, FormsModule],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, NgClass, DatePipe, DecimalPipe, FormsModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -230,7 +230,16 @@ export class AppComponent implements OnInit {
       ).toPromise();
 
       if (result) {
-        if (result.runId) this.currentRunId.set(result.runId);
+        if (result.runId) {
+          this.currentRunId.set(result.runId);
+          // Persist summary for Dashboard page
+          localStorage.setItem('regalica_last_run', JSON.stringify({
+            runId: result.runId,
+            pass: result.pass,
+            fail: result.fail,
+            skip: result.skip,
+          }));
+        }
 
         // Aggregate counts per annexeCode to map back to uploaded files by filename
         const countsByAnnexe = new Map<string, { pass: number; fail: number; skip: number }>();

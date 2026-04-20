@@ -16,6 +16,7 @@ import { up as m005 } from './migrations/005-create-verdicts';
 import { up as m006 } from './migrations/006-create-prompts-registry';
 import { up as m007 } from './migrations/007-create-persona-config';
 import { up as m008 } from './migrations/008-create-regalica-responses-audit';
+import { up as m009 } from './migrations/009-create-kb-chunks';
 
 const migrations: Array<{ name: string; up: (qi: ReturnType<typeof sequelize.getQueryInterface>) => Promise<void> }> = [
   { name: '001-create-tenants',                  up: m001 },
@@ -26,6 +27,7 @@ const migrations: Array<{ name: string; up: (qi: ReturnType<typeof sequelize.get
   { name: '006-create-prompts-registry',         up: m006 },
   { name: '007-create-persona-config',           up: m007 },
   { name: '008-create-regalica-responses-audit', up: m008 },
+  { name: '009-create-kb-chunks',                up: m009 },
 ];
 
 async function main(): Promise<void> {

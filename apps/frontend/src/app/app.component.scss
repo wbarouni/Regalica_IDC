@@ -2,6 +2,30 @@
    Regalica IDC — Workspace (Apple Vision Pro Glassmorphism, §14.2)
    ══════════════════════════════════════════════════════════════════════════ */
 
+/* ── App-level nav bar ───────────────────────────────────────────────────── */
+.app-nav {
+  display: flex; align-items: center; gap: 4px;
+  padding: 8px 16px;
+  background: rgba(255,255,255,0.80);
+  border-bottom: 1px solid rgba(0,0,0,0.07);
+  backdrop-filter: blur(12px);
+  z-index: 200;
+}
+
+.nav-link {
+  padding: 6px 14px; border-radius: 8px;
+  font-size: 13px; font-weight: 500; color: #86868B;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+  &:hover { background: rgba(110,86,207,0.08); color: #6E56CF; }
+}
+
+.nav-active {
+  background: rgba(110,86,207,0.10);
+  color: #6E56CF !important;
+  font-weight: 600;
+}
+
 .workspace {
   display: flex; flex-direction: column;
   height: 100vh; overflow: hidden;
