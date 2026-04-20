@@ -13,10 +13,9 @@
     "logLevel": "warn"
   },
   "/chat": {
-    "target": "http://localhost:3001",
+    "target": "http://localhost:8000",
     "secure": false,
     "changeOrigin": true,
-    "pathRewrite": { "^/chat": "" },
     "logLevel": "warn"
   }
 }

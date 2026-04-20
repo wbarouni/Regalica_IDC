@@ -66,6 +66,24 @@ interface EvalResult {
   }>;
 }
 
+interface ChatApiResponse {
+  reply: string;
+  citations: string[];
+  confidence: number;
+  model_id: string;
+  tokens_used: number;
+  latency_ms: number;
+  low_confidence: boolean;
+}
+
+interface PromptApiResponse {
+  key: string;
+  content: string;
+  variables: string[];
+  locale: string;
+  version: number;
+}
+
 const WELCOME: ChatMessage = {
   id: 'w0', role: 'ai', ts: new Date(),
   text: `Bonjour, je suis **Regalica**, votre co-pilote de conformité BCT.\n\nDéposez vos fichiers XML d'annexes dans le panneau de gauche pour que j'analyse leur conformité aux 4 611 règles RDG. Je vous fournirai un rapport détaillé avec les écarts détectés, leur cause racine, et les corrections recommandées.\n\nQue souhaitez-vous faire ?`,
@@ -93,8 +111,12 @@ export class AppComponent implements OnInit {
   // ── File object registry (id → raw File for FormData) ─────────────────────
   private fileObjects = new Map<string, File>();
 
+  // ── Session ────────────────────────────────────────────────────────────────
+  private readonly sessionId = crypto.randomUUID();
+
   // ── State ──────────────────────────────────────────────────────────────────
   readonly messages  = signal<ChatMessage[]>([WELCOME]);
+  readonly currentRunId = signal<string | null>(null);
   readonly inputText = signal('');
   readonly aiTyping  = signal(false);
   readonly dragOver  = signal(false);
@@ -126,6 +148,19 @@ export class AppComponent implements OnInit {
     this.http.get('/api/health').pipe(
       catchError(() => { this.apiOk.set(false); return of(null); }),
     ).subscribe(r => { if (r) this.apiOk.set(true); });
+
+    this.http.get<PromptApiResponse>('/api/prompts/regalica.opening', {
+      params: { locale: 'fr' },
+      headers: { 'x-tenant-id': '00000000-0000-0000-0000-000000000001' },
+    }).pipe(
+      catchError(() => of(null)),
+    ).subscribe(resp => {
+      if (resp?.content) {
+        this.messages.update(ms => ms.map(m =>
+          m.id === 'w0' ? { ...m, text: resp.content } : m,
+        ));
+      }
+    });
 
     this.socket = io('http://localhost:3000', { transports: ['websocket', 'polling'] });
 
@@ -195,6 +230,8 @@ export class AppComponent implements OnInit {
       ).toPromise();
 
       if (result) {
+        if (result.runId) this.currentRunId.set(result.runId);
+
         // Aggregate counts per annexeCode to map back to uploaded files by filename
         const countsByAnnexe = new Map<string, { pass: number; fail: number; skip: number }>();
         for (const v of result.verdicts) {
@@ -259,37 +296,27 @@ export class AppComponent implements OnInit {
     this.aiTyping.set(true);
     this.scrollChat();
 
-    setTimeout(() => {
+    this.http.post<ChatApiResponse>('/chat/chat', {
+      message: text,
+      run_id: this.currentRunId() ?? null,
+      tenant_id: '00000000-0000-0000-0000-000000000001',
+      session_id: this.sessionId,
+      kb_snippets: [],
+    }).pipe(
+      catchError(() => of(null)),
+    ).subscribe(resp => {
       this.aiTyping.set(false);
-      this.addAiResponse(text);
+      if (resp) {
+        this.addAiMessage(resp.reply, resp.citations, resp.confidence);
+      } else {
+        this.addAiMessage('Erreur de connexion au service IA. Vérifiez que le chatbot-py est démarré (port 8000).');
+      }
       this.scrollChat();
-    }, 1400 + Math.random() * 600);
+    });
   }
 
   onEnter(e: KeyboardEvent): void {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.sendMessage(); }
-  }
-
-  private addAiResponse(question: string): void {
-    const q = question.toLowerCase();
-    let reply: string;
-    let citations: string[] = [];
-
-    if (q.includes('fail') || q.includes('écart') || q.includes('pa030')) {
-      reply = `La rubrique **PA030202000000** correspond à la ventilation sectorielle des ressources clientèle (Ventilation par secteur institutionnel — annexe 630).\n\nL'écart détecté signifie que la somme déclarée en colonne 1 diffère de la valeur attendue calculée à partir des annexes 00 et 51.\n\n**Correction suggérée :** Vérifiez la ligne PA030202 dans votre fichier XML — la valeur en colonne 1 doit être égale à AC050100.col8 − PA030100.col3.\n\n*Pilier 4 — Suggest Don't Repair : c'est vous qui effectuez la correction dans votre XML.*`;
-      citations = ['rule:630-47', 'kb:bct-rubrique-PA030202', 'circulaire:2014-14'];
-    } else if (q.includes('score') || q.includes('conformité')) {
-      reply = `Le score de conformité global est calculé comme : **PASS / (PASS + FAIL) × 100**.\n\nAvec ${this.totalPass().toLocaleString('fr')} règles satisfaites et ${this.totalFail()} écarts, vous atteignez **${this.score().toFixed(1)}%** — ce qui est dans la fourchette acceptable pour une banque tunisienne de taille moyenne.`;
-      citations = ['kb:methode-scoring-bct'];
-    } else if (q.includes('règle') || q.includes('rdg')) {
-      reply = `Le RDG (Recueil de Déclarations et de Gestion) contient **4 611 règles** réparties sur **52 annexes**. Chaque règle définit une contrainte mathématique entre rubriques déclarées.\n\nPour vos 5 annexes déposées, **1 054 règles sont applicables**. Les 3 557 restantes concernent des annexes non incluses dans votre lot.`;
-      citations = ['kb:rdg-taxonomie', 'kb:annexes-bct'];
-    } else {
-      reply = `Je suis à votre disposition pour analyser vos rapports BCT, expliquer les écarts détectés, ou répondre à toute question sur les règles RDG.\n\nN'hésitez pas à me poser une question précise sur un FAIL, une rubrique, ou une circulaire.`;
-      citations = ['kb:faq-conformite-bct'];
-    }
-
-    this.addAiMessage(reply, citations, 0.97);
   }
 
   private addAiMessage(text: string, citations: string[] = [], confidence = 1): void {

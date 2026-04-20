@@ -14,6 +14,7 @@ import { healthRouter } from './routes/health';
 import { evaluationRouter } from './routes/evaluation';
 import { promptsRouter } from './routes/prompts';
 import { createUploadsRouter } from './routes/uploads';
+import { runsRouter } from './routes/runs';
 
 export function createApp(): Express {
   const app = express();
@@ -27,6 +28,7 @@ export function createApp(): Express {
   app.use('/health', healthRouter);
   app.use('/api/evaluation', evaluationRouter);
   app.use('/api/prompts', promptsRouter);
+  app.use('/api/runs', runsRouter);
 
   app.use(errorHandler);
 
