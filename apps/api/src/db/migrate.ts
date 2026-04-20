@@ -13,13 +13,19 @@ import { up as m002 } from './migrations/002-create-rules';
 import { up as m003 } from './migrations/003-create-rule-terms';
 import { up as m004 } from './migrations/004-create-validation-runs';
 import { up as m005 } from './migrations/005-create-verdicts';
+import { up as m006 } from './migrations/006-create-prompts-registry';
+import { up as m007 } from './migrations/007-create-persona-config';
+import { up as m008 } from './migrations/008-create-regalica-responses-audit';
 
 const migrations: Array<{ name: string; up: (qi: ReturnType<typeof sequelize.getQueryInterface>) => Promise<void> }> = [
-  { name: '001-create-tenants',         up: m001 },
-  { name: '002-create-rules',           up: m002 },
-  { name: '003-create-rule-terms',      up: m003 },
-  { name: '004-create-validation-runs', up: m004 },
-  { name: '005-create-verdicts',        up: m005 },
+  { name: '001-create-tenants',                  up: m001 },
+  { name: '002-create-rules',                    up: m002 },
+  { name: '003-create-rule-terms',               up: m003 },
+  { name: '004-create-validation-runs',          up: m004 },
+  { name: '005-create-verdicts',                 up: m005 },
+  { name: '006-create-prompts-registry',         up: m006 },
+  { name: '007-create-persona-config',           up: m007 },
+  { name: '008-create-regalica-responses-audit', up: m008 },
 ];
 
 async function main(): Promise<void> {

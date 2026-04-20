@@ -12,6 +12,7 @@ import { logger } from './logger';
 import { errorHandler } from './middleware/error-handler';
 import { healthRouter } from './routes/health';
 import { evaluationRouter } from './routes/evaluation';
+import { promptsRouter } from './routes/prompts';
 import { createUploadsRouter } from './routes/uploads';
 
 export function createApp(): Express {
@@ -25,6 +26,7 @@ export function createApp(): Express {
 
   app.use('/health', healthRouter);
   app.use('/api/evaluation', evaluationRouter);
+  app.use('/api/prompts', promptsRouter);
 
   app.use(errorHandler);
 
