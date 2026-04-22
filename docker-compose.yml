@@ -24,15 +24,6 @@ services:
       timeout: 5s
       retries: 5
 
-  ollama:
-    image: ollama/ollama:latest
-    container_name: regalica-ollama
-    restart: unless-stopped
-    volumes:
-      - ollama-models:/root/.ollama
-    ports:
-      - "11434:11434"
-
   api:
     build:
       context: .
@@ -58,41 +49,11 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-regalica_app}:${POSTGRES_PASSWORD:-change_me_in_local_env}@postgres:5432/${POSTGRES_DB:-regalica}
-      OLLAMA_URL: http://ollama:11434
     depends_on:
       postgres:
         condition: service_healthy
-      ollama:
-        condition: service_started
     ports:
       - "8000:8000"
-
-  chatbot-node:
-    build:
-      context: .
-      dockerfile: apps/chatbot-node/Dockerfile
-    container_name: regalica-chatbot-node
-    restart: unless-stopped
-    env_file: .env
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-regalica_app}:${POSTGRES_PASSWORD:-change_me_in_local_env}@postgres:5432/${POSTGRES_DB:-regalica}
-      CHATBOT_PY_URL: http://chatbot-py:8000
-    depends_on:
-      postgres:
-        condition: service_healthy
-      chatbot-py:
-        condition: service_started
-    ports:
-      - "3001:3001"
-
-  frontend:
-    build:
-      context: .
-      dockerfile: apps/frontend/Dockerfile
-    container_name: regalica-frontend
-    restart: unless-stopped
-    ports:
-      - "4200:80"
 
   nginx:
     image: nginx:1.27-alpine
@@ -100,8 +61,7 @@ services:
     restart: unless-stopped
     depends_on:
       - api
-      - chatbot-node
-      - frontend
+      - chatbot-py
     ports:
       - "80:80"
     volumes:
@@ -109,4 +69,3 @@ services:
 
 volumes:
   pgdata:
-  ollama-models:
