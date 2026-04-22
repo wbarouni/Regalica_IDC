@@ -9,6 +9,9 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { catchError, of } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
+import { UploadReportModalComponent, ValidationProgressModalComponent, DeepDiveModalComponent } from './modals';
+import type { UploadPayload, VerdictContext } from './modals';
+import { ToastContainerComponent } from './shared';
 
 // ── Icon lib (SVG inline, no font deps) ─────────────────────────────────────
 const I: Record<string, string> = {
@@ -46,6 +49,8 @@ export interface VerdictItem {
   rhs: string | null;
   gap: string | null;
   skipReason: string | null;
+  rubrique?: string;
+  domaine?: string;
 }
 
 interface EvalResult {
@@ -93,7 +98,8 @@ const WELCOME: ChatMessage = {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, NgClass, DatePipe, DecimalPipe, FormsModule],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, NgClass, DatePipe, DecimalPipe, FormsModule,
+    UploadReportModalComponent, ValidationProgressModalComponent, DeepDiveModalComponent, ToastContainerComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -127,6 +133,12 @@ export class AppComponent implements OnInit {
   readonly progress  = signal(0);
 
   readonly apiOk = signal<boolean | null>(null);
+
+  // ── Modal state ────────────────────────────────────────────────────────────
+  readonly showUploadModal   = signal(false);
+  readonly showProgressModal = signal(false);
+  readonly showDeepDiveModal = signal(false);
+  readonly selectedVerdict   = signal<VerdictItem | null>(null);
 
   // ── Computed ───────────────────────────────────────────────────────────────
   readonly totalPass = computed(() => this.files().reduce((s, f) => s + (f.pass ?? 0), 0));
@@ -179,7 +191,23 @@ export class AppComponent implements OnInit {
   }
 
   // ── Upload ─────────────────────────────────────────────────────────────────
-  openFilePicker(): void { this.fileInput?.nativeElement.click(); }
+  openFilePicker(): void { this.showUploadModal.set(true); }
+
+  openDeepDive(v: VerdictItem): void {
+    this.selectedVerdict.set(v);
+    this.showDeepDiveModal.set(true);
+  }
+
+  onModalFilesUploaded(payload: UploadPayload): void {
+    this.showUploadModal.set(false);
+    this.handleFiles(payload.files);
+  }
+
+  onAskAI(v: VerdictContext): void {
+    const text = `Analyse approfondie — Annexe ${v.annexeCode}, Règle ${v.numRegle}: écart de ${v.gap ?? '?'} TND. Quelle est la cause réglementaire et comment corriger ?`;
+    this.inputText.set(text);
+    this.showDeepDiveModal.set(false);
+  }
 
   onFileInputChange(e: Event): void {
     const input = e.target as HTMLInputElement;
@@ -208,6 +236,7 @@ export class AppComponent implements OnInit {
 
   private async realAnalysis(newFiles: UploadedFile[]): Promise<void> {
     this.analyzing.set(true);
+    this.showProgressModal.set(true);
     this.progress.set(0);
     this.addAiMessage(`Analyse en cours pour **${newFiles.length}** fichier(s)…`);
 
@@ -293,6 +322,7 @@ export class AppComponent implements OnInit {
     }
 
     this.analyzing.set(false);
+    this.showProgressModal.set(false);
     this.scrollChat();
   }
 
@@ -305,7 +335,7 @@ export class AppComponent implements OnInit {
     this.aiTyping.set(true);
     this.scrollChat();
 
-    this.http.post<ChatApiResponse>('/chat/chat', {
+    this.http.post<ChatApiResponse>('/chat', {
       message: text,
       run_id: this.currentRunId() ?? null,
       tenant_id: '00000000-0000-0000-0000-000000000001',

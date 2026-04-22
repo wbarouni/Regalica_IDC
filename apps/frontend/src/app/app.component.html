@@ -248,7 +248,9 @@
                 <span class="gap-val">{{ v.gap }} TND</span>
               </div>
               <p class="verdict-dom">{{ v.domaine }}</p>
-              <button class="btn-ghost verdict-btn" [innerHTML]="'Analyser avec Regalica ' + icon('arrow')"></button>
+              <button class="btn-ghost verdict-btn" (click)="openDeepDive(v)">
+                Analyser avec Regalica <span [innerHTML]="icon('arrow')"></span>
+              </button>
             </div>
           }
         </div>
@@ -271,3 +273,21 @@
 </div>
 
 <router-outlet />
+
+<rg-toast-container />
+
+<rg-upload-report-modal
+  [isOpen]="showUploadModal()"
+  (closed)="showUploadModal.set(false)"
+  (filesUploaded)="onModalFilesUploaded($event)" />
+
+<rg-validation-progress-modal
+  [isOpen]="showProgressModal()"
+  [runId]="currentRunId()"
+  (closed)="showProgressModal.set(false)" />
+
+<rg-deep-dive-modal
+  [isOpen]="showDeepDiveModal()"
+  [verdict]="selectedVerdict()"
+  (closed)="showDeepDiveModal.set(false)"
+  (askAI)="onAskAI($event)" />

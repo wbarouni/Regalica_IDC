@@ -34,7 +34,7 @@
 - ❌ `safeEval()` / regex DSL pour interpréter les règles → AST parsing strict
 - ❌ `console.log` en code de prod → Pino (Node) / structlog (Python)
 - ❌ Pagination in-memory (`.slice(0, 100)`) → cursor-based DB pagination
-- ❌ Composants Angular inline → factorisation dans `packages/ui-components`
+- ❌ Composants inline sans package → factorisation dans `packages/ui` (shadcn/ui étendu)
 - ❌ Limite arbitraire de 100 rapports par batch → queue (pgmq / BullMQ)
 - ❌ Gemini/Ollama appelé depuis le frontend → backend uniquement
 - ❌ Mélanger `number` (float) et `Decimal` pour les montants → Decimal partout
@@ -43,12 +43,31 @@
 
 ---
 
-## 🧱 Stack non négociable
+## Stack v2.0 (ADR 0005 — supersede ADR 0001)
 
-Voir `README.md#stack`. Toute dérogation → ADR obligatoire avant merge.
+Stack production **non négociable** depuis le 2026-04-20. Toute dérogation → ADR obligatoire.
 
-- Pas de `next.js`, pas de `react`, pas de `drizzle`, pas de Supabase client, pas
-  de Vercel — ces choix v1 ont été **remplacés** (cf. ADR 0001).
+**Frontend :** Next.js 14 App Router · TypeScript 5.3 strict · Tailwind 3.4 · shadcn/ui · Lucide Icons · next-intl (FR/AR/EN + RTL) · Zustand · TanStack Query · Zod · Framer Motion (whitelist §14 uniquement)
+
+**Backend :** PostgreSQL 15 (auto-heberge) · pgvector · Drizzle ORM · Next.js API routes (BFF) · Keycloak (auth MFA, OIDC) · MinIO (stockage XML) · pgmq (queues)
+
+**IA :** Claude Opus 4.7 (primaire) · Sonnet 4.6 (secondaire) · Voyage-3 embeddings · XState state machines
+
+**DevOps :** Turborepo · GitHub Actions · Vercel · Docker Compose (dev) · Terraform
+
+**Service IA Python :** `apps/chatbot-py` (FastAPI + SQLAlchemy 2.0) reste indépendant — ne pas migrer.
+
+**Prototype Angular :** `apps/frontend` figé en maintenance — référence UX uniquement, pas de nouvelle feature.
+
+**Interdits absolus (non-négociables) :**
+- Emoji n'importe où : UI, code, commentaires, commits, ADRs, logs, PDF (linter CI `eslint-plugin-no-emoji`)
+- `console.log` / `print()` en prod → Pino (Node) / structlog (Python)
+- `any` / `@ts-ignore` sans justification inline
+- `localStorage` pour auth → cookies httpOnly (Keycloak OIDC)
+- `eval()` / `new Function()` → RuleInterpreter AST
+- JSON de règles hardcodé → tables `rules` + `rule_terms`
+- Design token (hex, rem, px, ms) en dur → table `design_tokens` + CSS vars générées
+- Règle / rubrique / annexe hardcodée → 12 interdictions (ADR 0002, linter CI)
 
 ---
 
@@ -58,13 +77,22 @@ Voir `README.md#stack`. Toute dérogation → ADR obligatoire avant merge.
 |--------------------------------|---------------------------------------------------------|
 | Vision produit, roadmap        | `docs/architecture/00-master-document.md` (v1.1)        |
 | Extraction structurée du doc   | `docs/architecture/01-extracted-facts.md`               |
-| Décisions architecturales      | `docs/adr/`                                             |
+| Décisions architecturales      | `docs/adr/` (0001–0008)                                 |
+| Plan Phase 0                   | `docs/plans/phase-0-foundations.md`                     |
+| Design tokens v2.0             | `docs/design/00-tokens.md`                              |
+| Matériaux glass v2.0           | `docs/design/01-materials.md`                           |
+| Composants primitifs v2.0      | `docs/design/02-components.md`                          |
+| Popups/sheets métier v2.0      | `docs/design/03-popups.md`                              |
 | Règles RDG source              | `tests/fixtures/rdg.xlsx`                               |
 | XMLs golden (POC 2024-03-31)   | `tests/fixtures/golden/bank-23/2024-03-31/`             |
-| 8 agents déterministes         | `apps/api/src/agents/` (Phase 2)                        |
-| 5 agents LLM                   | `apps/chatbot-py/app/agents/` (Phase 4)                 |
-| Pipeline RAG                   | `apps/chatbot-py/app/rag/` (Phase 4)                    |
+| Agents déterministes (proto)   | `apps/api/src/agents/` (à porter dans `packages/agents`)|
+| Agents LLM                     | `apps/chatbot-py/app/agents/`                           |
+| Pipeline RAG                   | `apps/chatbot-py/app/rag/`                              |
 | Interface LLMClient            | `apps/chatbot-py/app/llm/base.py` (Protocol + Response) |
+| Frontend v2.0 (Next.js)        | `apps/web/` (Phase 0+)                                  |
+| Schéma DB Drizzle              | `packages/db/src/schema/`                               |
+| Design system composants       | `packages/ui/src/`                                      |
+| Persona Regalica               | `packages/persona-regalica/`                            |
 
 ---
 

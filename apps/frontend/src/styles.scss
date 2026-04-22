@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+@import './styles/tokens';
+@import './styles/materials';
+@import './styles/animations';
+
 :root {
   color-scheme: light;
   --glass-blur: 20px;
@@ -15,11 +19,11 @@
 html, body {
   margin: 0; padding: 0;
   min-height: 100vh;
-  font-family: 'Inter', 'SF Pro Text', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-feature-settings: 'cv02','cv03','cv04','cv11';
   -webkit-font-smoothing: antialiased;
-  background: #F5F5F7;
-  color: #1D1D1F;
+  background: var(--rg-canvas);
+  color: var(--rg-text-primary);
   overflow: hidden;
 }
 
@@ -28,17 +32,16 @@ html, body {
 *::-webkit-scrollbar-track { background: transparent; }
 *::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 99px; }
 
-::selection { background: rgba(110,86,207,0.15); color: #6E56CF; }
+::selection { background: var(--rg-blue-dim); color: var(--rg-blue); }
 
 @layer components {
 
-  /* ── Glass card ──────────────────────────────────────── */
   .glass {
     background: rgba(255,255,255,0.72);
     backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
     border: 1px solid rgba(255,255,255,0.85);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+    box-shadow: var(--shadow-sm);
   }
 
   .glass-elevated {
@@ -46,10 +49,9 @@ html, body {
     backdrop-filter: blur(28px) saturate(200%);
     -webkit-backdrop-filter: blur(28px) saturate(200%);
     border: 1px solid rgba(255,255,255,0.95);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.05);
+    box-shadow: var(--shadow-md);
   }
 
-  /* ── Badge ───────────────────────────────────────────── */
   .badge {
     @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold font-mono;
   }
@@ -57,34 +59,33 @@ html, body {
   .badge-fail  { @apply bg-rg-fail-dim text-rg-fail; }
   .badge-warn  { @apply bg-rg-warn-dim text-rg-warn; }
   .badge-info  { @apply bg-rg-info-dim text-rg-info; }
-  .badge-ai    { @apply bg-rg-ai-dim text-rg-ai; }
+  .badge-ai    { background: rgba(0,0,0,0.07); color: #1D1D1F; }
 
-  /* ── Status dot ──────────────────────────────────────── */
   .dot { @apply w-2 h-2 rounded-full inline-block flex-shrink-0; }
   .dot-pass { @apply bg-rg-pass; }
   .dot-fail { @apply bg-rg-fail; }
   .dot-idle { @apply bg-rg-subtle; }
 
-  /* ── Button ──────────────────────────────────────────── */
   .btn-primary {
     @apply inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white;
-    background: linear-gradient(135deg, #6E56CF, #5A40B8);
-    box-shadow: 0 2px 8px rgba(110,86,207,0.35);
-    transition: all var(--transition);
+    background: #1D1D1F;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    transition: all var(--dur-normal) var(--ease-std);
     border: none; cursor: pointer;
-    &:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(110,86,207,0.4); }
+    &:hover { background: #000000; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.25); }
     &:active { transform: translateY(0); }
+    &:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
   }
   .btn-ghost {
     @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-rg-muted;
     background: transparent; border: none; cursor: pointer;
-    transition: all var(--transition);
+    transition: all var(--dur-normal) var(--ease-std);
     &:hover { @apply bg-rg-bg-2 text-rg-text; }
   }
   .btn-icon {
     @apply w-8 h-8 rounded-lg flex items-center justify-center text-rg-muted;
     background: transparent; border: none; cursor: pointer;
-    transition: all var(--transition);
+    transition: all var(--dur-normal) var(--ease-std);
     &:hover { @apply bg-rg-bg-2 text-rg-text; }
   }
 }

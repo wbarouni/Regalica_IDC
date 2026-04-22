@@ -17,6 +17,7 @@ import { up as m006 } from './migrations/006-create-prompts-registry';
 import { up as m007 } from './migrations/007-create-persona-config';
 import { up as m008 } from './migrations/008-create-regalica-responses-audit';
 import { up as m009 } from './migrations/009-create-kb-chunks';
+import { up as m010 } from './migrations/010-create-design-tokens';
 
 const migrations: Array<{ name: string; up: (qi: ReturnType<typeof sequelize.getQueryInterface>) => Promise<void> }> = [
   { name: '001-create-tenants',                  up: m001 },
@@ -28,6 +29,7 @@ const migrations: Array<{ name: string; up: (qi: ReturnType<typeof sequelize.get
   { name: '007-create-persona-config',           up: m007 },
   { name: '008-create-regalica-responses-audit', up: m008 },
   { name: '009-create-kb-chunks',                up: m009 },
+  { name: '010-create-design-tokens',           up: m010 },
 ];
 
 async function main(): Promise<void> {

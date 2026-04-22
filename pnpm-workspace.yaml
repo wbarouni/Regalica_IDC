@@ -2,4 +2,6 @@ packages:
   - 'apps/api'
   - 'apps/chatbot-node'
   - 'apps/frontend'
+  - 'apps/web'
   - 'packages/*'
+  - 'tools/*'

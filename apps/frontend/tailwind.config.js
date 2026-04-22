@@ -32,20 +32,25 @@ module.exports = {
           'warn-dim':'rgba(255,149,0,0.10)',
           info:     '#007AFF',
           'info-dim':'rgba(0,122,255,0.10)',
-          /* Regalica AI accent */
-          ai:       '#6E56CF',
-          'ai-lt':  '#8B73E8',
-          'ai-dim': 'rgba(110,86,207,0.10)',
+          /* Regalica AI accent — black/white edition */
+          ai:       '#1D1D1F',
+          'ai-lt':  '#48484A',
+          'ai-dim': 'rgba(0,0,0,0.07)',
           /* Gold / premium */
           gold:     '#C9A84C',
           'gold-dim':'rgba(201,168,76,0.10)',
+          canvas:      '#FFFFFF',
+          'blue-dark': '#000000',
+          'blue-dim':  'rgba(0,0,0,0.07)',
+          'blue-glow': 'rgba(0,0,0,0.15)',
         },
       },
       boxShadow: {
         'glass-sm': '0 2px 8px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.05)',
         'glass-md': '0 8px 24px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.06)',
         'glass-lg': '0 20px 48px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.07)',
-        'ai':       '0 0 0 3px rgba(110,86,207,0.20)',
+        'ai':       '0 0 0 3px rgba(0,0,0,0.12)',
+        'blue':     '0 2px 8px rgba(0,0,0,0.18)',
       },
       animation: {
         'fade-up':   'fadeUp 0.25s ease-out',
