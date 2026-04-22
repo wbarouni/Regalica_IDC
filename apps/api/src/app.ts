@@ -11,11 +11,6 @@ import { config } from './config';
 import { logger } from './logger';
 import { errorHandler } from './middleware/error-handler';
 import { healthRouter } from './routes/health';
-import { evaluationRouter } from './routes/evaluation';
-import { promptsRouter } from './routes/prompts';
-import { createUploadsRouter } from './routes/uploads';
-import { runsRouter } from './routes/runs';
-import { designTokensRouter } from './routes/design-tokens';
 
 export function createApp(): Express {
   const app = express();
@@ -27,10 +22,6 @@ export function createApp(): Express {
   app.use(pinoHttp({ logger }));
 
   app.use('/health', healthRouter);
-  app.use('/api/evaluation', evaluationRouter);
-  app.use('/api/prompts', promptsRouter);
-  app.use('/api/runs', runsRouter);
-  app.use('/api/design-tokens', designTokensRouter);
 
   app.use(errorHandler);
 
@@ -43,9 +34,6 @@ export function createHttpServer(app: Express): { server: HttpServer; io: Socket
     cors: { origin: config.corsOrigin, credentials: true },
     transports: ['websocket', 'polling'],
   });
-
-  // Mount uploads router after io is available
-  app.use('/api/uploads', createUploadsRouter(io));
 
   return { server, io };
 }

@@ -12,8 +12,6 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(32).optional(),
   JWT_ACCESS_TTL: z.string().default('15m'),
   JWT_REFRESH_TTL: z.string().default('7d'),
-  AZURE_STORAGE_CONNECTION_STRING: z.string().optional(),
-  AZURE_STORAGE_CONTAINER: z.string().default('regalica-uploads'),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -37,10 +35,6 @@ export const config = {
     secret: env.JWT_SECRET,
     accessTtl: env.JWT_ACCESS_TTL,
     refreshTtl: env.JWT_REFRESH_TTL,
-  },
-  azure: {
-    connectionString: env.AZURE_STORAGE_CONNECTION_STRING,
-    container: env.AZURE_STORAGE_CONTAINER,
   },
 } as const;
 

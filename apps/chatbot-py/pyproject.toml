@@ -1,8 +1,7 @@
 [project]
 name = "regalica-chatbot-py"
 version = "0.0.0"
-description = "Regalica IDC — FastAPI chatbot avec agents LLM (Gemini/Ollama) et pipeline RAG"
-readme = "README.md"
+description = "Regalica IDC — FastAPI chatbot skeleton (agents canonical arrive in Phase 4)"
 requires-python = ">=3.12"
 authors = [{ name = "ALGORIA Factory" }]
 license = { text = "UNLICENSED" }

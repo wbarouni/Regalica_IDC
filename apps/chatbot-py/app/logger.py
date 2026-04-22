@@ -30,4 +30,7 @@ def configure_logger(level: str = "info") -> None:
 
 def get_logger(name: str, **context: Any) -> structlog.stdlib.BoundLogger:
     """Return a structlog logger bound with service metadata."""
-    return structlog.get_logger(name).bind(service="regalica-chatbot-py", **context)
+    # structlog's .bind() is typed as Any via its generic signature.
+    return structlog.get_logger(name).bind(  # type: ignore[no-any-return]
+        service="regalica-chatbot-py", **context
+    )
