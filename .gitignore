@@ -21,12 +21,6 @@ build/
 *.tsbuildinfo
 .tscache/
 
-# ---- Angular ---------------------------------------------------------------
-.angular/
-apps/frontend/dist/
-apps/frontend/.angular/
-apps/frontend/coverage/
-
 # ---- Python ----------------------------------------------------------------
 __pycache__/
 *.py[cod]

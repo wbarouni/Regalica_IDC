@@ -22,7 +22,9 @@
     "format:check": "prettier --check .",
     "dev": "docker compose up",
     "dev:down": "docker compose down",
-    "typecheck": "pnpm -r --if-present typecheck"
+    "typecheck": "pnpm -r --if-present typecheck",
+    "golden:normalize": "uv run python tools/golden-normalizer/normalize.py --source-dir tests/fixtures-source --target-dir tests/fixtures --tenant-slug qnb-tunisia --validation-author \"Wissem Barouni\" --report-file tools/golden-normalizer/reports/normalization.json",
+    "golden:verify": "uv run python tools/verify-golden-integrity/verify.py --fixtures-dir tests/fixtures/golden"
   },
   "devDependencies": {
     "prettier": "^3.3.3",

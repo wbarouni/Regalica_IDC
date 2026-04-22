@@ -11,8 +11,6 @@ export default [
       '**/dist/**',
       '**/build/**',
       '**/coverage/**',
-      '**/.angular/**',
-      'apps/frontend/**',
       'apps/chatbot-py/**',
     ],
   },

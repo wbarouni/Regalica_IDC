@@ -1,9 +1,8 @@
 """Smoke test for the /health endpoint."""
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.main import app
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture

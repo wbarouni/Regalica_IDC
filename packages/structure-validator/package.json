@@ -1,0 +1,27 @@
+{
+  "name": "@regflow/structure-validator",
+  "version": "0.0.0",
+  "private": true,
+  "description": "XSD structural validator — 7 dimensions (D1–D7) per BCT step 1",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"(structure-validator) canonical validator arrives in Phase 2\" && exit 0",
+    "lint": "echo \"(structure-validator) lint skeleton\" && exit 0"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^4.5.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "@types/node": "^20.17.6"
+  }
+}

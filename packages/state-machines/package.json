@@ -1,0 +1,24 @@
+{
+  "name": "@regflow/state-machines",
+  "version": "0.0.0",
+  "private": true,
+  "description": "State machines — T0, T1, T2/T3, 4-eyes (per Document 8)",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"(state-machines) FSMs arrive in Phase 3\" && exit 0",
+    "lint": "echo \"(state-machines) lint skeleton\" && exit 0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "@types/node": "^20.17.6"
+  }
+}

@@ -2,7 +2,7 @@
   "name": "@regalica/api",
   "version": "0.0.0",
   "private": true,
-  "description": "Regalica IDC — Express + Sequelize BFF API (evaluator, tenants, auth, uploads, Socket.IO)",
+  "description": "Regalica IDC — Express + pg native BFF API (evaluator, tenants, auth, uploads, Socket.IO)",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
