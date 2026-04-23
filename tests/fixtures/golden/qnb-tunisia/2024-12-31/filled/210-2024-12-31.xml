@@ -1,0 +1,317 @@
+<Document>
+  <Entete>
+    <CodeBanque>23</CodeBanque>
+    <DateAnnexe>20241231</DateAnnexe>
+    <CodeAnnexe>210</CodeAnnexe>
+  </Entete>
+  <Annexe id="210">
+    <Rubrique id="21001000000000">
+      <Colonnes>
+        <Colonne id="1">253.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="21001010000000">
+      <Colonnes>
+        <Colonne id="1">253.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="21001010100000">
+      <Colonnes>
+        <Colonne id="1">0.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="21001010101000">
+      <Colonnes>
+        <Colonne id="1">0.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="21001010102000">
+      <Colonnes>
+        <Colonne id="1">0.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="21001010200000">
+      <Colonnes>
+        <Colonne id="1">253.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="21001010201000">
+      <Colonnes>
+        <Colonne id="1">12.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+      </Colonnes>
+      <Societe>
+        <Identifiant>00242727</Identifiant>
+        <TypeIdentifiant>1</TypeIdentifiant>
+        <CodeGroupe/>
+        <RaisonSociale>Sotucoupe</RaisonSociale>
+        <NomGroupe/>
+        <Secteur/>
+        <Colonnes>
+          <Colonne id="1">12.000</Colonne>
+          <Colonne id="2">0.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+        </Colonnes>
+      </Societe>
+    </Rubrique>
+    <Rubrique id="21001010202000">
+      <Colonnes>
+        <Colonne id="1">241.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+      </Colonnes>
+      <Societe>
+        <Identifiant>0000000002</Identifiant>
+        <TypeIdentifiant>2</TypeIdentifiant>
+        <CodeGroupe/>
+        <RaisonSociale>Sami Ghliss</RaisonSociale>
+        <NomGroupe/>
+        <Secteur/>
+        <Colonnes>
+          <Colonne id="1">84.000</Colonne>
+          <Colonne id="2">0.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>0000000003</Identifiant>
+        <TypeIdentifiant>2</TypeIdentifiant>
+        <CodeGroupe/>
+        <RaisonSociale>Sahl Bakchali</RaisonSociale>
+        <NomGroupe/>
+        <Secteur/>
+        <Colonnes>
+          <Colonne id="1">83.000</Colonne>
+          <Colonne id="2">0.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>0000000004</Identifiant>
+        <TypeIdentifiant>2</TypeIdentifiant>
+        <CodeGroupe/>
+        <RaisonSociale>Monji ben mabrouk baraket</RaisonSociale>
+        <NomGroupe/>
+        <Secteur/>
+        <Colonnes>
+          <Colonne id="1">10.000</Colonne>
+          <Colonne id="2">0.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>0000000005</Identifiant>
+        <TypeIdentifiant>2</TypeIdentifiant>
+        <CodeGroupe/>
+        <RaisonSociale>mariem cheker</RaisonSociale>
+        <NomGroupe/>
+        <Secteur/>
+        <Colonnes>
+          <Colonne id="1">10.000</Colonne>
+          <Colonne id="2">0.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>0000000007</Identifiant>
+        <TypeIdentifiant>2</TypeIdentifiant>
+        <CodeGroupe/>
+        <RaisonSociale>samira amri</RaisonSociale>
+        <NomGroupe/>
+        <Secteur/>
+        <Colonnes>
+          <Colonne id="1">10.000</Colonne>
+          <Colonne id="2">0.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>0000000008</Identifiant>
+        <TypeIdentifiant>2</TypeIdentifiant>
+        <CodeGroupe/>
+        <RaisonSociale>mohamed amine cheker</RaisonSociale>
+        <NomGroupe/>
+        <Secteur/>
+        <Colonnes>
+          <Colonne id="1">7.000</Colonne>
+          <Colonne id="2">0.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>0000000009</Identifiant>
+        <TypeIdentifiant>2</TypeIdentifiant>
+        <CodeGroupe/>
+        <RaisonSociale>Hamadi labyedh</RaisonSociale>
+        <NomGroupe/>
+        <Secteur/>
+        <Colonnes>
+          <Colonne id="1">2.000</Colonne>
+          <Colonne id="2">0.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>0000000010</Identifiant>
+        <TypeIdentifiant>2</TypeIdentifiant>
+        <CodeGroupe/>
+        <RaisonSociale>Salah labiadh</RaisonSociale>
+        <NomGroupe/>
+        <Secteur/>
+        <Colonnes>
+          <Colonne id="1">2.000</Colonne>
+          <Colonne id="2">0.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>0000000011</Identifiant>
+        <TypeIdentifiant>2</TypeIdentifiant>
+        <CodeGroupe/>
+        <RaisonSociale>hedi labyedh</RaisonSociale>
+        <NomGroupe/>
+        <Secteur/>
+        <Colonnes>
+          <Colonne id="1">2.000</Colonne>
+          <Colonne id="2">0.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>0000000012</Identifiant>
+        <TypeIdentifiant>2</TypeIdentifiant>
+        <CodeGroupe/>
+        <RaisonSociale>Yousef mlayah</RaisonSociale>
+        <NomGroupe/>
+        <Secteur/>
+        <Colonnes>
+          <Colonne id="1">12.000</Colonne>
+          <Colonne id="2">0.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>0000000013</Identifiant>
+        <TypeIdentifiant>2</TypeIdentifiant>
+        <CodeGroupe/>
+        <RaisonSociale>Abdallah abdlemlek</RaisonSociale>
+        <NomGroupe/>
+        <Secteur/>
+        <Colonnes>
+          <Colonne id="1">19.000</Colonne>
+          <Colonne id="2">0.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+        </Colonnes>
+      </Societe>
+    </Rubrique>
+    <Rubrique id="21001020000000">
+      <Colonnes>
+        <Colonne id="1">0.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="21002000000000">
+      <Colonnes>
+        <Colonne id="1">0.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="21002010000000">
+      <Colonnes>
+        <Colonne id="1">0.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="21002020000000">
+      <Colonnes>
+        <Colonne id="1">0.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+      </Colonnes>
+      <Societe>
+        <Identifiant>0000000012</Identifiant>
+        <TypeIdentifiant>10</TypeIdentifiant>
+        <CodeGroupe/>
+        <RaisonSociale>Qatar National Bank (Q.P.S.C.)</RaisonSociale>
+        <NomGroupe/>
+        <Secteur/>
+        <Colonnes>
+          <Colonne id="1">64399754.000</Colonne>
+          <Colonne id="2">643997.540</Colonne>
+          <Colonne id="3">100.000</Colonne>
+        </Colonnes>
+      </Societe>
+    </Rubrique>
+    <Rubrique id="21003000000000">
+      <Colonnes>
+        <Colonne id="1">0.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="21004000000000">
+      <Colonnes>
+        <Colonne id="1">0.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="21099000000000">
+      <Colonnes>
+        <Colonne id="1">64399754.000</Colonne>
+        <Colonne id="2">643997.540</Colonne>
+        <Colonne id="3">100.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="21010000000000">
+      <Colonnes>
+        <Colonne id="1">0.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="21010010000000">
+      <Colonnes>
+        <Colonne id="1">0.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+      </Colonnes>
+      <Societe>
+        <Identifiant>0000000012</Identifiant>
+        <TypeIdentifiant>10</TypeIdentifiant>
+        <CodeGroupe/>
+        <RaisonSociale>Qatar National Bank (Q.P.S.C.)</RaisonSociale>
+        <NomGroupe/>
+        <Secteur/>
+        <Colonnes>
+          <Colonne id="1">64399754.000</Colonne>
+          <Colonne id="2">643997.540</Colonne>
+          <Colonne id="3">100.000</Colonne>
+        </Colonnes>
+      </Societe>
+    </Rubrique>
+    <Rubrique id="21010020000000">
+      <Colonnes>
+        <Colonne id="1">0.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+  </Annexe>
+</Document>

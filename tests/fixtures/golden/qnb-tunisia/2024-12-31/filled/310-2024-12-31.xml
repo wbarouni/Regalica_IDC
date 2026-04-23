@@ -1,0 +1,91 @@
+<Document>
+  <Entete>
+    <CodeBanque>23</CodeBanque>
+    <DateAnnexe>20241231</DateAnnexe>
+    <CodeAnnexe>310</CodeAnnexe>
+  </Entete>
+  <Annexe id="310">
+    <Rubrique id="31001000000000">
+      <Colonnes>
+        <Colonne id="1">4.000</Colonne>
+        <Colonne id="2">5.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+        <Colonne id="4">9.000</Colonne>
+      </Colonnes>
+      <Detail id="ID1" nom="Echange de billet de banque en dinars ou en devise présenatant un caractère anomal en termes de fractionnement et de fréquence">
+        <Colonne id="1">2.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+        <Colonne id="4">2.000</Colonne>
+      </Detail>
+      <Detail id="ID2" nom="Utilisation d'un compte personnel pour la réalisation de transaction commerciales">
+        <Colonne id="1">0.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+        <Colonne id="4">0.000</Colonne>
+      </Detail>
+      <Detail id="ID3" nom="Client objet de signalement de la CTAF/investigation BCT/Instance judiciaire ">
+        <Colonne id="1">0.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+        <Colonne id="4">0.000</Colonne>
+      </Detail>
+      <Detail id="ID4" nom="Transaction montant élevé /absence de justificatif">
+        <Colonne id="1">2.000</Colonne>
+        <Colonne id="2">3.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+        <Colonne id="4">5.000</Colonne>
+      </Detail>
+      <Detail id="ID5" nom="Information spontannée">
+        <Colonne id="1">0.000</Colonne>
+        <Colonne id="2">1.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+        <Colonne id="4">1.000</Colonne>
+      </Detail>
+      <Detail id="" nom="Opération incohérente avec les données KYC">
+        <Colonne id="1">0.000</Colonne>
+        <Colonne id="2">1.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+        <Colonne id="4">1.000</Colonne>
+      </Detail>
+    </Rubrique>
+    <Rubrique id="31002000000000">
+      <Colonnes>
+        <Colonne id="1">3660039.000</Colonne>
+        <Colonne id="2">15061008.073</Colonne>
+        <Colonne id="3">0.000</Colonne>
+        <Colonne id="4">18721047.073</Colonne>
+      </Colonnes>
+      <Detail id="ID1" nom="Echange de billet de banque en dinars ou en devise présenatant un caractère anomal en termes de fractionnement et de fréquence">
+        <Colonne id="1">457839.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+        <Colonne id="4">457839.000</Colonne>
+      </Detail>
+      <Detail id="ID2" nom="Utilisation d'un compte personnel pour la réalisation de transaction commerciales">
+        <Colonne id="1">0.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+        <Colonne id="4">0.000</Colonne>
+      </Detail>
+      <Detail id="ID3" nom="Client objet de signalement de la CTAF/investigation BCT/Instance judiciaire ">
+        <Colonne id="1">0.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+        <Colonne id="4">0.000</Colonne>
+      </Detail>
+      <Detail id="ID4" nom="Transaction montant élevé /absence de justificatif">
+        <Colonne id="1">3202200.000</Colonne>
+        <Colonne id="2">14724891.600</Colonne>
+        <Colonne id="3">0.000</Colonne>
+        <Colonne id="4">17927091.600</Colonne>
+      </Detail>
+      <Detail id="ID5" nom="Information spontannée">
+        <Colonne id="1">0.000</Colonne>
+        <Colonne id="2">336116.473</Colonne>
+        <Colonne id="3">0.000</Colonne>
+        <Colonne id="4">336116.473</Colonne>
+      </Detail>
+    </Rubrique>
+  </Annexe>
+</Document>

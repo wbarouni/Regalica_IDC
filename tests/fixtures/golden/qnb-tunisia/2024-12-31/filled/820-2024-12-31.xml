@@ -1,0 +1,93 @@
+<Document>
+  <Entete>
+    <CodeBanque>23</CodeBanque>
+    <DateAnnexe>20241231</DateAnnexe>
+    <CodeAnnexe>820</CodeAnnexe>
+  </Entete>
+  <Annexe id="820">
+    <Rubrique id="82001000000000">
+      <Colonne id="1">295989.000</Colonne>
+    </Rubrique>
+    <Rubrique id="82002000000000">
+      <Colonne id="1">14799.450</Colonne>
+    </Rubrique>
+    <Rubrique id="82003000000000">
+      <Colonne id="1">44398.350</Colonne>
+    </Rubrique>
+    <Rubrique id="82004000000000">
+      <Colonne id="1">73997.250</Colonne>
+    </Rubrique>
+    <Rubrique id="82005000000000">
+      <Colonne id="1">221991.750</Colonne>
+    </Rubrique>
+    <Rubrique id="82006000000000">
+      <Colonne id="1">443983.500</Colonne>
+    </Rubrique>
+    <Rubrique id="82007000000000">
+      <Colonne id="1">887967.000</Colonne>
+    </Rubrique>
+    <Rubrique id="82008000000000">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="82008010000000">
+      <Colonne id="1">1.000</Colonne>
+    </Rubrique>
+    <Rubrique id="82008020000000">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="82008030000000">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="82008040000000">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="82008050000000">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="82009000000000">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="82009010000000">
+      <Colonne id="1">1.000</Colonne>
+    </Rubrique>
+    <Rubrique id="82009020000000">
+      <Colonne id="1">528082.000</Colonne>
+    </Rubrique>
+    <Rubrique id="82009030000000">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="82009040000000">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="82010000000000">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="82010010000000">
+      <Colonne id="1">1.000</Colonne>
+    </Rubrique>
+    <Rubrique id="82010020000000">
+      <Colonne id="1">222818.000</Colonne>
+    </Rubrique>
+    <Rubrique id="82010030000000">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="82010040000000">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="82011000000000">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="82011010000000">
+      <Colonne id="1">1.000</Colonne>
+    </Rubrique>
+    <Rubrique id="82011020000000">
+      <Colonne id="1">35195.000</Colonne>
+    </Rubrique>
+    <Rubrique id="82011030000000">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="82011040000000">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+  </Annexe>
+</Document>
