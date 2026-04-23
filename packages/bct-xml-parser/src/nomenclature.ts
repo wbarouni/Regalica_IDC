@@ -4,7 +4,7 @@
  * Détection de nomenclature XML.
  */
 
-import type { Nomenclature } from "./types.js";
+import type { Nomenclature } from './types.js';
 
 /**
  * Détecte la nomenclature XML en inspectant les marqueurs root-level.
@@ -19,7 +19,7 @@ import type { Nomenclature } from "./types.js";
 export function detectNomenclature(xmlContent: string): Nomenclature {
   const hasLegacyEntete = /<ENTETE\b/.test(xmlContent);
   if (hasLegacyEntete) {
-    return "legacy";
+    return 'legacy';
   }
 
   const hasModernEntete = /<Entete\b/.test(xmlContent);
@@ -27,22 +27,22 @@ export function detectNomenclature(xmlContent: string): Nomenclature {
     /<TauxCrediteurs\b/.test(xmlContent) || /<TauxDebiteurs\b/.test(xmlContent);
 
   if (hasModernEntete && hasSpecializedTags) {
-    return "specialized";
+    return 'specialized';
   }
   if (hasModernEntete) {
-    return "modern";
+    return 'modern';
   }
   if (hasSpecializedTags) {
-    return "specialized";
+    return 'specialized';
   }
 
   // Fallback : si on voit <RECAP_POS> ou <DET_PSC> seul sans ENTETE explicite
   if (/<RECAP_POS\b/.test(xmlContent) || /<DET_PSC\b/.test(xmlContent)) {
-    return "legacy";
+    return 'legacy';
   }
 
   // Par défaut on considère moderne pour laisser le parsing tenter
-  return "modern";
+  return 'modern';
 }
 
 /**
@@ -70,7 +70,7 @@ export function normalizeDate(raw: string | undefined | null): string | null {
   const ddmmyyyy = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (ddmmyyyy) {
     const [, d, m, y] = ddmmyyyy;
-    return `${y}-${m!.padStart(2, "0")}-${d!.padStart(2, "0")}`;
+    return `${y}-${m!.padStart(2, '0')}-${d!.padStart(2, '0')}`;
   }
 
   return null;

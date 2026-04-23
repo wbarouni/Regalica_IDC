@@ -7,8 +7,8 @@
  * L'implémentation du moteur viendra en Phase 2 du plan brute.
  */
 
-import type { Decimal } from "decimal.js";
-import type { CellMatrix, ParsedXml } from "@regflow/bct-xml-parser";
+import type { Decimal } from 'decimal.js';
+import type { CellMatrix, ParsedXml } from '@regflow/bct-xml-parser';
 
 /**
  * Statut de verdict pour une règle évaluée.
@@ -16,15 +16,15 @@ import type { CellMatrix, ParsedXml } from "@regflow/bct-xml-parser";
  * Conforme à la doctrine binaire PASS/FAIL + motifs de SKIPPED.
  */
 export type VerdictStatus =
-  | "PASS"
-  | "FAIL"
-  | "SKIPPED_MISSING_ANNEXE"
-  | "SKIPPED_MISSING_RUBRIQUE"
-  | "SKIPPED_MISSING_COLONNE"
-  | "SKIPPED_MISSING_DATA"
-  | "SKIPPED_CONDITIONAL"
-  | "SKIPPED_UNSUPPORTED_OP"
-  | "SKIPPED_LITERAL_TEXT";
+  | 'PASS'
+  | 'FAIL'
+  | 'SKIPPED_MISSING_ANNEXE'
+  | 'SKIPPED_MISSING_RUBRIQUE'
+  | 'SKIPPED_MISSING_COLONNE'
+  | 'SKIPPED_MISSING_DATA'
+  | 'SKIPPED_CONDITIONAL'
+  | 'SKIPPED_UNSUPPORTED_OP'
+  | 'SKIPPED_LITERAL_TEXT';
 
 /**
  * Sévérité d'un FAIL.
@@ -32,7 +32,7 @@ export type VerdictStatus =
  * - `rounding` : écart inférieur au seuil d'arrondi accepté (1 TND en valeur absolue
  *   selon doctrine BCT, à paramétrer via sentinelle).
  */
-export type FailSeverity = "severe" | "rounding";
+export type FailSeverity = 'severe' | 'rounding';
 
 /**
  * Un terme d'une règle RDG, unité élémentaire de résolution.
@@ -44,8 +44,8 @@ export interface RuleTerm {
   readonly id: string;
   readonly rang: 1 | 2 | 3;
   readonly numSeq: number;
-  readonly termOp: "+" | "-" | "*" | "/" | null;
-  readonly kind: "cell_ref" | "literal" | "literal_text";
+  readonly termOp: '+' | '-' | '*' | '/' | null;
+  readonly kind: 'cell_ref' | 'literal' | 'literal_text';
   readonly axOrigine: string | null;
   readonly rubriqueCode: string | null;
   readonly colonne: string | null;
@@ -61,8 +61,8 @@ export interface RuleWithTerms {
   readonly tenantId: string;
   readonly axTerm: string; // annexe porteuse
   readonly numRegle: number;
-  readonly operRegle: "=" | ">=" | "<=" | ">" | "<" | "SUM" | "MAX" | "MIN" | "VA";
-  readonly typeCtrl: "intra_ax" | "inter_ax";
+  readonly operRegle: '=' | '>=' | '<=' | '>' | '<' | 'SUM' | 'MAX' | 'MIN' | 'VA';
+  readonly typeCtrl: 'intra_ax' | 'inter_ax';
   readonly domaine: string | null;
   readonly libAnnexe: string | null;
   readonly zoneTexte: string | null;
@@ -174,32 +174,32 @@ export function aggregateTotals(verdicts: readonly Verdict[]): VerdictTotals {
   totals.rulesApplicableTotal = verdicts.length;
   for (const v of verdicts) {
     switch (v.status) {
-      case "PASS":
+      case 'PASS':
         totals.pass++;
         break;
-      case "FAIL":
-        if (v.severity === "rounding") totals.failRounding++;
+      case 'FAIL':
+        if (v.severity === 'rounding') totals.failRounding++;
         else totals.failSevere++;
         break;
-      case "SKIPPED_MISSING_ANNEXE":
+      case 'SKIPPED_MISSING_ANNEXE':
         totals.skippedMissingAnnexe++;
         break;
-      case "SKIPPED_MISSING_RUBRIQUE":
+      case 'SKIPPED_MISSING_RUBRIQUE':
         totals.skippedMissingRubrique++;
         break;
-      case "SKIPPED_MISSING_COLONNE":
+      case 'SKIPPED_MISSING_COLONNE':
         totals.skippedMissingColonne++;
         break;
-      case "SKIPPED_MISSING_DATA":
+      case 'SKIPPED_MISSING_DATA':
         totals.skippedMissingData++;
         break;
-      case "SKIPPED_CONDITIONAL":
+      case 'SKIPPED_CONDITIONAL':
         totals.skippedConditional++;
         break;
-      case "SKIPPED_UNSUPPORTED_OP":
+      case 'SKIPPED_UNSUPPORTED_OP':
         totals.skippedUnsupportedOp++;
         break;
-      case "SKIPPED_LITERAL_TEXT":
+      case 'SKIPPED_LITERAL_TEXT':
         totals.skippedLiteralText++;
         break;
     }

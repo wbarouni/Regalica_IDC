@@ -4,13 +4,12 @@
  * Parser de la nomenclature moderne (<Entete>, <Annexe>, <Rubrique>, <Colonne>).
  */
 
-import { XMLParser } from "fast-xml-parser";
-import { Decimal } from "decimal.js";
+import { XMLParser } from 'fast-xml-parser';
+import { Decimal } from 'decimal.js';
 
-
-import type { CellMatrix, ParseWarning, XmlHeader } from "./types.js";
-import { ParseError } from "./types.js";
-import { normalizeDate } from "./nomenclature.js";
+import type { CellMatrix, ParseWarning, XmlHeader } from './types.js';
+import { ParseError } from './types.js';
+import { normalizeDate } from './nomenclature.js';
 
 interface ModernParseResult {
   header: XmlHeader;
@@ -22,7 +21,7 @@ interface ModernParseResult {
 
 const PARSER_OPTIONS = {
   ignoreAttributes: false,
-  attributeNamePrefix: "@_",
+  attributeNamePrefix: '@_',
   allowBooleanAttributes: true,
   parseAttributeValue: false,
   parseTagValue: false,
@@ -38,20 +37,17 @@ export function parseModern(xmlContent: string): ModernParseResult {
   try {
     tree = parser.parse(xmlContent);
   } catch (err) {
-    throw new ParseError(
-      `Invalid XML syntax: ${(err as Error).message}`,
-      "invalid_xml_syntax",
-    );
+    throw new ParseError(`Invalid XML syntax: ${(err as Error).message}`, 'invalid_xml_syntax');
   }
 
   const doc = tree?.Document;
   if (!doc) {
-    throw new ParseError("No <Document> root element", "no_recognizable_header");
+    throw new ParseError('No <Document> root element', 'no_recognizable_header');
   }
 
   const entete = doc.Entete;
   if (!entete) {
-    throw new ParseError("No <Entete> in modern XML", "no_recognizable_header");
+    throw new ParseError('No <Entete> in modern XML', 'no_recognizable_header');
   }
 
   const warnings: ParseWarning[] = [];
@@ -61,29 +57,29 @@ export function parseModern(xmlContent: string): ModernParseResult {
   const codeAnnexe = extractScalar(entete.CodeAnnexe);
 
   if (!codeBanque) {
-    warnings.push({ code: "missing_code_banque", message: "CodeBanque absent ou vide" });
+    warnings.push({ code: 'missing_code_banque', message: 'CodeBanque absent ou vide' });
   }
 
   const dateAnnexe = normalizeDate(dateAnnexeRaw);
   if (!dateAnnexe) {
     warnings.push({
-      code: "missing_date_annexe",
-      message: "DateAnnexe absente ou invalide",
+      code: 'missing_date_annexe',
+      message: 'DateAnnexe absente ou invalide',
       context: { raw: dateAnnexeRaw },
     });
   }
 
   if (!codeAnnexe) {
-    throw new ParseError("No CodeAnnexe in modern XML", "no_annexe_code");
+    throw new ParseError('No CodeAnnexe in modern XML', 'no_annexe_code');
   }
 
   const normalizedAnnexe = codeAnnexe; // Preserve exact code as in XML
 
   const header: XmlHeader = {
-    codeBanque: codeBanque ?? "",
-    dateAnnexe: dateAnnexe ?? "",
+    codeBanque: codeBanque ?? '',
+    dateAnnexe: dateAnnexe ?? '',
     codeAnnexe: normalizedAnnexe,
-    nomenclature: "modern",
+    nomenclature: 'modern',
   };
 
   // Extraction de la matrice de cellules
@@ -97,7 +93,7 @@ export function parseModern(xmlContent: string): ModernParseResult {
     // (ex: <Societe><Rubrique/></Societe> pour sentinelles D1-D6)
     const rubriques = collectRubriques(annexe);
     for (const rub of rubriques) {
-      const rubId = rub["@_id"];
+      const rubId = rub['@_id'];
       if (!rubId) continue;
 
       rubriquesCount++;
@@ -105,7 +101,7 @@ export function parseModern(xmlContent: string): ModernParseResult {
       const existing = cellsInner.get(rubId);
       if (existing) {
         warnings.push({
-          code: "duplicate_rubrique",
+          code: 'duplicate_rubrique',
           message: `Rubrique ${rubId} apparaît plusieurs fois dans l'annexe ${normalizedAnnexe}`,
         });
       }
@@ -113,11 +109,11 @@ export function parseModern(xmlContent: string): ModernParseResult {
       const colonnesMap = existing ?? new Map<string, Decimal>();
       const colonnes = normalizeArray(rub.Colonne);
       for (const col of colonnes) {
-        const colId = col["@_id"];
+        const colId = col['@_id'];
         if (!colId) continue;
 
         const rawValue = extractScalar(col);
-        if (rawValue === null || rawValue === "") continue;
+        if (rawValue === null || rawValue === '') continue;
 
         try {
           const value = new Decimal(rawValue);
@@ -125,7 +121,7 @@ export function parseModern(xmlContent: string): ModernParseResult {
           valuesCount++;
         } catch {
           warnings.push({
-            code: "non_numeric_cell_value",
+            code: 'non_numeric_cell_value',
             message: `Valeur non numérique pour ${normalizedAnnexe}/${rubId}/col ${colId}`,
             context: { rawValue },
           });
@@ -140,7 +136,7 @@ export function parseModern(xmlContent: string): ModernParseResult {
 
   if (rubriquesCount === 0) {
     warnings.push({
-      code: "empty_annexe",
+      code: 'empty_annexe',
       message: `Aucune rubrique trouvée dans l'annexe ${normalizedAnnexe}`,
     });
   }
@@ -172,7 +168,7 @@ function collectRubriques(node: XmlNode): XmlNode[] {
   }
 
   // Conteneurs connus pour héberger des rubriques en sentinelles D
-  const containerKeys = ["Societe", "Membre", "Instrument", "Devise"];
+  const containerKeys = ['Societe', 'Membre', 'Instrument', 'Devise'];
   for (const key of containerKeys) {
     if (node[key]) {
       const children = normalizeArray(node[key]);
@@ -192,12 +188,12 @@ function normalizeArray(val: unknown): XmlNode[] {
 
 function extractScalar(node: unknown): string | null {
   if (node === null || node === undefined) return null;
-  if (typeof node === "string") return node.trim() || null;
-  if (typeof node === "number") return String(node);
-  if (typeof node === "object") {
+  if (typeof node === 'string') return node.trim() || null;
+  if (typeof node === 'number') return String(node);
+  if (typeof node === 'object') {
     // fast-xml-parser renders <Tag>value</Tag> as { "#text": "value" } if attributes exist
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const text = (node as any)["#text"];
+    const text = (node as any)['#text'];
     if (text !== undefined) return String(text).trim() || null;
     return null;
   }

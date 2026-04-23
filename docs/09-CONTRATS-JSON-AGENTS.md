@@ -269,13 +269,13 @@ class SuggestedAction(BaseModel):
 
 ### LLM et température
 
-| Paramètre | Valeur |
-|---|---|
-| Modèle | `gemini-2.5-flash` |
-| Température | 0.7 |
-| Max tokens output | 2048 |
+| Paramètre               | Valeur                                   |
+| ----------------------- | ---------------------------------------- |
+| Modèle                  | `gemini-2.5-flash`                       |
+| Température             | 0.7                                      |
+| Max tokens output       | 2048                                     |
 | Seuil confiance minimum | 0.90 (seuil 0.95 dur sur faits chiffrés) |
-| Cible latence p95 | 3 secondes |
+| Cible latence p95       | 3 secondes                               |
 
 ### Gardes et guardrails
 
@@ -288,12 +288,12 @@ class SuggestedAction(BaseModel):
 
 ### Cas d'erreur
 
-| Cas | Comportement |
-|---|---|
-| Confidence < 0.90 | Sortie rejetée, Regalica répond "Je ne suis pas suffisamment certaine de ma réponse. Pourriez-vous reformuler ?" |
-| Spécialiste invoqué en erreur | Regalica dégrade en continuant sans cette source ou signale l'indisponibilité selon criticité |
-| Tous les LLM indisponibles | Regalica répond "L'assistance IA est momentanément indisponible. Les résultats du moteur d'évaluation restent consultables." |
-| User message > 8000 chars | Rejet avec message demandant de scinder la question |
+| Cas                           | Comportement                                                                                                                 |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Confidence < 0.90             | Sortie rejetée, Regalica répond "Je ne suis pas suffisamment certaine de ma réponse. Pourriez-vous reformuler ?"             |
+| Spécialiste invoqué en erreur | Regalica dégrade en continuant sans cette source ou signale l'indisponibilité selon criticité                                |
+| Tous les LLM indisponibles    | Regalica répond "L'assistance IA est momentanément indisponible. Les résultats du moteur d'évaluation restent consultables." |
+| User message > 8000 chars     | Rejet avec message demandant de scinder la question                                                                          |
 
 ---
 
@@ -961,18 +961,18 @@ Pas d'appel LLM. Stockage objet local (pas de cloud). Latence p95 < 500 ms pour 
 
 ## 21. Quel agent pour quel besoin
 
-| Besoin utilisateur | Agent(s) invoqué(s) |
-|---|---|
-| Uploader un XML | `IngestorXMLAgent` puis `DependencyAgent` puis `TemporalAgent` |
-| Importer règles depuis Excel | `RuleExcelAssistAgent` puis cycle 4-yeux |
-| Saisir règle au formulaire | `RuleFormAssistAgent` puis cycle 4-yeux |
-| Importer référentiel depuis PDF BCT | `ReferentialIngestorAgent` puis cycle 4-yeux |
-| Comprendre un FAIL | `InvestigatorAgent` + `CitationAgent` |
-| Voir tendance historique | `HistoricalAgent` + `VisualizerAgent` |
-| Générer rapport final | `ReporterAgent` + `VisualizerAgent` |
-| Comparer deux runs | `DiffAgent` + `VisualizerAgent` |
-| Recevoir une alerte | `NotificationAgent` |
-| Joindre une pièce | `GedAgent` |
+| Besoin utilisateur                  | Agent(s) invoqué(s)                                            |
+| ----------------------------------- | -------------------------------------------------------------- |
+| Uploader un XML                     | `IngestorXMLAgent` puis `DependencyAgent` puis `TemporalAgent` |
+| Importer règles depuis Excel        | `RuleExcelAssistAgent` puis cycle 4-yeux                       |
+| Saisir règle au formulaire          | `RuleFormAssistAgent` puis cycle 4-yeux                        |
+| Importer référentiel depuis PDF BCT | `ReferentialIngestorAgent` puis cycle 4-yeux                   |
+| Comprendre un FAIL                  | `InvestigatorAgent` + `CitationAgent`                          |
+| Voir tendance historique            | `HistoricalAgent` + `VisualizerAgent`                          |
+| Générer rapport final               | `ReporterAgent` + `VisualizerAgent`                            |
+| Comparer deux runs                  | `DiffAgent` + `VisualizerAgent`                                |
+| Recevoir une alerte                 | `NotificationAgent`                                            |
+| Joindre une pièce                   | `GedAgent`                                                     |
 
 ## 22. Chaînage inter-agents typique
 
@@ -1011,27 +1011,27 @@ user clicks "Sign run"
 
 ## 23. Températures consolidées
 
-| Agent | Température | Modèle | LLM |
-|---|---|---|---|
-| Regalica | 0.7 | `gemini-2.5-flash` | Oui |
-| IngestorXML | N/A | N/A | Non |
-| Dependency | N/A | N/A | Non |
-| Temporal | N/A | N/A | Non |
-| RuleExcelAssist | 0.1 | `gemini-2.5-flash` | Oui |
-| RuleFormAssist | 0.3 | `gemini-2.5-flash` | Oui |
-| ReferentialIngestor | 0.1 | `gemini-2.5-flash` (multimodal pour PDF) | Oui |
-| Investigator | 0.3 | `gemini-2.5-flash` | Oui |
-| Historical | 0.3 | `gemini-2.5-flash` | Hybride |
-| Reporter | 0.3 | `gemini-2.5-flash` | Hybride |
-| Visualizer | 0.3 | `gemini-2.5-flash` | Hybride |
-| Citation | 0.1 | `gemini-2.5-flash` | Hybride |
-| Diff | 0.1 | `gemini-2.5-flash` | Hybride |
-| Notification | N/A | N/A | Non |
-| Ged | N/A | N/A | Non |
+| Agent               | Température | Modèle                                   | LLM     |
+| ------------------- | ----------- | ---------------------------------------- | ------- |
+| Regalica            | 0.7         | `gemini-2.5-flash`                       | Oui     |
+| IngestorXML         | N/A         | N/A                                      | Non     |
+| Dependency          | N/A         | N/A                                      | Non     |
+| Temporal            | N/A         | N/A                                      | Non     |
+| RuleExcelAssist     | 0.1         | `gemini-2.5-flash`                       | Oui     |
+| RuleFormAssist      | 0.3         | `gemini-2.5-flash`                       | Oui     |
+| ReferentialIngestor | 0.1         | `gemini-2.5-flash` (multimodal pour PDF) | Oui     |
+| Investigator        | 0.3         | `gemini-2.5-flash`                       | Oui     |
+| Historical          | 0.3         | `gemini-2.5-flash`                       | Hybride |
+| Reporter            | 0.3         | `gemini-2.5-flash`                       | Hybride |
+| Visualizer          | 0.3         | `gemini-2.5-flash`                       | Hybride |
+| Citation            | 0.1         | `gemini-2.5-flash`                       | Hybride |
+| Diff                | 0.1         | `gemini-2.5-flash`                       | Hybride |
+| Notification        | N/A         | N/A                                      | Non     |
+| Ged                 | N/A         | N/A                                      | Non     |
 
 **14 agents : 1 orchestratrice + 13 spécialistes.** L'unification de RuleExcelAssist et RuleFormAssist sous un agent `RuleAssistAgent` avec deux modes peut être envisagée en Phase 4 pour strictement atteindre 13 spécialistes. Le présent document les documente séparément pour clarté des contrats.
 
 ---
 
-*Fin du Document 9 — Contrats JSON des 14 agents*
-*Prochain document : Document 10 — Orchestration Regalica et 7 types de questions*
+_Fin du Document 9 — Contrats JSON des 14 agents_
+_Prochain document : Document 10 — Orchestration Regalica et 7 types de questions_

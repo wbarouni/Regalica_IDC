@@ -2,7 +2,20 @@ name: CI
 
 on:
   push:
-    branches: [main, 'v2-from-scratch', 'phase-0/**', 'phase-1/**', 'phase-2/**', 'phase-3/**', 'phase-4/**', 'phase-5/**', 'phase-6/**', 'feature/**', 'fix/**']
+    branches:
+      [
+        main,
+        'v2-from-scratch',
+        'phase-0/**',
+        'phase-1/**',
+        'phase-2/**',
+        'phase-3/**',
+        'phase-4/**',
+        'phase-5/**',
+        'phase-6/**',
+        'feature/**',
+        'fix/**',
+      ]
   pull_request:
     branches: [main]
 

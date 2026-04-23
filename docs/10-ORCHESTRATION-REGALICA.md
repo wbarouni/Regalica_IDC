@@ -172,6 +172,7 @@ parallel [
 Format : `factuelle` ou `analytique` selon profondeur demandée.
 
 Structure :
+
 1. Phrase de diagnostic causal (cause racine probable).
 2. Valeurs chiffrées : LHS, RHS, gap absolu et relatif.
 3. Rubrique ou rubriques concernées avec leur libellé métier.
@@ -219,6 +220,7 @@ InvestigatorAgent(cluster_hint, list_of_related_fails)
 Format : `analytique`.
 
 Structure :
+
 1. Affirmation de la cause racine identifiée ou du faisceau d'hypothèses.
 2. Liste des FAILs appartenant à la grappe (nombre + quelques exemples représentatifs).
 3. Visualisation heatmap jointe en artifact.
@@ -228,7 +230,7 @@ Structure :
 
 > **User :** Ces FAILs sur les annexes 620, 630, 640 sont-ils liés ?
 >
-> **Regalica :** Les 17 FAILs détectés sur vos annexes 620, 630, 640 à l'arrêté 28/02/2026 partagent une cause racine commune : la ventilation sectorielle "Ménages" est absente de votre mapping comptable sur le périmètre des dépôts à vue en dinars. La correction de cette ventilation unique sur votre module SM résoudra l'ensemble des 17 FAILs. Le diagnostic s'appuie sur la convergence des rubriques impactées (PA030100000*, PA030101000*, PA030102000*) et sur l'absence systématique de la colonne sectorielle 8 (Ménages) dans votre extract comptable source.
+> **Regalica :** Les 17 FAILs détectés sur vos annexes 620, 630, 640 à l'arrêté 28/02/2026 partagent une cause racine commune : la ventilation sectorielle "Ménages" est absente de votre mapping comptable sur le périmètre des dépôts à vue en dinars. La correction de cette ventilation unique sur votre module SM résoudra l'ensemble des 17 FAILs. Le diagnostic s'appuie sur la convergence des rubriques impactées (PA030100000*, PA030101000*, PA030102000\*) et sur l'absence systématique de la colonne sectorielle 8 (Ménages) dans votre extract comptable source.
 >
 > [Visualisation heatmap : densité FAIL par rubrique × annexe]
 >
@@ -264,6 +266,7 @@ L'HistoricalAgent est invoqué **uniquement après** une validation RDG complèt
 Format : `analytique`.
 
 Structure :
+
 1. Constat de récurrence (oui/non, fréquence).
 2. Tendance (stable, croissant, décroissant, volatil).
 3. Anomalies détectées le cas échéant (z-score, changement abrupt, rupture de pattern).
@@ -296,6 +299,7 @@ CitationAgent(rule_id, max_citations=3)
 Format : `technique`.
 
 Structure :
+
 1. Citation principale avec extrait, numéro d'article, numéro de circulaire, date de publication.
 2. Citations secondaires éventuelles (autres circulaires qui renforcent).
 3. Lien vers le document source en téléchargement.
@@ -336,6 +340,7 @@ Format : `analytique`.
 Overlay UI dédié "Simulation d'impact" (voir Document 4 maquettes Workspace v5).
 
 Structure :
+
 1. Récapitulatif de la modification simulée.
 2. Chiffres avant / après.
 3. Nombre de verdicts qui changent de statut (PASS→FAIL, FAIL→PASS).
@@ -372,6 +377,7 @@ Format : `factuelle` avec chiffres précis.
 Overlay UI dédié "Sanction BCT estimée".
 
 Structure :
+
 1. Montant estimé de la sanction en TND.
 2. Détail du calcul (grille par FAIL sévère, par FAIL d'arrondi, par retard de soumission).
 3. Citation circulaire 2017-06 articles 11 et 12.
@@ -416,6 +422,7 @@ Format : `analytique` structuré.
 Overlay UI dédié "Plan optimal" (voir maquettes).
 
 Structure :
+
 1. Synthèse : N corrections à faire, Y FAILs résolus en cumul.
 2. Liste ordonnancée par priorité (effort moyen / impact FAIL).
 3. Pour chaque correction : rubrique concernée, système source cible, effort estimé, FAILs résolus.
@@ -592,17 +599,17 @@ Regalica explique gracieusement l'état requis et propose de naviguer.
 
 ## 21. Budget de tokens par type de question
 
-| Intent | Router (in+out) | Specialists (total) | Aggregator (in+out) | Total |
-|---|---|---|---|---|
-| zoom_fail | 300 | 1 500 | 1 200 | 3 000 |
-| grappe_causes | 300 | 3 000 | 1 500 | 4 800 |
-| historique_recurrence | 300 | 2 000 | 1 200 | 3 500 |
-| citation_reglementaire | 300 | 800 | 600 | 1 700 |
-| simulation_impact | 300 | 1 500 | 1 000 | 2 800 |
-| estimation_sanction | 300 | 500 | 1 000 | 1 800 |
-| plan_optimal | 300 | 4 000 | 2 000 | 6 300 |
-| assist_t0_precheck | 300 | 500 | 600 | 1 400 |
-| assist_general | 300 | 0 | 600 | 900 |
+| Intent                 | Router (in+out) | Specialists (total) | Aggregator (in+out) | Total |
+| ---------------------- | --------------- | ------------------- | ------------------- | ----- |
+| zoom_fail              | 300             | 1 500               | 1 200               | 3 000 |
+| grappe_causes          | 300             | 3 000               | 1 500               | 4 800 |
+| historique_recurrence  | 300             | 2 000               | 1 200               | 3 500 |
+| citation_reglementaire | 300             | 800                 | 600                 | 1 700 |
+| simulation_impact      | 300             | 1 500               | 1 000               | 2 800 |
+| estimation_sanction    | 300             | 500                 | 1 000               | 1 800 |
+| plan_optimal           | 300             | 4 000               | 2 000               | 6 300 |
+| assist_t0_precheck     | 300             | 500                 | 600                 | 1 400 |
+| assist_general         | 300             | 0                   | 600                 | 900   |
 
 **Coût moyen estimé** à `gemini-2.5-flash` (pricing grille 2026 : environ 0,075 USD / 1M tokens input et 0,30 USD / 1M tokens output). Une conversation T2 moyenne de 20 tours dont 5 questions profondes (zoom + grappe + plan optimal) consomme environ 60 000 tokens soit approximativement 0,01 USD par session complète.
 
@@ -622,5 +629,5 @@ Les appels aux spécialistes sans dépendance sont parallélisés via `asyncio.g
 
 ---
 
-*Fin du Document 10 — Orchestration Regalica et 7 types de questions*
-*Prochain artéfact : capture AS-IS evaluator-algorithm.md*
+_Fin du Document 10 — Orchestration Regalica et 7 types de questions_
+_Prochain artéfact : capture AS-IS evaluator-algorithm.md_

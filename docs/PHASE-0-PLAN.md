@@ -145,6 +145,7 @@ Basé sur le rapport AS-IS fourni par Claude Code. Liste exhaustive.
 ### Dépendances supprimées
 
 Dans `apps/api/package.json` :
+
 - `sequelize` (ORM rejeté)
 - `pg-hstore` (lié à Sequelize)
 - `@azure/storage-blob` (pas de stockage cloud, zstd local selon Document 6)
@@ -152,6 +153,7 @@ Dans `apps/api/package.json` :
 Dans `apps/web/package.json` : toute l'application part, donc toutes ses dépendances aussi (Next.js, Supabase, Anthropic SDK, shadcn, etc.).
 
 Dans `apps/chatbot-py/pyproject.toml` :
+
 - `sqlalchemy` (ORM Python rejeté, remplacé par asyncpg natif avec requêtes SQL textuelles)
 
 ### Fichiers de configuration mis à jour
@@ -422,9 +424,9 @@ Nouveau `pnpm-workspace.yaml` :
 
 ```yaml
 packages:
-  - "apps/*"
-  - "packages/*"
-  - "tools/*"
+  - 'apps/*'
+  - 'packages/*'
+  - 'tools/*'
 ```
 
 ## 15. Package `@regflow/api`
@@ -565,7 +567,7 @@ Pour chaque package `packages/*`, un squelette minimal avec `package.json`, `tsc
 ```typescript
 // Placeholder jusqu'à la Phase 2.
 // Le moteur canonique sera implémenté selon packages/evaluator/ALGORITHM.md
-export const EVALUATOR_VERSION = "0.0.0-phase-0-skeleton";
+export const EVALUATOR_VERSION = '0.0.0-phase-0-skeleton';
 ```
 
 ## 18. Scripts de racine
@@ -615,7 +617,18 @@ name: CI
 
 on:
   push:
-    branches: [main, phase-0/**, phase-1/**, phase-2/**, phase-3/**, phase-4/**, phase-5/**, phase-6/**, fix/**]
+    branches:
+      [
+        main,
+        phase-0/**,
+        phase-1/**,
+        phase-2/**,
+        phase-3/**,
+        phase-4/**,
+        phase-5/**,
+        phase-6/**,
+        fix/**,
+      ]
   pull_request:
     branches: [main]
 
@@ -624,9 +637,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: "20"
-  PYTHON_VERSION: "3.12"
-  PNPM_VERSION: "10.33.0"
+  NODE_VERSION: '20'
+  PYTHON_VERSION: '3.12'
+  PNPM_VERSION: '10.33.0'
 
 jobs:
   lint-ts:
@@ -635,9 +648,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with: { version: "${{ env.PNPM_VERSION }}" }
+        with: { version: '${{ env.PNPM_VERSION }}' }
       - uses: actions/setup-node@v4
-        with: { node-version: "${{ env.NODE_VERSION }}", cache: "pnpm" }
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
       - run: pnpm lint
@@ -648,7 +661,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: { python-version: "${{ env.PYTHON_VERSION }}" }
+        with: { python-version: '${{ env.PYTHON_VERSION }}' }
       - uses: astral-sh/setup-uv@v3
       - working-directory: apps/chatbot-py
         run: |
@@ -663,9 +676,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with: { version: "${{ env.PNPM_VERSION }}" }
+        with: { version: '${{ env.PNPM_VERSION }}' }
       - uses: actions/setup-node@v4
-        with: { node-version: "${{ env.NODE_VERSION }}", cache: "pnpm" }
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
 
@@ -679,15 +692,15 @@ jobs:
           POSTGRES_USER: regflow_app
           POSTGRES_PASSWORD: ci_password
           POSTGRES_DB: regflow_test
-        ports: ["5432:5432"]
+        ports: ['5432:5432']
         options: >-
           --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with: { version: "${{ env.PNPM_VERSION }}" }
+        with: { version: '${{ env.PNPM_VERSION }}' }
       - uses: actions/setup-node@v4
-        with: { node-version: "${{ env.NODE_VERSION }}", cache: "pnpm" }
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: 'pnpm' }
       - run: pnpm install --frozen-lockfile
       - working-directory: apps/api
         run: pnpm test --coverage
@@ -702,7 +715,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: { python-version: "${{ env.PYTHON_VERSION }}" }
+        with: { python-version: '${{ env.PYTHON_VERSION }}' }
       - uses: astral-sh/setup-uv@v3
       - working-directory: apps/chatbot-py
         run: |
@@ -750,12 +763,12 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-regflow_app}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_in_local_env}
       POSTGRES_DB: ${POSTGRES_DB:-regflow}
-    ports: ["5432:5432"]
+    ports: ['5432:5432']
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./infra/docker/postgres-init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -765,7 +778,7 @@ services:
       context: .
       dockerfile: apps/api/Dockerfile
     env_file: .env
-    ports: ["3000:3000"]
+    ports: ['3000:3000']
     depends_on:
       postgres:
         condition: service_healthy
@@ -775,14 +788,14 @@ services:
       context: apps/chatbot-py
       dockerfile: Dockerfile
     env_file: .env
-    ports: ["8000:8000"]
+    ports: ['8000:8000']
     depends_on:
       postgres:
         condition: service_healthy
 
   nginx:
     image: nginx:1.27-alpine
-    ports: ["80:80"]
+    ports: ['80:80']
     volumes:
       - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
@@ -964,4 +977,4 @@ Utilisateur primaire : Compliance Officer en banque tunisienne résidente.
 
 ---
 
-*Fin du Plan d'exécution Phase 0 pour Claude Code*
+_Fin du Plan d'exécution Phase 0 pour Claude Code_

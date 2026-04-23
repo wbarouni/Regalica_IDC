@@ -67,17 +67,17 @@ La distinction entre "rempli" et "vide" est faite par comptage exhaustif de tout
 
 Le corpus se répartit en neuf batches distincts identifiés par la date d'arrêté comptable déclarée.
 
-| Batch | Date | Fichiers | Remplis | Vides | Volume (valeurs) | Dépendances | Statut |
-|---|---|---|---|---|---|---|---|
-| **Principal annuel** | **2024-12-31** | **45** | **38** | **7** | **~9 680** | **Satisfaites** | **Golden primaire** |
-| Mensuel | 2026-02-28 | 5 | 5 | 0 | 2 723 | Satisfaites | Golden secondaire |
-| LCR | 2026-03-31 | 1 | 1 | 0 | 148 | Manquantes (00, 01, 51) | Golden LCR isolé |
-| T3 2024 | 2024-09-30 | 1 | 1 | 0 | 77 | Autonome | Golden T3 unitaire |
-| Mensuel historique | 2025-12-01 | 1 | 1 | 0 | 2 466 | Autonome | Historique nomenclature ancienne |
-| Relations détaillées | 2025-12-31 | 2 | 2 | 0 | 188 | Autonomes | Historique 2025 |
-| Historique 2022 | 2022-12-31 | 1 | 1 | 0 | 35 | Autonome | Historique unitaire |
-| Historique 2021 | 2021-12-31 | 1 | 1 | 0 | 28 577 | Manquantes (00, 01) | Historique gros volume |
-| Sans date | — | 1 | 1 | 0 | 36 | N/A | Référence structurelle 781 |
+| Batch                | Date           | Fichiers | Remplis | Vides | Volume (valeurs) | Dépendances             | Statut                           |
+| -------------------- | -------------- | -------- | ------- | ----- | ---------------- | ----------------------- | -------------------------------- |
+| **Principal annuel** | **2024-12-31** | **45**   | **38**  | **7** | **~9 680**       | **Satisfaites**         | **Golden primaire**              |
+| Mensuel              | 2026-02-28     | 5        | 5       | 0     | 2 723            | Satisfaites             | Golden secondaire                |
+| LCR                  | 2026-03-31     | 1        | 1       | 0     | 148              | Manquantes (00, 01, 51) | Golden LCR isolé                 |
+| T3 2024              | 2024-09-30     | 1        | 1       | 0     | 77               | Autonome                | Golden T3 unitaire               |
+| Mensuel historique   | 2025-12-01     | 1        | 1       | 0     | 2 466            | Autonome                | Historique nomenclature ancienne |
+| Relations détaillées | 2025-12-31     | 2        | 2       | 0     | 188              | Autonomes               | Historique 2025                  |
+| Historique 2022      | 2022-12-31     | 1        | 1       | 0     | 35               | Autonome                | Historique unitaire              |
+| Historique 2021      | 2021-12-31     | 1        | 1       | 0     | 28 577           | Manquantes (00, 01)     | Historique gros volume           |
+| Sans date            | —              | 1        | 1       | 0     | 36               | N/A                     | Référence structurelle 781       |
 
 **Le batch 2024-12-31 est désormais le cœur du golden baseline.** Il contient 45 annexes (38 remplies + 7 structurellement vides), toutes les dépendances inter-annexes sont satisfaites grâce à la présence de RCM00, RCM01, RSM620, RSM630 et RSM640 annuels. Aucune annexe ne produira de SKIPPED_MISSING_ANNEXE sur ses règles inter-annexes.
 
@@ -363,11 +363,53 @@ Le fichier `expected_verdicts.json` est présent dans chaque batch. Il contient 
 
   "companion_annexes_missing_in_batch": [],
 
-  "annexes_in_scope": ["00", "01", "51", "130", "131", "132", "133", "134", "135", "136", "137",
-                      "138", "139", "140", "141", "142", "210", "220", "230", "250", "310", "360",
-                      "481", "482", "485", "486", "510", "520", "530", "540", "550", "560",
-                      "620", "630", "640", "720", "730", "760", "820", "830", "840", "850",
-                      "860", "870", "910"],
+  "annexes_in_scope": [
+    "00",
+    "01",
+    "51",
+    "130",
+    "131",
+    "132",
+    "133",
+    "134",
+    "135",
+    "136",
+    "137",
+    "138",
+    "139",
+    "140",
+    "141",
+    "142",
+    "210",
+    "220",
+    "230",
+    "250",
+    "310",
+    "360",
+    "481",
+    "482",
+    "485",
+    "486",
+    "510",
+    "520",
+    "530",
+    "540",
+    "550",
+    "560",
+    "620",
+    "630",
+    "640",
+    "720",
+    "730",
+    "760",
+    "820",
+    "830",
+    "840",
+    "850",
+    "860",
+    "870",
+    "910"
+  ],
   "annexes_out_of_scope": ["02", "47", "480", "483", "484", "740", "750"]
 }
 ```
@@ -430,15 +472,18 @@ Le fichier `expected_verdicts.json` est présent dans chaque batch. Il contient 
 ## 9. Champs à renseigner par le Compliance Officer
 
 **Immédiatement par vous.**
+
 - `bct_submission.submission_date` : date de soumission SED si connue.
 - `validation_author.confidence_level` : auto-évaluation.
 - `expected_fails` : FAIL légitimes connus.
 
 **Capturés au premier run.**
+
 - Tous les champs de `expected_totals` de `null` vers entiers observés.
 - `capture_mode` bascule à `false` après validation humaine.
 
 **Après validation.**
+
 - Tout FAIL non listé dans `expected_fails` au premier run → arbitrage : faux positif moteur, ou ajout à `expected_fails`.
 
 ---
@@ -457,29 +502,29 @@ Le fichier `expected_verdicts.json` est présent dans chaque batch. Il contient 
 
 ## 11. Matrice complète
 
-| Annexe | Dépend de | Source | Type |
-|---|---|---|---|
-| 00 (RCM00 Bilan) | — | Racine | autonome |
-| 01 (RCM01 Comptes de résultats) | 00 | CC-tech §9.5 | structural |
-| 02 (RCM02 Hors bilan) | 00, 01 | CC-tech §9.5 | structural |
-| 47 (RPLM47 LCR) | 00, 01, 51 | circ. 2018-06 LCR | structural |
-| 51 (RCT51 Crédits/Dépôts) | 00 | CC-tech §9.5 + circ. 2018-10 | structural |
-| 100, 110 (Filiales, Participations) | — | Autonomes sentinelles D | autonome |
-| 130-142 (RNLPT relations détaillées) | — | Autonomes sentinelles D1-D6 | autonome |
-| 210 (Gouvernance Administrateurs) | — | Autonome sentinelle D1 | autonome |
-| 220, 230, 250 (Gouvernance) | — | Autonomes | autonome |
-| 310 (Structure du capital) | — | Autonome sentinelle D | autonome |
-| 360 | — | Autonome | autonome |
-| 480-486 (Solvabilité) | 00, 01 | circ. 2018-06 + CC-tech §9.5 | structural |
-| 510 (RPLA510 Liquidité) | 00 | CC-tech §9.5 | structural |
-| 520, 530 (Liquidité compl.) | 00, 51 | CC-tech §9.5 | structural |
-| 540, 550, 560 (Liquidité détails) | 00 | CC-tech §9.5 | structural |
-| 620, 630, 640 (Situation Mensuelle) | 00 | CC-tech §9.5 | structural |
-| 720-760 (Sectoriel) | — | Autonomes | autonome |
-| 781 (Taux créditeurs/débiteurs) | — | Autonome taux | autonome |
-| 810 (Position de change) | — | Autonome | autonome |
-| 820-880 (NLPT) | — | Autonomes | autonome |
-| 910 (RPTA910 Crédits/Dépôts) | 00 | CC-tech §9.5 | structural |
+| Annexe                               | Dépend de  | Source                       | Type       |
+| ------------------------------------ | ---------- | ---------------------------- | ---------- |
+| 00 (RCM00 Bilan)                     | —          | Racine                       | autonome   |
+| 01 (RCM01 Comptes de résultats)      | 00         | CC-tech §9.5                 | structural |
+| 02 (RCM02 Hors bilan)                | 00, 01     | CC-tech §9.5                 | structural |
+| 47 (RPLM47 LCR)                      | 00, 01, 51 | circ. 2018-06 LCR            | structural |
+| 51 (RCT51 Crédits/Dépôts)            | 00         | CC-tech §9.5 + circ. 2018-10 | structural |
+| 100, 110 (Filiales, Participations)  | —          | Autonomes sentinelles D      | autonome   |
+| 130-142 (RNLPT relations détaillées) | —          | Autonomes sentinelles D1-D6  | autonome   |
+| 210 (Gouvernance Administrateurs)    | —          | Autonome sentinelle D1       | autonome   |
+| 220, 230, 250 (Gouvernance)          | —          | Autonomes                    | autonome   |
+| 310 (Structure du capital)           | —          | Autonome sentinelle D        | autonome   |
+| 360                                  | —          | Autonome                     | autonome   |
+| 480-486 (Solvabilité)                | 00, 01     | circ. 2018-06 + CC-tech §9.5 | structural |
+| 510 (RPLA510 Liquidité)              | 00         | CC-tech §9.5                 | structural |
+| 520, 530 (Liquidité compl.)          | 00, 51     | CC-tech §9.5                 | structural |
+| 540, 550, 560 (Liquidité détails)    | 00         | CC-tech §9.5                 | structural |
+| 620, 630, 640 (Situation Mensuelle)  | 00         | CC-tech §9.5                 | structural |
+| 720-760 (Sectoriel)                  | —          | Autonomes                    | autonome   |
+| 781 (Taux créditeurs/débiteurs)      | —          | Autonome taux                | autonome   |
+| 810 (Position de change)             | —          | Autonome                     | autonome   |
+| 820-880 (NLPT)                       | —          | Autonomes                    | autonome   |
+| 910 (RPTA910 Crédits/Dépôts)         | 00         | CC-tech §9.5                 | structural |
 
 ## 12. Analyse par batch
 
@@ -565,6 +610,7 @@ Test Jest qui remplace l'ancien 5 XML / 937 PASS / 2 FAIL / 3672 SKIP.
 **Nouveau comportement.** Itération sur tous les batches `tests/fixtures/golden/<tenant>/`. Chargement `filled/` et `structurally-valid-empty/`. Exécution moteur. Comparaison avec `expected_verdicts.json`.
 
 **Modes.**
+
 - **Capture** : si `capture_mode: true`, observe et figera les valeurs pour commit manuel.
 - **Assert** : si `capture_mode: false`, comparaison stricte et échec sur divergence.
 
@@ -582,11 +628,11 @@ Parser étendu pour gérer les trois nomenclatures du corpus.
 
 **Extraction par nomenclature.**
 
-| Nomenclature | CodeBanque | DateAnnexe | CodeAnnexe |
-|---|---|---|---|
-| Moderne | `<CodeBanque>` | `<DateAnnexe>` YYYYMMDD | `<CodeAnnexe>` |
-| Ancienne (810) | `<BQ>` | `<DATE_DECLAR>` DD/MM/YYYY | `<CODE_ANNEXE>` |
-| Spécialisée (781) | `<CodeBanque>` | `<DateAnnexe>` peut être vide | `<CodeAnnexe>` |
+| Nomenclature      | CodeBanque     | DateAnnexe                    | CodeAnnexe      |
+| ----------------- | -------------- | ----------------------------- | --------------- |
+| Moderne           | `<CodeBanque>` | `<DateAnnexe>` YYYYMMDD       | `<CodeAnnexe>`  |
+| Ancienne (810)    | `<BQ>`         | `<DATE_DECLAR>` DD/MM/YYYY    | `<CODE_ANNEXE>` |
+| Spécialisée (781) | `<CodeBanque>` | `<DateAnnexe>` peut être vide | `<CodeAnnexe>`  |
 
 **Interface unifiée.** Structure `CellMatrix : Map<annexeCode, Map<rubrique, Map<colonne, Decimal>>>`. Pour les nomenclatures non tabulaires (810, 781), mapping via `referentials_xml_structures` vers une structure virtuelle colonne/rubrique.
 
@@ -610,5 +656,5 @@ Parser étendu pour gérer les trois nomenclatures du corpus.
 
 ---
 
-*Fin du Document 7 v2 — Plan opérationnel Golden Baseline révisé*
-*Prochain document à produire : Document 8 — State machines du workflow utilisateur (item 2)*
+_Fin du Document 7 v2 — Plan opérationnel Golden Baseline révisé_
+_Prochain document à produire : Document 8 — State machines du workflow utilisateur (item 2)_

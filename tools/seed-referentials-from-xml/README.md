@@ -60,18 +60,18 @@ Chaque fichier est idempotent (DELETE des versions précédentes avant INSERT) e
 
 Basée sur le CC-tech partie II. Le script détecte automatiquement :
 
-| Type | Description | Balises détectées |
-|---|---|---|
-| 1 | Tabular moderne standard | Rubrique + Colonne classiques |
-| 2 | Tabular avec relations détaillées | `<Societe>` présent |
-| 3 | Tabular avec ventilation devise | `<Devise>` ou `<CODE_DEV>` |
-| 4 | Tabular avec instruments | `<Instrument>` |
-| 5 | Tabular gouvernance | `<Membre>` |
-| 6 | Tabular relations multi-niveaux | Société + devise |
-| 7 | Tabular avec sentinelles D1-D6 | Rubriques `13006*` |
-| 8 | Legacy position de change | `<RECAP_POS>` ou `<DET_PSC>` |
-| 9 | Specialized taux | `<TauxCrediteurs>` |
-| 10 | Autre / hybride | - |
+| Type | Description                       | Balises détectées             |
+| ---- | --------------------------------- | ----------------------------- |
+| 1    | Tabular moderne standard          | Rubrique + Colonne classiques |
+| 2    | Tabular avec relations détaillées | `<Societe>` présent           |
+| 3    | Tabular avec ventilation devise   | `<Devise>` ou `<CODE_DEV>`    |
+| 4    | Tabular avec instruments          | `<Instrument>`                |
+| 5    | Tabular gouvernance               | `<Membre>`                    |
+| 6    | Tabular relations multi-niveaux   | Société + devise              |
+| 7    | Tabular avec sentinelles D1-D6    | Rubriques `13006*`            |
+| 8    | Legacy position de change         | `<RECAP_POS>` ou `<DET_PSC>`  |
+| 9    | Specialized taux                  | `<TauxCrediteurs>`            |
+| 10   | Autre / hybride                   | -                             |
 
 ## Inférence de la hiérarchie rubrique
 

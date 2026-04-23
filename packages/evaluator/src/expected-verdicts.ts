@@ -23,12 +23,7 @@ export interface BatchMetadata {
   readonly tenant_slug: string;
   readonly bank_code_bct: string;
   readonly arrete_date: string; // YYYY-MM-DD
-  readonly arrete_type:
-    | "monthly"
-    | "quarterly"
-    | "semi_annual"
-    | "annual"
-    | "ad_hoc";
+  readonly arrete_type: 'monthly' | 'quarterly' | 'semi_annual' | 'annual' | 'ad_hoc';
   readonly files_count_filled: number;
   readonly files_count_structurally_valid_empty: number;
   readonly total_annexes_covered: number;
@@ -37,11 +32,7 @@ export interface BatchMetadata {
 export interface BctSubmission {
   readonly has_been_submitted: boolean;
   readonly submission_date: string | null;
-  readonly bct_response_status:
-    | "accepted"
-    | "rejected"
-    | "pending"
-    | "not_filed";
+  readonly bct_response_status: 'accepted' | 'rejected' | 'pending' | 'not_filed';
   readonly bct_response_file_available: boolean;
   readonly bct_response_file_path: string | null;
   readonly notes: string | null;
@@ -52,7 +43,7 @@ export interface ValidationAuthor {
   readonly role: string;
   readonly validation_date: string;
   readonly validation_method: string;
-  readonly confidence_level: "high" | "medium" | "low";
+  readonly confidence_level: 'high' | 'medium' | 'low';
 }
 
 export interface ExpectedTotals {
@@ -73,7 +64,7 @@ export interface ExpectedTotals {
 export interface ExpectedFail {
   readonly annexe: string;
   readonly num_regle: number;
-  readonly severity: "severe" | "rounding";
+  readonly severity: 'severe' | 'rounding';
   readonly expected_gap_absolute: string;
   readonly expected_gap_relative: string | null;
   readonly rubrique: string;
@@ -95,23 +86,21 @@ export interface CompanionMissing {
  * Valide la structure de base d'un expected_verdicts.json chargé.
  * Lève une erreur explicite si un champ obligatoire manque.
  */
-export function assertExpectedVerdictsShape(
-  data: unknown,
-): asserts data is ExpectedVerdicts {
-  if (!data || typeof data !== "object") {
-    throw new Error("expected_verdicts.json must be a JSON object");
+export function assertExpectedVerdictsShape(data: unknown): asserts data is ExpectedVerdicts {
+  if (!data || typeof data !== 'object') {
+    throw new Error('expected_verdicts.json must be a JSON object');
   }
   const obj = data as Record<string, unknown>;
   const requiredKeys: Array<keyof ExpectedVerdicts> = [
-    "batch_metadata",
-    "bct_submission",
-    "validation_author",
-    "expected_totals",
-    "expected_fails",
-    "expected_skips_by_annexe",
-    "companion_annexes_missing_in_batch",
-    "annexes_in_scope",
-    "annexes_out_of_scope",
+    'batch_metadata',
+    'bct_submission',
+    'validation_author',
+    'expected_totals',
+    'expected_fails',
+    'expected_skips_by_annexe',
+    'companion_annexes_missing_in_batch',
+    'annexes_in_scope',
+    'annexes_out_of_scope',
   ];
   for (const k of requiredKeys) {
     if (!(k in obj)) {

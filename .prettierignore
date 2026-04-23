@@ -6,3 +6,7 @@ pnpm-lock.yaml
 uv.lock
 apps/chatbot-py
 tests/fixtures
+
+# Frozen historical material — never reformat.
+docs/archive/
+docs/as-is-captured/

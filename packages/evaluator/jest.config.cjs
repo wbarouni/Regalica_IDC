@@ -1,17 +1,17 @@
 /** @type {import('jest').Config} */
 module.exports = {
-  preset: "ts-jest",
-  testEnvironment: "node",
-  testMatch: ["<rootDir>/test/**/*.test.ts"],
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+  testMatch: ['<rootDir>/test/**/*.test.ts'],
   moduleNameMapper: {
-    "^(\\.{1,2}/.*)\\.js$": "$1",
-    "^@regflow/bct-xml-parser$": "<rootDir>/../bct-xml-parser/src/index.ts",
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+    '^@regflow/bct-xml-parser$': '<rootDir>/../bct-xml-parser/src/index.ts',
   },
   transform: {
-    "^.+\\.ts$": [
-      "ts-jest",
+    '^.+\\.ts$': [
+      'ts-jest',
       {
-        tsconfig: "<rootDir>/tsconfig.test.json",
+        tsconfig: '<rootDir>/tsconfig.test.json',
       },
     ],
   },

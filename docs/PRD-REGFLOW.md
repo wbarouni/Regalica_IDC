@@ -14,15 +14,15 @@ Claude Code, ce PRD est ton premier point d'ancrage sur le projet REGFlow. Tu le
 
 **Après cette première lecture**, tu te plonges dans les documents thématiques selon le sprint en cours :
 
-| Sprint | Documents à consulter en priorité |
-|---|---|
-| Phase 0 | `PHASE-0-PLAN.md`, `07-PLAN-GOLDEN-BASELINE-v2.md` |
-| Phase 1 | `06-SCHEMA-SQL-COMPLET.md`, `08-STATE-MACHINES-WORKFLOW.md` |
-| Phase 2 | `docs/as-is-captured/evaluator-algorithm.md`, Livrables 3 et 4 |
-| Phase 3 | `06-SCHEMA-SQL-COMPLET.md`, `08-STATE-MACHINES-WORKFLOW.md` |
+| Sprint  | Documents à consulter en priorité                                                            |
+| ------- | -------------------------------------------------------------------------------------------- |
+| Phase 0 | `PHASE-0-PLAN.md`, `07-PLAN-GOLDEN-BASELINE-v2.md`                                           |
+| Phase 1 | `06-SCHEMA-SQL-COMPLET.md`, `08-STATE-MACHINES-WORKFLOW.md`                                  |
+| Phase 2 | `docs/as-is-captured/evaluator-algorithm.md`, Livrables 3 et 4                               |
+| Phase 3 | `06-SCHEMA-SQL-COMPLET.md`, `08-STATE-MACHINES-WORKFLOW.md`                                  |
 | Phase 4 | `09-CONTRATS-JSON-AGENTS.md`, `10-ORCHESTRATION-REGALICA.md`, `05-AGENTS-ET-PROMPTS-BANK.md` |
-| Phase 5 | maquettes Workspace v5 / Library v3 / Filings, `Regalica_Brand_Book_Edition_One.pdf` |
-| Phase 6 | ce PRD section 9 sur durcissement production |
+| Phase 5 | maquettes Workspace v5 / Library v3 / Filings, `Regalica_Brand_Book_Edition_One.pdf`         |
+| Phase 6 | ce PRD section 9 sur durcissement production                                                 |
 
 ---
 
@@ -67,18 +67,18 @@ REGFlow s'insère **avant** le SED, jamais en substitution. Il apporte quatre va
 
 Cette stack est **non négociable**. Toute proposition d'écart est rejetée.
 
-| Couche | Technologie | Rejet(s) associé(s) |
-|---|---|---|
-| Backend API | Node.js + Express + `pg` natif **SANS ORM** | Sequelize, Prisma, TypeORM, Drizzle |
-| Base de données | PostgreSQL 16 + pgvector + extensions standard | Supabase, Firebase |
-| Services IA | Python + FastAPI + asyncpg natif **SANS ORM** | SQLAlchemy, Django |
-| Frontend | React + Tailwind + Vite | Next.js, Angular, Vue, Nuxt |
-| LLM principal | Gemini 2.5 Flash via API Google | Anthropic, OpenAI en prod (seuls Ollama/Qwen en fallback local) |
-| LLM fallback | Ollama + Qwen 2.5 3B (Phase 6) | - |
-| Embeddings | Gemini text-embedding-004 (dim 768) | - |
-| Monorepo | pnpm workspaces | npm workspaces, yarn berry |
-| Package manager Python | uv | pip, poetry, pipenv |
-| Conteneurisation | Docker + Docker Compose | Podman, rkt |
+| Couche                 | Technologie                                    | Rejet(s) associé(s)                                             |
+| ---------------------- | ---------------------------------------------- | --------------------------------------------------------------- |
+| Backend API            | Node.js + Express + `pg` natif **SANS ORM**    | Sequelize, Prisma, TypeORM, Drizzle                             |
+| Base de données        | PostgreSQL 16 + pgvector + extensions standard | Supabase, Firebase                                              |
+| Services IA            | Python + FastAPI + asyncpg natif **SANS ORM**  | SQLAlchemy, Django                                              |
+| Frontend               | React + Tailwind + Vite                        | Next.js, Angular, Vue, Nuxt                                     |
+| LLM principal          | Gemini 2.5 Flash via API Google                | Anthropic, OpenAI en prod (seuls Ollama/Qwen en fallback local) |
+| LLM fallback           | Ollama + Qwen 2.5 3B (Phase 6)                 | -                                                               |
+| Embeddings             | Gemini text-embedding-004 (dim 768)            | -                                                               |
+| Monorepo               | pnpm workspaces                                | npm workspaces, yarn berry                                      |
+| Package manager Python | uv                                             | pip, poetry, pipenv                                             |
+| Conteneurisation       | Docker + Docker Compose                        | Podman, rkt                                                     |
 
 **Pourquoi pg natif sans ORM.** Performance fine sur les tables volumineuses (`rules` à 4611 entrées × 18452 terms, `audit_log` partitionné, `verdicts` potentiellement millions de lignes). Contrôle précis des requêtes avec support des features PostgreSQL avancées (pgvector, RLS native, triggers, partitioning, UUIDv7). Zéro dette d'abstraction.
 
@@ -150,22 +150,22 @@ Le workflow traverse 4 temps successifs, chacun gouverné par sa state machine (
 
 Un orchestrateur + 13 spécialistes (Documents 5, 9, 10).
 
-| Agent | Type | Rôle en une phrase |
-|---|---|---|
-| **Regalica** | Orchestratrice LLM | Seule persona face à l'utilisateur |
-| IngestorXML | Déterministe | Parse XML dual-nomenclature vers CellMatrix |
-| Dependency | Déterministe | Détecte les annexes compagnes requises |
-| Temporal | Déterministe | Vérifie cohérence arrêté inter-XML |
-| RuleExcel/FormAssist | LLM | Assiste import et saisie de règles |
-| ReferentialIngestor | LLM | Importe référentiels depuis PDF ou XLSX |
-| Investigator | LLM critique | Explique causale d'un FAIL avec action suggérée |
-| Historical | Hybride | Tendances et récurrences sur runs passés |
-| Reporter | LLM | Génère rapport de conformité DOCX/PDF |
-| Visualizer | Hybride | Produit graphiques et tableaux |
-| Citation | Hybride | Trouve citation réglementaire d'une règle |
-| Diff | Déterministe + narration | Compare deux runs |
-| Notification | Déterministe | Gère alertes et pré-alertes |
-| Ged | Déterministe | Stockage documentaire attaché aux runs |
+| Agent                | Type                     | Rôle en une phrase                              |
+| -------------------- | ------------------------ | ----------------------------------------------- |
+| **Regalica**         | Orchestratrice LLM       | Seule persona face à l'utilisateur              |
+| IngestorXML          | Déterministe             | Parse XML dual-nomenclature vers CellMatrix     |
+| Dependency           | Déterministe             | Détecte les annexes compagnes requises          |
+| Temporal             | Déterministe             | Vérifie cohérence arrêté inter-XML              |
+| RuleExcel/FormAssist | LLM                      | Assiste import et saisie de règles              |
+| ReferentialIngestor  | LLM                      | Importe référentiels depuis PDF ou XLSX         |
+| Investigator         | LLM critique             | Explique causale d'un FAIL avec action suggérée |
+| Historical           | Hybride                  | Tendances et récurrences sur runs passés        |
+| Reporter             | LLM                      | Génère rapport de conformité DOCX/PDF           |
+| Visualizer           | Hybride                  | Produit graphiques et tableaux                  |
+| Citation             | Hybride                  | Trouve citation réglementaire d'une règle       |
+| Diff                 | Déterministe + narration | Compare deux runs                               |
+| Notification         | Déterministe             | Gère alertes et pré-alertes                     |
+| Ged                  | Déterministe             | Stockage documentaire attaché aux runs          |
 
 **Gouvernance des prompts.** Tous les prompts actifs vivent dans la table `prompt_bank` avec versioning et cycle 4-yeux. Température et modèle par agent détaillés au Document 9 §23.
 
@@ -197,17 +197,17 @@ Plan brute séquentiel avec zéro tolérance dette résiduelle (détaillé dans 
 
 **Corpus.** 58 XML, 9 batches, 51 annexes distinctes sur 52 du RDG. Détails exhaustifs dans `07-PLAN-GOLDEN-BASELINE-v2.md`.
 
-| Batch | Nature | Fichiers | Statut |
-|---|---|---|---|
-| 2024-12-31 | Annuel QNB Tunisia 2024 | 45 (38 remplis + 7 vides) | **Golden primaire** |
-| 2026-02-28 | Mensuel février 2026 | 5 (Bilan + SM complet) | **Golden secondaire** |
-| 2026-03-31 | LCR isolé | 1 | Golden unitaire |
-| 2024-09-30 | T3 isolé | 1 (annexe 139) | Golden unitaire |
-| historical/2021-12-31 | Gros volume | 1 (annexe 483, 23K valeurs) | Test perf |
-| historical/2022-12-31 | Isolé | 1 (annexe 880) | Rétrocompatibilité |
-| historical/2025-12-01 | Position de change nomenclature ancienne | 1 (annexe 810) | Dual-parsing |
-| historical/2025-12-31 | Relations détaillées 2025 | 2 (100, 110) | Sentinelles D |
-| structural-references | Annexe 781 sans date | 1 | Référence parser |
+| Batch                 | Nature                                   | Fichiers                    | Statut                |
+| --------------------- | ---------------------------------------- | --------------------------- | --------------------- |
+| 2024-12-31            | Annuel QNB Tunisia 2024                  | 45 (38 remplis + 7 vides)   | **Golden primaire**   |
+| 2026-02-28            | Mensuel février 2026                     | 5 (Bilan + SM complet)      | **Golden secondaire** |
+| 2026-03-31            | LCR isolé                                | 1                           | Golden unitaire       |
+| 2024-09-30            | T3 isolé                                 | 1 (annexe 139)              | Golden unitaire       |
+| historical/2021-12-31 | Gros volume                              | 1 (annexe 483, 23K valeurs) | Test perf             |
+| historical/2022-12-31 | Isolé                                    | 1 (annexe 880)              | Rétrocompatibilité    |
+| historical/2025-12-01 | Position de change nomenclature ancienne | 1 (annexe 810)              | Dual-parsing          |
+| historical/2025-12-31 | Relations détaillées 2025                | 2 (100, 110)                | Sentinelles D         |
+| structural-references | Annexe 781 sans date                     | 1                           | Référence parser      |
 
 **Vérité terrain.** Niveau intermédiaire (Document 7 §9) — Wissem Barouni valide manuellement, produit `expected_verdicts.json` par batch. Dates validées par BCT (toutes soumissions acceptées).
 
@@ -237,28 +237,28 @@ Monochrome encre + papier + accent marigold unique. Référence absolue : `Regal
 
 **Documents REGFlow canoniques :**
 
-| # | Titre | Contenu |
-|---|---|---|
-| 1 | `01-PLATEFORME-REGFLOW-VISION.md` | Vision produit, positionnement, valeur ajoutée |
-| 2 | `02-REGLEMENTAIRE-RDG-ET-BCT.md` | RDG, sentinelles, nomenclatures XML, processus BCT |
-| 3 | `03-ARCHITECTURE-ET-ZERO-HARDCODING.md` | Architecture, stack, principes zéro-hardcoding |
-| 4 | `04-WORKFLOW-UTILISATEUR-COMPLET.md` | Workflow T0/T1/T2/T3, 3 étapes BCT, livrables |
-| 5 | `05-AGENTS-ET-PROMPTS-BANK.md` | 14 agents, prompt_bank, cycle de vie |
-| 6 | `06-SCHEMA-SQL-COMPLET.md` | 22 tables, 37 migrations, bitemporalité, RLS |
-| 7 | `07-PLAN-GOLDEN-BASELINE-v2.md` | Plan golden 58 XML QNB Tunisia |
-| 8 | `08-STATE-MACHINES-WORKFLOW.md` | 4 FSM (T0, T1, T2/T3, 4-eyes), Mode Signature révocable |
-| 9 | `09-CONTRATS-JSON-AGENTS.md` | Contrats Pydantic des 14 agents |
-| 10 | `10-ORCHESTRATION-REGALICA.md` | Router, Planner, Aggregator, 7 types de questions |
+| #   | Titre                                   | Contenu                                                 |
+| --- | --------------------------------------- | ------------------------------------------------------- |
+| 1   | `01-PLATEFORME-REGFLOW-VISION.md`       | Vision produit, positionnement, valeur ajoutée          |
+| 2   | `02-REGLEMENTAIRE-RDG-ET-BCT.md`        | RDG, sentinelles, nomenclatures XML, processus BCT      |
+| 3   | `03-ARCHITECTURE-ET-ZERO-HARDCODING.md` | Architecture, stack, principes zéro-hardcoding          |
+| 4   | `04-WORKFLOW-UTILISATEUR-COMPLET.md`    | Workflow T0/T1/T2/T3, 3 étapes BCT, livrables           |
+| 5   | `05-AGENTS-ET-PROMPTS-BANK.md`          | 14 agents, prompt_bank, cycle de vie                    |
+| 6   | `06-SCHEMA-SQL-COMPLET.md`              | 22 tables, 37 migrations, bitemporalité, RLS            |
+| 7   | `07-PLAN-GOLDEN-BASELINE-v2.md`         | Plan golden 58 XML QNB Tunisia                          |
+| 8   | `08-STATE-MACHINES-WORKFLOW.md`         | 4 FSM (T0, T1, T2/T3, 4-eyes), Mode Signature révocable |
+| 9   | `09-CONTRATS-JSON-AGENTS.md`            | Contrats Pydantic des 14 agents                         |
+| 10  | `10-ORCHESTRATION-REGALICA.md`          | Router, Planner, Aggregator, 7 types de questions       |
 
 **Livrables techniques Phase 0 (pré-fournis) :**
 
-| # | Nom | Type | Emplacement cible |
-|---|---|---|---|
-| 1 | golden-normalizer | Python | `tools/golden-normalizer/` |
-| 2 | seed-referentials-from-xml | Python | `tools/seed-referentials-from-xml/` |
-| 3 | packages/evaluator avec golden test | TS | `packages/evaluator/` |
-| 4 | bct-xml-parser dual-nomenclature | TS | `packages/bct-xml-parser/` |
-| 5 | capture AS-IS algorithme moteur | Markdown | `docs/as-is-captured/evaluator-algorithm.md` |
+| #   | Nom                                 | Type     | Emplacement cible                            |
+| --- | ----------------------------------- | -------- | -------------------------------------------- |
+| 1   | golden-normalizer                   | Python   | `tools/golden-normalizer/`                   |
+| 2   | seed-referentials-from-xml          | Python   | `tools/seed-referentials-from-xml/`          |
+| 3   | packages/evaluator avec golden test | TS       | `packages/evaluator/`                        |
+| 4   | bct-xml-parser dual-nomenclature    | TS       | `packages/bct-xml-parser/`                   |
+| 5   | capture AS-IS algorithme moteur     | Markdown | `docs/as-is-captured/evaluator-algorithm.md` |
 
 **Plan d'exécution :**
 
@@ -305,5 +305,5 @@ Monochrome encre + papier + accent marigold unique. Référence absolue : `Regal
 
 ---
 
-*Fin du PRD consolidé REGFlow*
-*Version 1.0 — avril 2026 — ALGORIA Factory*
+_Fin du PRD consolidé REGFlow_
+_Version 1.0 — avril 2026 — ALGORIA Factory_

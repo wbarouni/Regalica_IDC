@@ -31,35 +31,26 @@
  * pour comparer les verdicts produits par le moteur aux expected_totals.
  */
 
-import * as fs from "node:fs";
-import * as path from "node:path";
-import { fileURLToPath } from "node:url";
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-import {
-  parseBctXml,
-  parseBctBatch,
-  type ParsedXml,
-} from "@regflow/bct-xml-parser";
+import { parseBctXml, parseBctBatch, type ParsedXml } from '@regflow/bct-xml-parser';
 
-import {
-  assertExpectedVerdictsShape,
-  type ExpectedVerdicts,
-} from "../src/expected-verdicts.js";
+import { assertExpectedVerdictsShape, type ExpectedVerdicts } from '../src/expected-verdicts.js';
 
 // ---------------------------------------------------------------------------
 // Configuration
 // ---------------------------------------------------------------------------
 
-const MODE = (process.env.REGFLOW_GOLDEN_MODE ?? "assert") as
-  | "assert"
-  | "capture";
+const MODE = (process.env.REGFLOW_GOLDEN_MODE ?? 'assert') as 'assert' | 'capture';
 
 // Répertoire racine des fixtures golden. Peut être surchargé par variable d'env.
 const FIXTURES_ROOT =
   process.env.REGFLOW_GOLDEN_FIXTURES_DIR ??
-  path.resolve(__dirname, "../../../tests/fixtures/golden");
+  path.resolve(__dirname, '../../../tests/fixtures/golden');
 
-const TENANT_SLUG = "qnb-tunisia";
+const TENANT_SLUG = 'qnb-tunisia';
 
 // ---------------------------------------------------------------------------
 // Batch discovery
@@ -88,7 +79,7 @@ function discoverBatches(fixturesRoot: string, tenantSlug: string): DiscoveredBa
   const entries = fs.readdirSync(tenantDir, { withFileTypes: true });
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
-    if (entry.name === "historical") {
+    if (entry.name === 'historical') {
       const historicalDir = path.join(tenantDir, entry.name);
       const subs = fs.readdirSync(historicalDir, { withFileTypes: true });
       for (const sub of subs) {
@@ -112,17 +103,17 @@ function loadBatch(
   arreteDate: string,
   tenantSlug: string,
 ): DiscoveredBatch | null {
-  const expectedJsonPath = path.join(batchDir, "expected_verdicts.json");
+  const expectedJsonPath = path.join(batchDir, 'expected_verdicts.json');
   if (!fs.existsSync(expectedJsonPath)) {
     return null;
   }
 
   // filled/ may be directly under batchDir or the files may be flat
-  const filledDir = fs.existsSync(path.join(batchDir, "filled"))
-    ? path.join(batchDir, "filled")
+  const filledDir = fs.existsSync(path.join(batchDir, 'filled'))
+    ? path.join(batchDir, 'filled')
     : batchDir;
-  const emptyDir = fs.existsSync(path.join(batchDir, "structurally-valid-empty"))
-    ? path.join(batchDir, "structurally-valid-empty")
+  const emptyDir = fs.existsSync(path.join(batchDir, 'structurally-valid-empty'))
+    ? path.join(batchDir, 'structurally-valid-empty')
     : null;
 
   const filledFiles = fs
@@ -150,59 +141,57 @@ function loadBatch(
 }
 
 function loadExpectedVerdicts(path_: string): ExpectedVerdicts {
-  const raw = fs.readFileSync(path_, "utf-8");
+  const raw = fs.readFileSync(path_, 'utf-8');
   const parsed = JSON.parse(raw);
   assertExpectedVerdictsShape(parsed);
   return parsed;
 }
 
 function saveExpectedVerdicts(path_: string, data: ExpectedVerdicts): void {
-  fs.writeFileSync(path_, JSON.stringify(data, null, 2) + "\n", "utf-8");
+  fs.writeFileSync(path_, JSON.stringify(data, null, 2) + '\n', 'utf-8');
 }
 
 // ---------------------------------------------------------------------------
 // Test suite
 // ---------------------------------------------------------------------------
 
-describe("Golden Baseline — Structure and Metadata Validation (Phase 0)", () => {
+describe('Golden Baseline — Structure and Metadata Validation (Phase 0)', () => {
   const batches = discoverBatches(FIXTURES_ROOT, TENANT_SLUG);
 
-  it("at least one batch must be discovered", () => {
+  it('at least one batch must be discovered', () => {
     expect(batches.length).toBeGreaterThan(0);
   });
 
   describe.each(batches.map((b) => [b.batchId, b]))(
-    "Batch %s",
+    'Batch %s',
     (_batchId: unknown, batch: DiscoveredBatch) => {
       const expected = loadExpectedVerdicts(batch.expectedVerdictsPath);
 
-      it("batch metadata matches the expected_verdicts file", () => {
+      it('batch metadata matches the expected_verdicts file', () => {
         expect(expected.batch_metadata.tenant_slug).toBe(TENANT_SLUG);
         expect(expected.batch_metadata.arrete_date).toBe(batch.arreteDate);
       });
 
-      it("filled file count matches declared count", () => {
-        expect(batch.filledFiles.length).toBe(
-          expected.batch_metadata.files_count_filled,
-        );
+      it('filled file count matches declared count', () => {
+        expect(batch.filledFiles.length).toBe(expected.batch_metadata.files_count_filled);
       });
 
-      it("structurally valid empty file count matches declared count", () => {
+      it('structurally valid empty file count matches declared count', () => {
         expect(batch.emptyFiles.length).toBe(
           expected.batch_metadata.files_count_structurally_valid_empty,
         );
       });
 
-      it("every filled XML parses without error", () => {
+      it('every filled XML parses without error', () => {
         for (const f of batch.filledFiles) {
-          const content = fs.readFileSync(f, "utf-8");
+          const content = fs.readFileSync(f, 'utf-8');
           expect(() => parseBctXml(content)).not.toThrow();
         }
       });
 
-      it("every parsed XML declares the expected arrete date (inside content)", () => {
+      it('every parsed XML declares the expected arrete date (inside content)', () => {
         for (const f of batch.filledFiles) {
-          const content = fs.readFileSync(f, "utf-8");
+          const content = fs.readFileSync(f, 'utf-8');
           const parsed = parseBctXml(content);
           // La date d'arrêté dans le XML doit correspondre au batch
           // Exception: fichiers sans DateAnnexe (cas rare, comme 781 structural-reference)
@@ -212,22 +201,20 @@ describe("Golden Baseline — Structure and Metadata Validation (Phase 0)", () =
         }
       });
 
-      it("bank code in XMLs matches batch metadata bank_code_bct", () => {
+      it('bank code in XMLs matches batch metadata bank_code_bct', () => {
         for (const f of batch.filledFiles) {
-          const content = fs.readFileSync(f, "utf-8");
+          const content = fs.readFileSync(f, 'utf-8');
           const parsed = parseBctXml(content);
           if (parsed.header.codeBanque) {
-            expect(parsed.header.codeBanque).toBe(
-              expected.batch_metadata.bank_code_bct,
-            );
+            expect(parsed.header.codeBanque).toBe(expected.batch_metadata.bank_code_bct);
           }
         }
       });
 
-      it("annexes in XMLs are a subset of annexes_in_scope", () => {
+      it('annexes in XMLs are a subset of annexes_in_scope', () => {
         const observedAnnexes = new Set<string>();
         for (const f of [...batch.filledFiles, ...batch.emptyFiles]) {
-          const content = fs.readFileSync(f, "utf-8");
+          const content = fs.readFileSync(f, 'utf-8');
           const parsed = parseBctXml(content);
           if (parsed.header.codeAnnexe) {
             observedAnnexes.add(parsed.header.codeAnnexe);
@@ -239,26 +226,24 @@ describe("Golden Baseline — Structure and Metadata Validation (Phase 0)", () =
         }
       });
 
-      it("expected_skips_by_annexe matches structurally-valid-empty files", () => {
+      it('expected_skips_by_annexe matches structurally-valid-empty files', () => {
         const emptyAnnexes = new Set<string>();
         for (const f of batch.emptyFiles) {
-          const content = fs.readFileSync(f, "utf-8");
+          const content = fs.readFileSync(f, 'utf-8');
           const parsed = parseBctXml(content);
           if (parsed.header.codeAnnexe) emptyAnnexes.add(parsed.header.codeAnnexe);
         }
-        const declaredSkips = new Set(
-          Object.keys(expected.expected_skips_by_annexe),
-        );
+        const declaredSkips = new Set(Object.keys(expected.expected_skips_by_annexe));
         // Every empty annexe must appear in expected_skips
         for (const ann of emptyAnnexes) {
           expect(declaredSkips.has(ann)).toBe(true);
         }
       });
 
-      it("batch parses as a whole via parseBctBatch", () => {
+      it('batch parses as a whole via parseBctBatch', () => {
         const xmls = batch.filledFiles.map((f) => ({
           filename: path.basename(f),
-          content: fs.readFileSync(f, "utf-8"),
+          content: fs.readFileSync(f, 'utf-8'),
         }));
         const { parsed, mergedCells } = parseBctBatch(xmls);
         expect(parsed.size).toBe(batch.filledFiles.length);
@@ -273,7 +258,7 @@ describe("Golden Baseline — Structure and Metadata Validation (Phase 0)", () =
 // Phase 2 — Engine Evaluation (stub, skipped until moteur connecté)
 // ---------------------------------------------------------------------------
 
-describe.skip("Golden Baseline — Engine Evaluation (Phase 2)", () => {
+describe.skip('Golden Baseline — Engine Evaluation (Phase 2)', () => {
   // Ce bloc est volontairement `describe.skip` en Phase 0 parce que le moteur
   // n'est pas encore implémenté. Il sera activé en Phase 2 du plan brute en
   // retirant le `.skip` et en branchant le moteur canonique.
@@ -281,11 +266,11 @@ describe.skip("Golden Baseline — Engine Evaluation (Phase 2)", () => {
   const batches = discoverBatches(FIXTURES_ROOT, TENANT_SLUG);
 
   describe.each(batches.map((b) => [b.batchId, b]))(
-    "Batch %s engine run",
+    'Batch %s engine run',
     (_batchId: unknown, batch: DiscoveredBatch) => {
       const expected = loadExpectedVerdicts(batch.expectedVerdictsPath);
 
-      it("engine produces expected totals (or captures them on first run)", async () => {
+      it('engine produces expected totals (or captures them on first run)', async () => {
         // 1. Charger règles depuis DB (migration 008 seed_rdg_rules).
         // 2. Filtrer règles dont validFrom <= arreteDate < validTo.
         // 3. Parser le batch via parseBctBatch.
@@ -299,7 +284,7 @@ describe.skip("Golden Baseline — Engine Evaluation (Phase 2)", () => {
         expect(true).toBe(true); // placeholder
       });
 
-      it("every expected_fail is actually produced by the engine", async () => {
+      it('every expected_fail is actually produced by the engine', async () => {
         // Pour chaque entrée dans expected.expected_fails :
         //   - Vérifier qu'un verdict FAIL existe pour (annexe, num_regle).
         //   - Vérifier que sa rubrique et colonne correspondent.
@@ -308,13 +293,13 @@ describe.skip("Golden Baseline — Engine Evaluation (Phase 2)", () => {
         expect(true).toBe(true); // placeholder
       });
 
-      it("no unexpected FAIL severe is produced", async () => {
+      it('no unexpected FAIL severe is produced', async () => {
         // Vérifier que result.totals.fail_severe === expected.expected_totals.fail_severe
         // et que chaque FAIL sévère du résultat est dans expected.expected_fails.
         expect(true).toBe(true); // placeholder
       });
 
-      it("companion_annexes_missing produces corresponding SKIPPED_MISSING_ANNEXE", async () => {
+      it('companion_annexes_missing produces corresponding SKIPPED_MISSING_ANNEXE', async () => {
         // Vérifier que chaque annexe de expected.companion_annexes_missing_in_batch
         // génère les SKIPPED attendus sur ses règles dépendantes.
         expect(true).toBe(true); // placeholder
@@ -335,10 +320,10 @@ describe.skip("Golden Baseline — Engine Evaluation (Phase 2)", () => {
  */
 export function maybeCapture(
   expected: ExpectedVerdicts,
-  observed: ExpectedVerdicts["expected_totals"],
+  observed: ExpectedVerdicts['expected_totals'],
   expectedPath: string,
 ): void {
-  if (MODE !== "capture") return;
+  if (MODE !== 'capture') return;
   if (!expected.expected_totals.capture_mode) return;
 
   const updated: ExpectedVerdicts = {

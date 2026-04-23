@@ -4,7 +4,7 @@
  * Types et interfaces canoniques du parser XML BCT dual-nomenclature.
  */
 
-import type { Decimal } from "decimal.js";
+import type { Decimal } from 'decimal.js';
 
 /**
  * Nomenclatures XML BCT supportées.
@@ -13,7 +13,7 @@ import type { Decimal } from "decimal.js";
  * - `legacy` : ancien format avec <ENTETE>, <DATE_DECLAR>, <BQ>, <RECAP_POS> (ex: annexe 810).
  * - `specialized` : formats propres à certaines annexes (ex: 781 taux avec <TauxCrediteurs>).
  */
-export type Nomenclature = "modern" | "legacy" | "specialized";
+export type Nomenclature = 'modern' | 'legacy' | 'specialized';
 
 /**
  * Métadonnées d'entête extraites au parsing, indépendamment de la nomenclature.
@@ -64,13 +64,13 @@ export interface ParseWarning {
 }
 
 export type ParseWarningCode =
-  | "unknown_nomenclature"
-  | "missing_code_banque"
-  | "missing_date_annexe"
-  | "missing_code_annexe"
-  | "non_numeric_cell_value"
-  | "duplicate_rubrique"
-  | "empty_annexe";
+  | 'unknown_nomenclature'
+  | 'missing_code_banque'
+  | 'missing_date_annexe'
+  | 'missing_code_annexe'
+  | 'non_numeric_cell_value'
+  | 'duplicate_rubrique'
+  | 'empty_annexe';
 
 /**
  * Erreur bloquante levée si le XML est inexploitable.
@@ -82,12 +82,12 @@ export class ParseError extends Error {
     public readonly context?: Record<string, unknown>,
   ) {
     super(message);
-    this.name = "ParseError";
+    this.name = 'ParseError';
   }
 }
 
 export type ParseErrorCode =
-  | "invalid_xml_syntax"
-  | "no_recognizable_header"
-  | "no_annexe_code"
-  | "no_date_annexe";
+  | 'invalid_xml_syntax'
+  | 'no_recognizable_header'
+  | 'no_annexe_code'
+  | 'no_date_annexe';

@@ -10,12 +10,12 @@
 
 Ce pack contient les trois livrables exécutifs mentionnés au Document 7 v2 (partie V), complémentaires du **Livrable 1** (golden-normalizer, déjà publié séparément). Les quatre livrables forment le socle technique de la Phase 0 du plan brute de refactoring.
 
-| Livrable | Type | Localisation cible dans le monorepo |
-|---|---|---|
-| Livrable 1 | Python package | `tools/golden-normalizer/` (publié séparément) |
-| **Livrable 2** | Python package | `tools/seed-referentials-from-xml/` |
-| **Livrable 3** | TypeScript package (tests) | `packages/evaluator/test/` |
-| **Livrable 4** | TypeScript package | `packages/bct-xml-parser/` |
+| Livrable       | Type                       | Localisation cible dans le monorepo            |
+| -------------- | -------------------------- | ---------------------------------------------- |
+| Livrable 1     | Python package             | `tools/golden-normalizer/` (publié séparément) |
+| **Livrable 2** | Python package             | `tools/seed-referentials-from-xml/`            |
+| **Livrable 3** | TypeScript package (tests) | `packages/evaluator/test/`                     |
+| **Livrable 4** | TypeScript package         | `packages/bct-xml-parser/`                     |
 
 ---
 
@@ -105,11 +105,11 @@ pnpm test:golden:capture  # mode capture
 
 **Testé avec succès sur les 58 XML réels :**
 
-| Nomenclature | Fichiers | Description |
-|---|---|---|
-| **Modern** | 56 | Standard BCT actuel avec `<Entete>`, `<Annexe>`, `<Rubrique>`, `<Colonne>` |
-| **Legacy** | 1 | Annexe 810 position de change avec `<ENTETE>`, `<RECAP_POS>`, `<DET_PSC>` |
-| **Specialized** | 1 | Annexe 781 taux créditeurs/débiteurs avec `<TauxCrediteurs>`, `<Produit>` |
+| Nomenclature    | Fichiers | Description                                                                |
+| --------------- | -------- | -------------------------------------------------------------------------- |
+| **Modern**      | 56       | Standard BCT actuel avec `<Entete>`, `<Annexe>`, `<Rubrique>`, `<Colonne>` |
+| **Legacy**      | 1        | Annexe 810 position de change avec `<ENTETE>`, `<RECAP_POS>`, `<DET_PSC>`  |
+| **Specialized** | 1        | Annexe 781 taux créditeurs/débiteurs avec `<TauxCrediteurs>`, `<Produit>`  |
 
 - **2 097 rubriques totales extraites** (toutes occurrences comptées).
 - **11 002 valeurs Decimal extraites** avec précision 38 digits.

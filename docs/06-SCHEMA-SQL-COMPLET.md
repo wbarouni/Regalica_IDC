@@ -78,20 +78,20 @@ Le schéma SQL de REGFlow obéit à cinq principes de modélisation qui ne sont 
 
 **Soft-delete universel.** Toute table métier porte une colonne `deleted_at TIMESTAMPTZ NULL`. La suppression logique consiste à renseigner cette colonne avec la date courante. Les requêtes applicatives filtrent par défaut `WHERE deleted_at IS NULL` via des vues ou via le filtrage backend. La suppression physique (`DELETE`) est réservée aux cas RGPD où l'obligation légale de rétention ne s'applique pas, et fait l'objet d'une procédure séparée documentée.
 
-**Auditabilité native.** Toute modification d'une ligne d'une table sensible (rules, prompt_bank, referentials_*, users, roles) déclenche un enregistrement automatique dans `audit_log` via un trigger `AFTER INSERT OR UPDATE OR DELETE`. Cet enregistrement contient l'ancienne valeur et la nouvelle valeur au format JSONB, l'identifiant de l'utilisateur responsable de l'opération (via `current_setting('app.current_user_id')`), l'horodatage précis, et l'adresse IP source si disponible. Cette journalisation est elle-même immuable.
+**Auditabilité native.** Toute modification d'une ligne d'une table sensible (rules, prompt*bank, referentials*\*, users, roles) déclenche un enregistrement automatique dans `audit_log` via un trigger `AFTER INSERT OR UPDATE OR DELETE`. Cet enregistrement contient l'ancienne valeur et la nouvelle valeur au format JSONB, l'identifiant de l'utilisateur responsable de l'opération (via `current_setting('app.current_user_id')`), l'horodatage précis, et l'adresse IP source si disponible. Cette journalisation est elle-même immuable.
 
 ## 2. Extensions PostgreSQL requises
 
 REGFlow utilise les extensions PostgreSQL suivantes, activées lors de la migration initiale :
 
-| Extension | Rôle |
-|---|---|
-| `pgcrypto` | Génération de UUID v4 de secours, chiffrement des champs sensibles |
-| `uuid-ossp` | Génération de UUID v1/v4, complément à pgcrypto |
-| `pg_trgm` | Recherche fuzzy par trigrammes sur les libellés métier |
-| `btree_gin` | Indexes GIN sur les colonnes JSONB requêtées par champ |
-| `vector` (pgvector) | Stockage et recherche des embeddings RAG, dimension 768 |
-| `pg_stat_statements` | Télémétrie des requêtes pour observabilité |
+| Extension            | Rôle                                                               |
+| -------------------- | ------------------------------------------------------------------ |
+| `pgcrypto`           | Génération de UUID v4 de secours, chiffrement des champs sensibles |
+| `uuid-ossp`          | Génération de UUID v1/v4, complément à pgcrypto                    |
+| `pg_trgm`            | Recherche fuzzy par trigrammes sur les libellés métier             |
+| `btree_gin`          | Indexes GIN sur les colonnes JSONB requêtées par champ             |
+| `vector` (pgvector)  | Stockage et recherche des embeddings RAG, dimension 768            |
+| `pg_stat_statements` | Télémétrie des requêtes pour observabilité                         |
 
 La génération de UUID v7, non native en PostgreSQL 16, est implémentée via une fonction SQL documentée en annexe 26.4 et déployée en migration 001.
 
@@ -1426,49 +1426,49 @@ Chaque fichier de migration porte un en-tête standard qui décrit son objet, so
 
 La séquence complète des migrations pour atteindre le schéma v1 est la suivante :
 
-| # | Fichier | Objet |
-|---|---|---|
-| 001 | `001_extensions.sql` | Activation des extensions PostgreSQL et fonction `uuidv7()` |
-| 002 | `002_schema_helpers.sql` | Fonctions `current_app_user_id`, `current_app_tenant_id`, `current_user_has_role`, `validate_prompt_schema` |
-| 003 | `003_tenants.sql` | Table `tenants` |
-| 004 | `004_users_roles.sql` | Tables `users`, `roles`, `user_roles`, `sessions` |
-| 005 | `005_audit_log.sql` | Table `audit_log` partitionnée + première partition + trigger d'immutabilité |
-| 006 | `006_audit_trigger_function.sql` | Fonction `audit_trigger_function` |
-| 007 | `007_seed_system_roles.sql` | Insertion des rôles système par tenant |
-| 008 | `008_referentials_annexes.sql` | Table `referentials_annexes` + trigger d'audit |
-| 009 | `009_referentials_rubriques.sql` | Table `referentials_rubriques` |
-| 010 | `010_referentials_colonnes.sql` | Table `referentials_colonnes` |
-| 011 | `011_referentials_xml_structures.sql` | Table `referentials_xml_structures` |
-| 012 | `012_referentials_sentinels.sql` | Table `referentials_sentinels` |
-| 013 | `013_referentials_banks.sql` | Table `referentials_banks` |
-| 014 | `014_referentials_currencies.sql` | Table `referentials_currencies` |
-| 015 | `015_referentials_sectors.sql` | Table `referentials_sectors` |
-| 016 | `016_referentials_identifier_types.sql` | Table `referentials_identifier_types` |
-| 017 | `017_referentials_consolidation_methods.sql` | Table `referentials_consolidation_methods` |
-| 018 | `018_referentials_instruments.sql` | Table `referentials_instruments` |
-| 019 | `019_referentials_contract_types.sql` | Table `referentials_contract_types` |
-| 020 | `020_referentials_error_codes.sql` | Table `referentials_error_codes` |
-| 021 | `021_referentials_annexe_dependencies.sql` | Table `referentials_annexe_dependencies` |
-| 022 | `022_rules.sql` | Table `rules` + trigger d'audit |
-| 023 | `023_prompt_bank.sql` | Table `prompt_bank` + RLS platform_owner + trigger d'audit |
-| 024 | `024_xml_uploads.sql` | Table `xml_uploads` |
-| 025 | `025_validation_runs.sql` | Tables `validation_runs`, `validation_run_uploads` + trigger d'immutabilité + RLS |
-| 026 | `026_validation_fail_details.sql` | Table `validation_fail_details` |
-| 027 | `027_clusters.sql` | Table `clusters` |
-| 028 | `028_four_eyes_approvals.sql` | Table `four_eyes_approvals` |
-| 029 | `029_feature_flags.sql` | Table `feature_flags` |
-| 030 | `030_notifications.sql` | Table `notifications` |
-| 031 | `031_conversations.sql` | Table `conversations` + RLS |
-| 032 | `032_messages.sql` | Table `messages` + RLS + trigger d'immutabilité |
-| 033 | `033_rag_documents.sql` | Table `rag_documents` |
-| 034 | `034_rag_chunks.sql` | Table `rag_chunks` + index HNSW |
-| 035 | `035_pg_cron_partitions.sql` | Job pg_cron pour création automatique des partitions `audit_log` |
-| 036 | `036_grants_regflow_app.sql` | Rôles PostgreSQL applicatifs (`regflow_app`, `regflow_engine`, `regflow_readonly`) et GRANTs |
-| 037 | `037_views_active_versions.sql` | Vues SQL pour lecture des versions actives (`rules_active`, `referentials_annexes_active`, etc.) |
+| #   | Fichier                                      | Objet                                                                                                       |
+| --- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 001 | `001_extensions.sql`                         | Activation des extensions PostgreSQL et fonction `uuidv7()`                                                 |
+| 002 | `002_schema_helpers.sql`                     | Fonctions `current_app_user_id`, `current_app_tenant_id`, `current_user_has_role`, `validate_prompt_schema` |
+| 003 | `003_tenants.sql`                            | Table `tenants`                                                                                             |
+| 004 | `004_users_roles.sql`                        | Tables `users`, `roles`, `user_roles`, `sessions`                                                           |
+| 005 | `005_audit_log.sql`                          | Table `audit_log` partitionnée + première partition + trigger d'immutabilité                                |
+| 006 | `006_audit_trigger_function.sql`             | Fonction `audit_trigger_function`                                                                           |
+| 007 | `007_seed_system_roles.sql`                  | Insertion des rôles système par tenant                                                                      |
+| 008 | `008_referentials_annexes.sql`               | Table `referentials_annexes` + trigger d'audit                                                              |
+| 009 | `009_referentials_rubriques.sql`             | Table `referentials_rubriques`                                                                              |
+| 010 | `010_referentials_colonnes.sql`              | Table `referentials_colonnes`                                                                               |
+| 011 | `011_referentials_xml_structures.sql`        | Table `referentials_xml_structures`                                                                         |
+| 012 | `012_referentials_sentinels.sql`             | Table `referentials_sentinels`                                                                              |
+| 013 | `013_referentials_banks.sql`                 | Table `referentials_banks`                                                                                  |
+| 014 | `014_referentials_currencies.sql`            | Table `referentials_currencies`                                                                             |
+| 015 | `015_referentials_sectors.sql`               | Table `referentials_sectors`                                                                                |
+| 016 | `016_referentials_identifier_types.sql`      | Table `referentials_identifier_types`                                                                       |
+| 017 | `017_referentials_consolidation_methods.sql` | Table `referentials_consolidation_methods`                                                                  |
+| 018 | `018_referentials_instruments.sql`           | Table `referentials_instruments`                                                                            |
+| 019 | `019_referentials_contract_types.sql`        | Table `referentials_contract_types`                                                                         |
+| 020 | `020_referentials_error_codes.sql`           | Table `referentials_error_codes`                                                                            |
+| 021 | `021_referentials_annexe_dependencies.sql`   | Table `referentials_annexe_dependencies`                                                                    |
+| 022 | `022_rules.sql`                              | Table `rules` + trigger d'audit                                                                             |
+| 023 | `023_prompt_bank.sql`                        | Table `prompt_bank` + RLS platform_owner + trigger d'audit                                                  |
+| 024 | `024_xml_uploads.sql`                        | Table `xml_uploads`                                                                                         |
+| 025 | `025_validation_runs.sql`                    | Tables `validation_runs`, `validation_run_uploads` + trigger d'immutabilité + RLS                           |
+| 026 | `026_validation_fail_details.sql`            | Table `validation_fail_details`                                                                             |
+| 027 | `027_clusters.sql`                           | Table `clusters`                                                                                            |
+| 028 | `028_four_eyes_approvals.sql`                | Table `four_eyes_approvals`                                                                                 |
+| 029 | `029_feature_flags.sql`                      | Table `feature_flags`                                                                                       |
+| 030 | `030_notifications.sql`                      | Table `notifications`                                                                                       |
+| 031 | `031_conversations.sql`                      | Table `conversations` + RLS                                                                                 |
+| 032 | `032_messages.sql`                           | Table `messages` + RLS + trigger d'immutabilité                                                             |
+| 033 | `033_rag_documents.sql`                      | Table `rag_documents`                                                                                       |
+| 034 | `034_rag_chunks.sql`                         | Table `rag_chunks` + index HNSW                                                                             |
+| 035 | `035_pg_cron_partitions.sql`                 | Job pg_cron pour création automatique des partitions `audit_log`                                            |
+| 036 | `036_grants_regflow_app.sql`                 | Rôles PostgreSQL applicatifs (`regflow_app`, `regflow_engine`, `regflow_readonly`) et GRANTs                |
+| 037 | `037_views_active_versions.sql`              | Vues SQL pour lecture des versions actives (`rules_active`, `referentials_annexes_active`, etc.)            |
 
 Chaque migration est suivie d'un test d'intégration qui vérifie que la migration a effectivement créé les objets attendus, appliqué les contraintes, et que les tests de non-régression du schéma passent. Ces tests vivent dans `apps/api/tests/migrations/`.
 
 ---
 
-*Fin du Document 6 sur 6 — Schéma SQL complet et migrations*
-*Prochain document à produire : Document 7 — State machine du workflow utilisateur (item 2 de l'enrichissement)*
+_Fin du Document 6 sur 6 — Schéma SQL complet et migrations_
+_Prochain document à produire : Document 7 — State machine du workflow utilisateur (item 2 de l'enrichissement)_

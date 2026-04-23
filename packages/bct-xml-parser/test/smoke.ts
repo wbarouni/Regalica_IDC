@@ -1,12 +1,12 @@
 // Quick smoke test that runs the parser against all golden XMLs
 // and verifies detection / extraction works for all nomenclatures.
 
-import * as fs from "node:fs";
-import * as path from "node:path";
-import { parseBctXml, detectNomenclature } from "../src/index.js";
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { parseBctXml, detectNomenclature } from '../src/index.js';
 
-const goldenDir = "/tmp/test_fixtures/golden/qnb-tunisia";
-const structRefsDir = "/tmp/test_fixtures/structural-references";
+const goldenDir = '/tmp/test_fixtures/golden/qnb-tunisia';
+const structRefsDir = '/tmp/test_fixtures/structural-references';
 
 function findAllXmls(dir: string): string[] {
   const out: string[] = [];
@@ -15,7 +15,7 @@ function findAllXmls(dir: string): string[] {
     for (const e of entries) {
       const full = path.join(p, e.name);
       if (e.isDirectory()) walk(full);
-      else if (full.endsWith(".xml") || full.endsWith(".XML")) out.push(full);
+      else if (full.endsWith('.xml') || full.endsWith('.XML')) out.push(full);
     }
   }
   walk(dir);
@@ -55,14 +55,14 @@ function runTest(): Stats {
   };
 
   for (const xmlPath of xmls) {
-    const content = fs.readFileSync(xmlPath, "utf-8");
+    const content = fs.readFileSync(xmlPath, 'utf-8');
     const nomen = detectNomenclature(content);
 
     try {
       const parsed = parseBctXml(content);
-      if (nomen === "modern") stats.modern++;
-      else if (nomen === "legacy") stats.legacy++;
-      else if (nomen === "specialized") stats.specialized++;
+      if (nomen === 'modern') stats.modern++;
+      else if (nomen === 'legacy') stats.legacy++;
+      else if (nomen === 'specialized') stats.specialized++;
 
       stats.total_rubriques += parsed.rawRubriquesCount;
       stats.total_values += parsed.rawValuesCount;
@@ -77,9 +77,7 @@ function runTest(): Stats {
         warns: parsed.warnings.length,
       });
     } catch (err) {
-      stats.parse_errors.push(
-        `${path.basename(xmlPath)}: ${(err as Error).message}`,
-      );
+      stats.parse_errors.push(`${path.basename(xmlPath)}: ${(err as Error).message}`);
     }
   }
 
@@ -113,7 +111,7 @@ for (const s of samples) {
 }
 // Also print legacy and specialized entries
 for (const s of stats.per_file) {
-  if (s.nomenclature !== "modern") {
+  if (s.nomenclature !== 'modern') {
     console.log(
       `  ${s.annexe.padEnd(5)} [${s.nomenclature.padEnd(11)}] ${s.date.padEnd(10)} ` +
         `rubs=${String(s.rubs).padStart(3)} vals=${String(s.vals).padStart(5)} ` +

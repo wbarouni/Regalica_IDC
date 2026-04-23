@@ -111,16 +111,16 @@ La FSM T0 gouverne le cycle de vie d'une session de pré-validation depuis l'ouv
 
 ### États
 
-| État | Description | Terminal ? |
-|---|---|---|
-| `initiated` | L'utilisateur a ouvert un nouveau workspace, aucun fichier uploadé encore | non |
-| `primary_uploaded` | Le fichier de l'annexe principale est uploadé, IngestorXML a extrait l'entête | non |
-| `companions_requested` | DependencyAgent a détecté des compagnes requises, alerte UI visible | non |
-| `companions_complete` | Toutes les compagnes nécessaires sont présentes dans le batch | non |
-| `coherence_checked` | TemporalAgent a validé la cohérence temporelle inter-XML | non |
-| `ready_for_t1` | Tous les prérequis sont verts, l'utilisateur peut lancer T1 | non |
-| `expired` | Inactivité prolongée, la session T0 a été expirée automatiquement | oui |
-| `aborted` | L'utilisateur a explicitement annulé la session | oui |
+| État                   | Description                                                                   | Terminal ? |
+| ---------------------- | ----------------------------------------------------------------------------- | ---------- |
+| `initiated`            | L'utilisateur a ouvert un nouveau workspace, aucun fichier uploadé encore     | non        |
+| `primary_uploaded`     | Le fichier de l'annexe principale est uploadé, IngestorXML a extrait l'entête | non        |
+| `companions_requested` | DependencyAgent a détecté des compagnes requises, alerte UI visible           | non        |
+| `companions_complete`  | Toutes les compagnes nécessaires sont présentes dans le batch                 | non        |
+| `coherence_checked`    | TemporalAgent a validé la cohérence temporelle inter-XML                      | non        |
+| `ready_for_t1`         | Tous les prérequis sont verts, l'utilisateur peut lancer T1                   | non        |
+| `expired`              | Inactivité prolongée, la session T0 a été expirée automatiquement             | oui        |
+| `aborted`              | L'utilisateur a explicitement annulé la session                               | oui        |
 
 ### Transitions
 
@@ -162,17 +162,17 @@ La FSM T0 gouverne le cycle de vie d'une session de pré-validation depuis l'ouv
 
 ### Table des transitions autorisées
 
-| État source | Événement | État cible | Garde |
-|---|---|---|---|
-| `initiated` | `event.primary_xml_uploaded` | `primary_uploaded` | XML structurellement valide, annexe reconnue |
-| `primary_uploaded` | `event.companions_detected` | `companions_requested` | DependencyAgent liste au moins une compagne manquante |
-| `primary_uploaded` | `event.precheck_all_green` | `ready_for_t1` | Aucune compagne requise (annexe autonome) ET cohérence OK |
-| `companions_requested` | `event.companion_uploaded` | `companions_requested` | Il reste des compagnes manquantes |
-| `companions_requested` | `event.all_companions_ok` | `companions_complete` | Toutes les compagnes requises sont présentes |
-| `companions_complete` | `event.coherence_validated` | `coherence_checked` | TemporalAgent valide l'homogénéité d'arrêté |
-| `coherence_checked` | `event.precheck_all_green` | `ready_for_t1` | Tous les contrôles T0 verts |
-| `*` (non-terminal) | `event.ttl_exceeded` | `expired` | Délai d'inactivité dépassé |
-| `*` (non-terminal) | `event.user_aborted` | `aborted` | Action explicite utilisateur |
+| État source            | Événement                    | État cible             | Garde                                                     |
+| ---------------------- | ---------------------------- | ---------------------- | --------------------------------------------------------- |
+| `initiated`            | `event.primary_xml_uploaded` | `primary_uploaded`     | XML structurellement valide, annexe reconnue              |
+| `primary_uploaded`     | `event.companions_detected`  | `companions_requested` | DependencyAgent liste au moins une compagne manquante     |
+| `primary_uploaded`     | `event.precheck_all_green`   | `ready_for_t1`         | Aucune compagne requise (annexe autonome) ET cohérence OK |
+| `companions_requested` | `event.companion_uploaded`   | `companions_requested` | Il reste des compagnes manquantes                         |
+| `companions_requested` | `event.all_companions_ok`    | `companions_complete`  | Toutes les compagnes requises sont présentes              |
+| `companions_complete`  | `event.coherence_validated`  | `coherence_checked`    | TemporalAgent valide l'homogénéité d'arrêté               |
+| `coherence_checked`    | `event.precheck_all_green`   | `ready_for_t1`         | Tous les contrôles T0 verts                               |
+| `*` (non-terminal)     | `event.ttl_exceeded`         | `expired`              | Délai d'inactivité dépassé                                |
+| `*` (non-terminal)     | `event.user_aborted`         | `aborted`              | Action explicite utilisateur                              |
 
 ## 5. Événements et gardes
 
@@ -245,12 +245,12 @@ La FSM T1 démarre exclusivement depuis l'état `ready_for_t1` de T0, sur évén
 
 ### États
 
-| État | Description | Terminal ? |
-|---|---|---|
-| `running` | T1 en cours d'exécution, une des trois étapes BCT est active | non |
-| `completed` | Les trois étapes se sont terminées avec succès ou échec métier | oui |
-| `failed` | Erreur technique a interrompu T1 (moteur crash, Gemini indisponible, DB timeout) | oui |
-| `aborted` | L'utilisateur a annulé pendant l'exécution | oui |
+| État        | Description                                                                      | Terminal ? |
+| ----------- | -------------------------------------------------------------------------------- | ---------- |
+| `running`   | T1 en cours d'exécution, une des trois étapes BCT est active                     | non        |
+| `completed` | Les trois étapes se sont terminées avec succès ou échec métier                   | oui        |
+| `failed`    | Erreur technique a interrompu T1 (moteur crash, Gemini indisponible, DB timeout) | oui        |
+| `aborted`   | L'utilisateur a annulé pendant l'exécution                                       | oui        |
 
 ### Transitions
 
@@ -272,12 +272,12 @@ La FSM T1 démarre exclusivement depuis l'état `ready_for_t1` de T0, sur évén
 
 ### Table des transitions autorisées
 
-| État source | Événement | État cible | Garde |
-|---|---|---|---|
-| (externe T0 ready_for_t1) | `event.user_clicks_start_validation` | `running` | Utilisateur a le rôle `compliance_officer` |
-| `running` | `event.all_steps_finished` | `completed` | Les 3 étapes BCT ont toutes un statut final |
-| `running` | `event.technical_error` | `failed` | Exception non récupérable levée par le moteur |
-| `running` | `event.user_aborted` | `aborted` | Action explicite utilisateur |
+| État source               | Événement                            | État cible  | Garde                                         |
+| ------------------------- | ------------------------------------ | ----------- | --------------------------------------------- |
+| (externe T0 ready_for_t1) | `event.user_clicks_start_validation` | `running`   | Utilisateur a le rôle `compliance_officer`    |
+| `running`                 | `event.all_steps_finished`           | `completed` | Les 3 étapes BCT ont toutes un statut final   |
+| `running`                 | `event.technical_error`              | `failed`    | Exception non récupérable levée par le moteur |
+| `running`                 | `event.user_aborted`                 | `aborted`   | Action explicite utilisateur                  |
 
 ## 9. Sous-états des trois étapes BCT
 
@@ -307,14 +307,14 @@ pending ──► running ──► passed
 
 **Classification des erreurs.**
 
-| Type d'erreur | État cible | Récupération |
-|---|---|---|
-| Timeout moteur Python (>30s) | `failed` | Invite à réessayer |
-| Erreur parsing XML sur un compagne déjà validé en T0 | `failed` | Exception à investiguer (incohérence T0/T1) |
-| Gemini indisponible pour InvestigatorAgent en post-complétion | `completed` avec flag `investigator_degraded = true` | Continue en mode dégradé, pas d'enrichissement causal |
-| Ollama fallback indisponible si Gemini down | `completed` avec flag `llm_fully_unavailable = true` | Continue sans enrichissement IA |
-| DB timeout pendant écriture verdicts | `failed` | Retry automatique avec backoff exponentiel, puis abandon |
-| Exception non capturée dans le code moteur | `failed` | Sentinelle bug, alerte équipe plateforme |
+| Type d'erreur                                                 | État cible                                           | Récupération                                             |
+| ------------------------------------------------------------- | ---------------------------------------------------- | -------------------------------------------------------- |
+| Timeout moteur Python (>30s)                                  | `failed`                                             | Invite à réessayer                                       |
+| Erreur parsing XML sur un compagne déjà validé en T0          | `failed`                                             | Exception à investiguer (incohérence T0/T1)              |
+| Gemini indisponible pour InvestigatorAgent en post-complétion | `completed` avec flag `investigator_degraded = true` | Continue en mode dégradé, pas d'enrichissement causal    |
+| Ollama fallback indisponible si Gemini down                   | `completed` avec flag `llm_fully_unavailable = true` | Continue sans enrichissement IA                          |
+| DB timeout pendant écriture verdicts                          | `failed`                                             | Retry automatique avec backoff exponentiel, puis abandon |
+| Exception non capturée dans le code moteur                    | `failed`                                             | Sentinelle bug, alerte équipe plateforme                 |
 
 **Principe fondamental.** Une erreur technique ne doit jamais compromettre la cohérence des données. Si T1 échoue après avoir écrit partiellement des verdicts dans `validation_fail_details`, la transaction roll back entièrement et la table reste cohérente avec le `status = 'failed'` du run.
 
@@ -330,16 +330,16 @@ La FSM T2/T3 gouverne tout ce qui se passe après que T1 est en `completed`. Ell
 
 ### États
 
-| État | Description | Terminal ? |
-|---|---|---|
-| `in_investigation` | Conversation T2 active, utilisateur consulte les livrables et dialogue avec Regalica | non |
-| `awaiting_correction` | Utilisateur a accepté le diagnostic, part corriger dans son SI source | non |
-| `iteration_awaited` | Une correction est en cours, attente d'un nouveau run avec XML mis à jour | non |
-| `zero_fail_reached` | Conformité à 100 % sur les FAIL sévères, T3 analytics déverrouillé | non |
-| `signed_internally` | Mode Signature activé, XML conforme téléchargé, traçabilité complète | non |
-| `signature_revoked` | Une signature précédente a été révoquée avec motif | non |
-| `archived_stale` | 30 jours sans activité, archivage automatique | oui |
-| `abandoned` | Utilisateur a explicitement renoncé à cette soumission | oui |
+| État                  | Description                                                                          | Terminal ? |
+| --------------------- | ------------------------------------------------------------------------------------ | ---------- |
+| `in_investigation`    | Conversation T2 active, utilisateur consulte les livrables et dialogue avec Regalica | non        |
+| `awaiting_correction` | Utilisateur a accepté le diagnostic, part corriger dans son SI source                | non        |
+| `iteration_awaited`   | Une correction est en cours, attente d'un nouveau run avec XML mis à jour            | non        |
+| `zero_fail_reached`   | Conformité à 100 % sur les FAIL sévères, T3 analytics déverrouillé                   | non        |
+| `signed_internally`   | Mode Signature activé, XML conforme téléchargé, traçabilité complète                 | non        |
+| `signature_revoked`   | Une signature précédente a été révoquée avec motif                                   | non        |
+| `archived_stale`      | 30 jours sans activité, archivage automatique                                        | oui        |
+| `abandoned`           | Utilisateur a explicitement renoncé à cette soumission                               | oui        |
 
 ### Transitions
 
@@ -395,21 +395,21 @@ La FSM T2/T3 gouverne tout ce qui se passe après que T1 est en `completed`. Ell
 
 ### Table des transitions autorisées
 
-| État source | Événement | État cible | Garde |
-|---|---|---|---|
-| (externe T1 completed) | `event.t1_finished_with_fails` | `in_investigation` | `fail_severe > 0` |
-| (externe T1 completed) | `event.t1_finished_zero_fail` | `zero_fail_reached` | `fail_severe == 0` |
-| `in_investigation` | `event.user_accepts_diagnosis` | `awaiting_correction` | Aucune |
-| `awaiting_correction` | `event.user_starts_iteration` | `iteration_awaited` | Aucune |
-| `awaiting_correction` | `event.user_revisits` | `in_investigation` | Aucune |
-| `iteration_awaited` | `event.new_run_completed` | `in_investigation` | `new_run.fail_severe > 0` |
-| `iteration_awaited` | `event.new_run_completed` | `zero_fail_reached` | `new_run.fail_severe == 0` |
-| `zero_fail_reached` | `event.user_signs` | `signed_internally` | Utilisateur a le rôle `compliance_officer` ou `compliance_director` |
-| `signed_internally` | `event.user_revokes_signature` | `signature_revoked` | Utilisateur a le rôle `compliance_director` |
-| `signature_revoked` | `event.user_re_signs` | `signed_internally` | Nouveau run validé en zero_fail, pas la signature précédente |
-| `signature_revoked` | `event.user_starts_iteration` | `iteration_awaited` | Après révocation, utilisateur souhaite repasser par un nouveau cycle |
-| `*` (non-terminal) | `event.ttl_exceeded` | `archived_stale` | 30 jours sans activité |
-| `*` (non-terminal) | `event.user_abandons` | `abandoned` | Action explicite utilisateur |
+| État source            | Événement                      | État cible            | Garde                                                                |
+| ---------------------- | ------------------------------ | --------------------- | -------------------------------------------------------------------- |
+| (externe T1 completed) | `event.t1_finished_with_fails` | `in_investigation`    | `fail_severe > 0`                                                    |
+| (externe T1 completed) | `event.t1_finished_zero_fail`  | `zero_fail_reached`   | `fail_severe == 0`                                                   |
+| `in_investigation`     | `event.user_accepts_diagnosis` | `awaiting_correction` | Aucune                                                               |
+| `awaiting_correction`  | `event.user_starts_iteration`  | `iteration_awaited`   | Aucune                                                               |
+| `awaiting_correction`  | `event.user_revisits`          | `in_investigation`    | Aucune                                                               |
+| `iteration_awaited`    | `event.new_run_completed`      | `in_investigation`    | `new_run.fail_severe > 0`                                            |
+| `iteration_awaited`    | `event.new_run_completed`      | `zero_fail_reached`   | `new_run.fail_severe == 0`                                           |
+| `zero_fail_reached`    | `event.user_signs`             | `signed_internally`   | Utilisateur a le rôle `compliance_officer` ou `compliance_director`  |
+| `signed_internally`    | `event.user_revokes_signature` | `signature_revoked`   | Utilisateur a le rôle `compliance_director`                          |
+| `signature_revoked`    | `event.user_re_signs`          | `signed_internally`   | Nouveau run validé en zero_fail, pas la signature précédente         |
+| `signature_revoked`    | `event.user_starts_iteration`  | `iteration_awaited`   | Après révocation, utilisateur souhaite repasser par un nouveau cycle |
+| `*` (non-terminal)     | `event.ttl_exceeded`           | `archived_stale`      | 30 jours sans activité                                               |
+| `*` (non-terminal)     | `event.user_abandons`          | `abandoned`           | Action explicite utilisateur                                         |
 
 ## 12. Cycle d'itération correction
 
@@ -456,13 +456,13 @@ Sur `event.user_revokes_signature`, le backend exécute `sp_revoke_signature(run
 
 **Motifs de révocation codifiés.**
 
-| Code | Libellé | Description |
-|---|---|---|
-| `signed_wrong_batch` | Mauvais batch signé | Erreur d'identification du reporting concerné |
-| `data_update_required` | Complément de donnée tardif | Une rubrique doit être corrigée avant soumission |
-| `regulation_changed` | Évolution réglementaire rétroactive | Nouvelle circulaire BCT change les règles applicables |
-| `internal_control_finding` | Constat de contrôle interne | Audit interne a détecté une anomalie |
-| `other` | Autre motif | Texte libre obligatoire |
+| Code                       | Libellé                             | Description                                           |
+| -------------------------- | ----------------------------------- | ----------------------------------------------------- |
+| `signed_wrong_batch`       | Mauvais batch signé                 | Erreur d'identification du reporting concerné         |
+| `data_update_required`     | Complément de donnée tardif         | Une rubrique doit être corrigée avant soumission      |
+| `regulation_changed`       | Évolution réglementaire rétroactive | Nouvelle circulaire BCT change les règles applicables |
+| `internal_control_finding` | Constat de contrôle interne         | Audit interne a détecté une anomalie                  |
+| `other`                    | Autre motif                         | Texte libre obligatoire                               |
 
 **Auditabilité.** Toutes les révocations sont lisibles via une vue SQL `v_signature_history_per_run(run_id)` qui présente la chronologie complète : signatures, révocations, re-signatures avec les acteurs et les motifs.
 
@@ -501,12 +501,12 @@ La FSM 4-yeux gouverne toute modification des tables de vérité métier (`rules
 
 ### États
 
-| État | Description | Terminal ? |
-|---|---|---|
-| `pending` | Une modification a été soumise, en attente de revue par un second expert | non |
-| `approved` | La modification est approuvée et activée en base | oui |
-| `rejected` | La modification est rejetée avec motif, la version précédente reste active | oui |
-| `withdrawn` | L'auteur a retiré sa demande avant décision | oui |
+| État        | Description                                                                | Terminal ? |
+| ----------- | -------------------------------------------------------------------------- | ---------- |
+| `pending`   | Une modification a été soumise, en attente de revue par un second expert   | non        |
+| `approved`  | La modification est approuvée et activée en base                           | oui        |
+| `rejected`  | La modification est rejetée avec motif, la version précédente reste active | oui        |
+| `withdrawn` | L'auteur a retiré sa demande avant décision                                | oui        |
 
 ### Transitions
 
@@ -543,25 +543,25 @@ La FSM 4-yeux gouverne toute modification des tables de vérité métier (`rules
 
 ### Table des transitions autorisées
 
-| État source | Événement | État cible | Garde |
-|---|---|---|---|
-| (hors FSM) | `event.modification_submitted` | `pending` | Auteur authentifié, schéma de changement valide |
-| `pending` | `event.validator_approves` | `approved` | Validateur ≠ auteur, a le rôle requis |
-| `pending` | `event.validator_rejects` | `rejected` | Validateur ≠ auteur, motif non vide |
-| `pending` | `event.author_withdraws` | `withdrawn` | Acteur = auteur initial |
+| État source | Événement                      | État cible  | Garde                                           |
+| ----------- | ------------------------------ | ----------- | ----------------------------------------------- |
+| (hors FSM)  | `event.modification_submitted` | `pending`   | Auteur authentifié, schéma de changement valide |
+| `pending`   | `event.validator_approves`     | `approved`  | Validateur ≠ auteur, a le rôle requis           |
+| `pending`   | `event.validator_rejects`      | `rejected`  | Validateur ≠ auteur, motif non vide             |
+| `pending`   | `event.author_withdraws`       | `withdrawn` | Acteur = auteur initial                         |
 
 ## 16. Types d'entités supportées
 
 La FSM 4-yeux s'applique aux entités suivantes :
 
-| Type d'entité | Rôle requis pour soumettre | Rôle requis pour valider |
-|---|---|---|
-| `rule` | `compliance_officer` ou `referential_admin` | `compliance_director` ou `referential_admin` (≠ auteur) |
-| `referential_annexe` | `referential_admin` | `compliance_director` (≠ auteur) |
-| `referential_rubrique` | `referential_admin` | `compliance_director` ou autre `referential_admin` (≠ auteur) |
-| `referential_colonne` | `referential_admin` | `compliance_director` ou autre `referential_admin` (≠ auteur) |
-| Autres `referential_*` | `referential_admin` | `compliance_director` ou autre `referential_admin` (≠ auteur) |
-| `prompt` | `platform_owner` (ALGORIA Factory) | `platform_owner` (≠ auteur) |
+| Type d'entité          | Rôle requis pour soumettre                  | Rôle requis pour valider                                      |
+| ---------------------- | ------------------------------------------- | ------------------------------------------------------------- |
+| `rule`                 | `compliance_officer` ou `referential_admin` | `compliance_director` ou `referential_admin` (≠ auteur)       |
+| `referential_annexe`   | `referential_admin`                         | `compliance_director` (≠ auteur)                              |
+| `referential_rubrique` | `referential_admin`                         | `compliance_director` ou autre `referential_admin` (≠ auteur) |
+| `referential_colonne`  | `referential_admin`                         | `compliance_director` ou autre `referential_admin` (≠ auteur) |
+| Autres `referential_*` | `referential_admin`                         | `compliance_director` ou autre `referential_admin` (≠ auteur) |
+| `prompt`               | `platform_owner` (ALGORIA Factory)          | `platform_owner` (≠ auteur)                                   |
 
 **Règle absolue.** Dans tous les cas, `decided_by_user_id != requested_by_user_id`. Cette contrainte est renforcée au niveau applicatif **et** au niveau SQL via le check `fea_ck_distinct_users` du Document 6.
 
@@ -627,92 +627,92 @@ Cette approche permet de :
 // packages/state-machines/src/fsm-t0.ts
 
 export enum T0State {
-  INITIATED = "initiated",
-  PRIMARY_UPLOADED = "primary_uploaded",
-  COMPANIONS_REQUESTED = "companions_requested",
-  COMPANIONS_COMPLETE = "companions_complete",
-  COHERENCE_CHECKED = "coherence_checked",
-  READY_FOR_T1 = "ready_for_t1",
-  EXPIRED = "expired",
-  ABORTED = "aborted",
+  INITIATED = 'initiated',
+  PRIMARY_UPLOADED = 'primary_uploaded',
+  COMPANIONS_REQUESTED = 'companions_requested',
+  COMPANIONS_COMPLETE = 'companions_complete',
+  COHERENCE_CHECKED = 'coherence_checked',
+  READY_FOR_T1 = 'ready_for_t1',
+  EXPIRED = 'expired',
+  ABORTED = 'aborted',
 }
 
 export enum T0Event {
-  PRIMARY_XML_UPLOADED = "event.primary_xml_uploaded",
-  COMPANIONS_DETECTED = "event.companions_detected",
-  COMPANION_UPLOADED = "event.companion_uploaded",
-  ALL_COMPANIONS_OK = "event.all_companions_ok",
-  COHERENCE_VALIDATED = "event.coherence_validated",
-  PRECHECK_ALL_GREEN = "event.precheck_all_green",
-  TTL_EXCEEDED = "event.ttl_exceeded",
-  USER_ABORTED = "event.user_aborted",
+  PRIMARY_XML_UPLOADED = 'event.primary_xml_uploaded',
+  COMPANIONS_DETECTED = 'event.companions_detected',
+  COMPANION_UPLOADED = 'event.companion_uploaded',
+  ALL_COMPANIONS_OK = 'event.all_companions_ok',
+  COHERENCE_VALIDATED = 'event.coherence_validated',
+  PRECHECK_ALL_GREEN = 'event.precheck_all_green',
+  TTL_EXCEEDED = 'event.ttl_exceeded',
+  USER_ABORTED = 'event.user_aborted',
 }
 
 // packages/state-machines/src/fsm-t1.ts
 
 export enum T1State {
-  RUNNING = "running",
-  COMPLETED = "completed",
-  FAILED = "failed",
-  ABORTED = "aborted",
+  RUNNING = 'running',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+  ABORTED = 'aborted',
 }
 
 export enum T1Event {
-  USER_CLICKS_START_VALIDATION = "event.user_clicks_start_validation",
-  ALL_STEPS_FINISHED = "event.all_steps_finished",
-  TECHNICAL_ERROR = "event.technical_error",
-  USER_ABORTED = "event.user_aborted",
+  USER_CLICKS_START_VALIDATION = 'event.user_clicks_start_validation',
+  ALL_STEPS_FINISHED = 'event.all_steps_finished',
+  TECHNICAL_ERROR = 'event.technical_error',
+  USER_ABORTED = 'event.user_aborted',
 }
 
 export enum T1StepStatus {
-  PENDING = "pending",
-  RUNNING = "running",
-  PASSED = "passed",
-  FAILED = "failed",
-  SKIPPED_UPSTREAM_FAILED = "skipped_upstream_failed",
+  PENDING = 'pending',
+  RUNNING = 'running',
+  PASSED = 'passed',
+  FAILED = 'failed',
+  SKIPPED_UPSTREAM_FAILED = 'skipped_upstream_failed',
 }
 
 // packages/state-machines/src/fsm-t23.ts
 
 export enum T23State {
-  IN_INVESTIGATION = "in_investigation",
-  AWAITING_CORRECTION = "awaiting_correction",
-  ITERATION_AWAITED = "iteration_awaited",
-  ZERO_FAIL_REACHED = "zero_fail_reached",
-  SIGNED_INTERNALLY = "signed_internally",
-  SIGNATURE_REVOKED = "signature_revoked",
-  ARCHIVED_STALE = "archived_stale",
-  ABANDONED = "abandoned",
+  IN_INVESTIGATION = 'in_investigation',
+  AWAITING_CORRECTION = 'awaiting_correction',
+  ITERATION_AWAITED = 'iteration_awaited',
+  ZERO_FAIL_REACHED = 'zero_fail_reached',
+  SIGNED_INTERNALLY = 'signed_internally',
+  SIGNATURE_REVOKED = 'signature_revoked',
+  ARCHIVED_STALE = 'archived_stale',
+  ABANDONED = 'abandoned',
 }
 
 export enum T23Event {
-  T1_FINISHED_WITH_FAILS = "event.t1_finished_with_fails",
-  T1_FINISHED_ZERO_FAIL = "event.t1_finished_zero_fail",
-  USER_ACCEPTS_DIAGNOSIS = "event.user_accepts_diagnosis",
-  USER_STARTS_ITERATION = "event.user_starts_iteration",
-  USER_REVISITS = "event.user_revisits",
-  NEW_RUN_COMPLETED = "event.new_run_completed",
-  USER_SIGNS = "event.user_signs",
-  USER_REVOKES_SIGNATURE = "event.user_revokes_signature",
-  USER_RE_SIGNS = "event.user_re_signs",
-  TTL_EXCEEDED = "event.ttl_exceeded",
-  USER_ABANDONS = "event.user_abandons",
+  T1_FINISHED_WITH_FAILS = 'event.t1_finished_with_fails',
+  T1_FINISHED_ZERO_FAIL = 'event.t1_finished_zero_fail',
+  USER_ACCEPTS_DIAGNOSIS = 'event.user_accepts_diagnosis',
+  USER_STARTS_ITERATION = 'event.user_starts_iteration',
+  USER_REVISITS = 'event.user_revisits',
+  NEW_RUN_COMPLETED = 'event.new_run_completed',
+  USER_SIGNS = 'event.user_signs',
+  USER_REVOKES_SIGNATURE = 'event.user_revokes_signature',
+  USER_RE_SIGNS = 'event.user_re_signs',
+  TTL_EXCEEDED = 'event.ttl_exceeded',
+  USER_ABANDONS = 'event.user_abandons',
 }
 
 // packages/state-machines/src/fsm-4eyes.ts
 
 export enum FourEyesState {
-  PENDING = "pending",
-  APPROVED = "approved",
-  REJECTED = "rejected",
-  WITHDRAWN = "withdrawn",
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+  WITHDRAWN = 'withdrawn',
 }
 
 export enum FourEyesEvent {
-  MODIFICATION_SUBMITTED = "event.modification_submitted",
-  VALIDATOR_APPROVES = "event.validator_approves",
-  VALIDATOR_REJECTS = "event.validator_rejects",
-  AUTHOR_WITHDRAWS = "event.author_withdraws",
+  MODIFICATION_SUBMITTED = 'event.modification_submitted',
+  VALIDATOR_APPROVES = 'event.validator_approves',
+  VALIDATOR_REJECTS = 'event.validator_rejects',
+  AUTHOR_WITHDRAWS = 'event.author_withdraws',
 }
 ```
 
@@ -753,9 +753,7 @@ export async function attemptTransition<S, E, C>(
 ): Promise<TransitionResult<S, E>> {
   const start = Date.now();
 
-  const matching = transitions.filter(
-    (t) => t.from === currentState && t.event === event,
-  );
+  const matching = transitions.filter((t) => t.from === currentState && t.event === event);
 
   if (matching.length === 0) {
     return {
@@ -803,7 +801,7 @@ export async function attemptTransition<S, E, C>(
     fromState: currentState,
     toState: null,
     event,
-    reason: "All matching transitions failed their guards",
+    reason: 'All matching transitions failed their guards',
     durationMs: Date.now() - start,
   };
 }
@@ -819,11 +817,7 @@ export function isT0TerminalState(state: T0State): boolean {
 }
 
 export function isT1TerminalState(state: T1State): boolean {
-  return (
-    state === T1State.COMPLETED ||
-    state === T1State.FAILED ||
-    state === T1State.ABORTED
-  );
+  return state === T1State.COMPLETED || state === T1State.FAILED || state === T1State.ABORTED;
 }
 
 export function isT23TerminalState(state: T23State): boolean {
@@ -836,13 +830,13 @@ export function canSignRun(
   failSevere: number,
 ): { allowed: boolean; reason: string | null } {
   if (state !== T23State.ZERO_FAIL_REACHED && state !== T23State.SIGNATURE_REVOKED) {
-    return { allowed: false, reason: "Run is not in a signable state" };
+    return { allowed: false, reason: 'Run is not in a signable state' };
   }
   if (failSevere > 0) {
-    return { allowed: false, reason: "Cannot sign a run with severe FAILs" };
+    return { allowed: false, reason: 'Cannot sign a run with severe FAILs' };
   }
-  if (userRole !== "compliance_officer" && userRole !== "compliance_director") {
-    return { allowed: false, reason: "Insufficient role for signature" };
+  if (userRole !== 'compliance_officer' && userRole !== 'compliance_director') {
+    return { allowed: false, reason: 'Insufficient role for signature' };
   }
   return { allowed: true, reason: null };
 }
@@ -852,10 +846,10 @@ export function canRevokeSignature(
   userRole: string,
 ): { allowed: boolean; reason: string | null } {
   if (state !== T23State.SIGNED_INTERNALLY) {
-    return { allowed: false, reason: "Run is not currently signed" };
+    return { allowed: false, reason: 'Run is not currently signed' };
   }
-  if (userRole !== "compliance_director") {
-    return { allowed: false, reason: "Only compliance_director can revoke a signature" };
+  if (userRole !== 'compliance_director') {
+    return { allowed: false, reason: 'Only compliance_director can revoke a signature' };
   }
   return { allowed: true, reason: null };
 }
@@ -989,5 +983,5 @@ $$ LANGUAGE plpgsql;
 
 ---
 
-*Fin du Document 8 — State machines du workflow utilisateur*
-*Prochain document : Plan d'exécution Phase 0 pour Claude Code*
+_Fin du Document 8 — State machines du workflow utilisateur_
+_Prochain document : Plan d'exécution Phase 0 pour Claude Code_

@@ -5,14 +5,14 @@
  * vers le parser approprié, et retourne une structure unifiée `ParsedXml`.
  */
 
-import type { ParsedXml } from "./types.js";
-import { detectNomenclature } from "./nomenclature.js";
-import { parseModern } from "./parser-modern.js";
-import { parseLegacy } from "./parser-legacy.js";
-import { parseSpecialized } from "./parser-specialized.js";
+import type { ParsedXml } from './types.js';
+import { detectNomenclature } from './nomenclature.js';
+import { parseModern } from './parser-modern.js';
+import { parseLegacy } from './parser-legacy.js';
+import { parseSpecialized } from './parser-specialized.js';
 
-export * from "./types.js";
-export { detectNomenclature, normalizeDate } from "./nomenclature.js";
+export * from './types.js';
+export { detectNomenclature, normalizeDate } from './nomenclature.js';
 
 /**
  * Parse un XML BCT, détection automatique de la nomenclature.
@@ -23,7 +23,7 @@ export function parseBctXml(xmlContent: string): ParsedXml {
   const nomenclature = detectNomenclature(xmlContent);
 
   switch (nomenclature) {
-    case "modern": {
+    case 'modern': {
       const r = parseModern(xmlContent);
       return {
         header: r.header,
@@ -33,7 +33,7 @@ export function parseBctXml(xmlContent: string): ParsedXml {
         warnings: r.warnings,
       };
     }
-    case "legacy": {
+    case 'legacy': {
       const r = parseLegacy(xmlContent);
       return {
         header: r.header,
@@ -43,7 +43,7 @@ export function parseBctXml(xmlContent: string): ParsedXml {
         warnings: r.warnings,
       };
     }
-    case "specialized": {
+    case 'specialized': {
       const r = parseSpecialized(xmlContent);
       return {
         header: r.header,
@@ -63,17 +63,15 @@ export function parseBctXml(xmlContent: string): ParsedXml {
  * codeAnnexe dans un même batch). Si collision, la dernière écrase, un warning
  * est émis.
  */
-export function parseBctBatch(
-  xmls: ReadonlyArray<{ filename: string; content: string }>,
-): {
+export function parseBctBatch(xmls: ReadonlyArray<{ filename: string; content: string }>): {
   parsed: ReadonlyMap<string, ParsedXml>;
-  mergedCells: ReadonlyMap<string, ReadonlyMap<string, ReadonlyMap<string, import("decimal.js").default>>>;
+  mergedCells: ReadonlyMap<
+    string,
+    ReadonlyMap<string, ReadonlyMap<string, import('decimal.js').default>>
+  >;
 } {
   const parsed = new Map<string, ParsedXml>();
-  const merged = new Map<
-    string,
-    Map<string, Map<string, import("decimal.js").default>>
-  >();
+  const merged = new Map<string, Map<string, Map<string, import('decimal.js').default>>>();
 
   for (const { filename, content } of xmls) {
     const p = parseBctXml(content);

@@ -15,5 +15,5 @@
  * quand le moteur sera connecté.
  */
 
-export * from "./types.js";
-export * from "./expected-verdicts.js";
+export * from './types.js';
+export * from './expected-verdicts.js';
