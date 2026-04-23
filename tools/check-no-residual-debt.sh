@@ -39,10 +39,11 @@ report=""
 for pat in "${PATTERNS[@]}"; do
   for dir in "${SCAN_DIRS[@]}"; do
     [ -d "$dir" ] || continue
-    if hits=$(grep -rnF \
+    hits=$(grep -rnF \
         --exclude-dir=node_modules \
         --exclude="$SELF" \
-        -- "$pat" "$dir" 2>/dev/null); then
+        -- "$pat" "$dir" 2>/dev/null || true)
+    if [ -n "$hits" ]; then
       report+="${hits}"$'\n'
       fail=1
     fi
@@ -50,7 +51,8 @@ for pat in "${PATTERNS[@]}"; do
 
   for file in "${ROOT_FILES[@]}"; do
     [ -f "$file" ] || continue
-    if hits=$(grep -nF -- "$pat" "$file" 2>/dev/null); then
+    hits=$(grep -nF -- "$pat" "$file" 2>/dev/null || true)
+    if [ -n "$hits" ]; then
       while IFS= read -r line; do
         report+="${file}:${line}"$'\n'
       done <<< "$hits"

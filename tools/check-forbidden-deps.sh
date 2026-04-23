@@ -51,7 +51,8 @@ report=""
 for pat in "${NPM_PATTERNS[@]}"; do
   for file in "${PKG_FILES[@]}"; do
     [ -f "$file" ] || continue
-    if hits=$(grep -nF -- "$pat" "$file" 2>/dev/null); then
+    hits=$(grep -nF -- "$pat" "$file" 2>/dev/null || true)
+    if [ -n "$hits" ]; then
       while IFS= read -r line; do
         report+="  ${file}:${line}"$'\n'
       done <<< "$hits"
@@ -63,7 +64,8 @@ done
 for pat in "${PY_PATTERNS[@]}"; do
   for file in "${PY_FILES[@]}"; do
     [ -f "$file" ] || continue
-    if hits=$(grep -niF -- "$pat" "$file" 2>/dev/null); then
+    hits=$(grep -niF -- "$pat" "$file" 2>/dev/null || true)
+    if [ -n "$hits" ]; then
       while IFS= read -r line; do
         report+="  ${file}:${line}"$'\n'
       done <<< "$hits"
