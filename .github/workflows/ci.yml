@@ -150,6 +150,44 @@ jobs:
       - working-directory: apps/chatbot-py
         run: uv run pytest --cov=app --cov-report=term-missing
 
+  test-bct-xml-parser:
+    name: Test @regflow/bct-xml-parser (Jest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install
+      - name: Run @regflow/bct-xml-parser tests
+        working-directory: packages/bct-xml-parser
+        run: pnpm test
+
+  test-evaluator:
+    name: Test @regflow/evaluator (golden — expected to fail until commit 9)
+    runs-on: ubuntu-latest
+    # Golden fixtures are produced by tools/golden-normalizer at commit 9.
+    # Until then this suite cannot pass; continue-on-error keeps the
+    # overall pipeline informative without masking the dependency.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install
+      - name: Run @regflow/evaluator golden tests
+        working-directory: packages/evaluator
+        run: pnpm test
+
   # =========================================================================
   # Docker build smoke (one job per image, parallel)
   # =========================================================================

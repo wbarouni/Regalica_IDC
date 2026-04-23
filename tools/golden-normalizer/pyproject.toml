@@ -1,0 +1,34 @@
+[project]
+name = "regflow-golden-normalizer"
+version = "1.0.0"
+description = "Normaliseur de fixtures XML BCT pour le golden baseline REGFlow"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "ALGORIA Factory", email = "dev@algoria.factory" },
+]
+license = { text = "Proprietary" }
+dependencies = []
+
+[project.scripts]
+regflow-normalize = "normalize:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.3",
+    "ruff>=0.7.2",
+    "mypy>=1.13.0",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM", "ARG", "PTH", "RUF", "ANN"]
+ignore = ["ANN401"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true

@@ -1,5 +1,19 @@
-// Placeholder jusqu'à la Phase 2.
-// Le moteur canonique sera implémenté selon la capture figée dans
-// docs/as-is-captured/as-is-evaluator-algorithm.md (spécification algorithmique)
-// et le Document 2 (règles RDG, sentinelles, nomenclatures).
-export const EVALUATOR_VERSION = '0.0.0-phase-0-skeleton';
+/**
+ * REGFlow — RDG Evaluator
+ *
+ * Point d'entrée du package. L'implémentation du moteur en 5 phases viendra
+ * en Phase 2 du plan brute de refactoring. Ce package exporte pour l'instant :
+ *
+ * - Les types canoniques (verdict, règle, résultat, totaux).
+ * - Le contrat TypeScript de `Evaluator` avec sa signature `evaluate()`.
+ * - Le schéma de `expected_verdicts.json` et sa fonction de validation.
+ * - Des utilitaires d'agrégation (totaux à partir de verdicts).
+ *
+ * Le test golden (test/golden.test.ts) utilise ces types pour valider le
+ * corpus QNB Tunisia. Il s'exécute en mode capture en Phase 0 sur une portion
+ * testable (parsing + metadata) et bascule en mode assert complet en Phase 2
+ * quand le moteur sera connecté.
+ */
+
+export * from "./types.js";
+export * from "./expected-verdicts.js";

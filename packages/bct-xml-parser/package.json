@@ -1,22 +1,26 @@
 {
   "name": "@regflow/bct-xml-parser",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "private": true,
-  "description": "BCT XML parser — streams annexes into normalised rubriques for the evaluator (Phase 1)",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    }
-  },
+  "description": "Parser XML BCT dual-nomenclature (moderne / legacy / specialized) avec interface CellMatrix unifiée",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
-    "typecheck": "tsc --noEmit",
-    "test": "echo \"(bct-xml-parser) parser arrives in Phase 1\" && exit 0"
+    "build": "tsc",
+    "test": "jest --passWithNoTests",
+    "lint": "echo \"(bct-xml-parser) lint wired in Phase 1 when root @eslint/js is hoisted\" && exit 0",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "decimal.js": "^10.4.3",
+    "fast-xml-parser": "^4.5.0"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.17.6",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
     "typescript": "^5.6.3"
   }
 }
