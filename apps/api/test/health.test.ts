@@ -13,7 +13,9 @@ describe('GET /health', () => {
       service: 'regalica-api',
     });
     expect(typeof res.body.uptime).toBe('number');
+    expect(res.body.uptime).toBeGreaterThanOrEqual(0);
     expect(typeof res.body.timestamp).toBe('string');
+    expect(Number.isNaN(Date.parse(res.body.timestamp))).toBe(false);
     expect(typeof res.body.version).toBe('string');
   });
 });

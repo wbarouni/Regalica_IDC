@@ -1,5 +1,7 @@
 """Smoke test for the /health endpoint."""
 
+from datetime import datetime
+
 import pytest
 from app.main import app
 from fastapi.testclient import TestClient
@@ -16,6 +18,8 @@ def test_health_returns_ok(client: TestClient) -> None:
     payload = response.json()
     assert payload["status"] == "ok"
     assert payload["service"] == "regalica-chatbot-py"
-    assert "uptime" in payload
-    assert "timestamp" in payload
-    assert "version" in payload
+    assert isinstance(payload["uptime"], (int, float))
+    assert payload["uptime"] >= 0
+    assert isinstance(payload["timestamp"], str)
+    datetime.fromisoformat(payload["timestamp"])
+    assert isinstance(payload["version"], str)
