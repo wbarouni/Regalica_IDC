@@ -281,6 +281,16 @@ def infer_arrete_type(date_str: str) -> ArreteType:
 # ---------------------------------------------------------------------------
 
 
+# Main current-year batches — drive the two-branch layout (current vs historical).
+# Any arrêté date not in this set is routed under golden/<tenant>/historical/<date>/.
+MAIN_ARRETE_DATES: frozenset[str] = frozenset({
+    "2024-12-31",  # T4 annual
+    "2026-02-28",  # monthly
+    "2026-03-31",  # LCR quarterly
+    "2024-09-30",  # T3 quarterly
+})
+
+
 def plan_target_path(
     meta: ParsedMetadata,
     target_root: Path,
@@ -303,31 +313,23 @@ def plan_target_path(
 
     canonical_name = f"{meta.code_annexe}-{meta.date_annexe}.xml"
 
-    # Historical batches get isolated subfolder
-    is_historical = _is_historical(meta.date_annexe)
+    # Historical vs current batch root — same filled/ / structurally-valid-empty/
+    # subfolder convention for both, so the golden test can discover XMLs
+    # uniformly via <batch>/filled/*.xml.
+    if _is_historical(meta.date_annexe):
+        batch_dir = (
+            target_root / "golden" / tenant_slug / "historical" / meta.date_annexe
+        )
+    else:
+        batch_dir = target_root / "golden" / tenant_slug / meta.date_annexe
 
-    if is_historical:
-        target_subdir = target_root / "golden" / tenant_slug / "historical" / meta.date_annexe
-        if status == FileStatus.FILLED:
-            return status, target_subdir / canonical_name
-        # Historical empty files are an edge case, placed in same dir
-        return status, target_subdir / canonical_name
-
-    # Current batches under qnb-tunisia/<date>/filled or /structurally-valid-empty
-    batch_dir = target_root / "golden" / tenant_slug / meta.date_annexe
     subfolder = "filled" if status == FileStatus.FILLED else "structurally-valid-empty"
     return status, batch_dir / subfolder / canonical_name
 
 
 def _is_historical(date_str: str) -> bool:
     """Decide if a date belongs to the historical subtree vs current batches."""
-    # Convention: dates strictly before 2024-01-01 are historical.
-    # Also dates older than the current annual are historical.
-    # For simplicity: dates in 2021, 2022, 2023, 2025 (other than 2024-12-31 and 2026-*) are historical.
-    # Actual policy: dates other than the "main batches" (2024-12-31 annual, 2026-02-28 monthly,
-    # 2026-03-31 LCR, 2024-09-30 T3) go to historical/.
-    MAIN_DATES = {"2024-12-31", "2026-02-28", "2026-03-31", "2024-09-30"}
-    return date_str not in MAIN_DATES
+    return date_str not in MAIN_ARRETE_DATES
 
 
 # ---------------------------------------------------------------------------
@@ -491,8 +493,11 @@ def run(
     started_at = datetime.now(timezone.utc).isoformat()
 
     # 1. Scan source directory
+    # Single walk with case-insensitive suffix match so Windows NTFS
+    # (case-insensitive rglob) doesn't report each file twice when we
+    # union "*.xml" and "*.XML".
     source_files = sorted(
-        list(source_dir.rglob("*.xml")) + list(source_dir.rglob("*.XML"))
+        p for p in source_dir.rglob("*") if p.is_file() and p.suffix.lower() == ".xml"
     )
     if not source_files:
         raise SystemExit(f"No XML files found under {source_dir}")
@@ -541,9 +546,9 @@ def run(
     if not dry_run:
         seen_targets: set[Path] = set()
         for meta, status, target in planned:
-            if status == FileStatus.ANOMALY:
-                # Still copy anomalies for inspection
-                pass
+            # Anomalies fall through to the copy path: plan_target_path has
+            # already routed them under anomalies/ so they land preserved
+            # for manual inspection rather than being silently dropped.
             if target in seen_targets:
                 copies_skipped += 1
                 continue
@@ -556,10 +561,10 @@ def run(
         today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         for batch in batches.values():
             # Locate batch dir
-            if batch.arrete_date in {"2024-12-31", "2026-02-28", "2026-03-31", "2024-09-30"}:
-                batch_dir = target_dir / "golden" / tenant_slug / batch.arrete_date
-            else:
+            if _is_historical(batch.arrete_date):
                 batch_dir = target_dir / "golden" / tenant_slug / "historical" / batch.arrete_date
+            else:
+                batch_dir = target_dir / "golden" / tenant_slug / batch.arrete_date
             batch_dir.mkdir(parents=True, exist_ok=True)
             expected = build_expected_verdicts(
                 batch, validation_author, validation_author_role, today
