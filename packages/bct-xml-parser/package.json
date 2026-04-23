@@ -1,5 +1,5 @@
 {
-  "name": "@regalica/bct-xml-parser",
+  "name": "@regflow/bct-xml-parser",
   "version": "0.0.0",
   "private": true,
   "description": "BCT XML parser — streams annexes into normalised rubriques for the evaluator (Phase 1)",

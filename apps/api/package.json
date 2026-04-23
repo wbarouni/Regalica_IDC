@@ -1,5 +1,5 @@
 {
-  "name": "@regalica/api",
+  "name": "@regflow/api",
   "version": "0.0.0",
   "private": true,
   "description": "Regalica IDC — Express + pg native BFF API (evaluator, tenants, auth, uploads, Socket.IO)",

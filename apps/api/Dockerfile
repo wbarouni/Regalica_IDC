@@ -10,12 +10,12 @@ COPY pnpm-workspace.yaml package.json ./
 COPY tsconfig.base.json ./
 COPY apps/api/package.json ./apps/api/
 
-RUN pnpm install --filter @regalica/api...
+RUN pnpm install --filter @regflow/api...
 
 COPY apps/api ./apps/api
 
-RUN pnpm --filter @regalica/api build && \
-    pnpm --filter @regalica/api deploy --prod /deploy
+RUN pnpm --filter @regflow/api build && \
+    pnpm --filter @regflow/api deploy --prod /deploy
 
 # ---- runtime ---------------------------------------------------------------
 FROM node:${NODE_VERSION} AS runtime

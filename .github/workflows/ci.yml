@@ -81,7 +81,7 @@ jobs:
   # Unit tests
   # =========================================================================
   test-api:
-    name: Test @regalica/api (Jest + pg)
+    name: Test @regflow/api (Jest + pg)
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -107,7 +107,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
       - run: pnpm install
-      - name: Run @regalica/api tests
+      - name: Run @regflow/api tests
         working-directory: apps/api
         env:
           DATABASE_URL: postgresql://regalica_app:ci_password@localhost:5432/regalica_test
