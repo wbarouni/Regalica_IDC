@@ -60,6 +60,25 @@ jobs:
         run: uv run mypy app
 
   # =========================================================================
+  # Phase 0 guards (fail-fast)
+  # =========================================================================
+  forbidden-deps:
+    name: Guard forbidden dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tools/check-forbidden-deps.sh
+        run: bash tools/check-forbidden-deps.sh
+
+  no-residual-debt:
+    name: Guard no residual debt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tools/check-no-residual-debt.sh
+        run: bash tools/check-no-residual-debt.sh
+
+  # =========================================================================
   # Typecheck
   # =========================================================================
   typecheck-ts:
