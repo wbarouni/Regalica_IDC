@@ -1,0 +1,93 @@
+<Document>
+  <Entete>
+    <CodeBanque>BANK-CODE</CodeBanque>
+    <DateAnnexe>20251231</DateAnnexe>
+    <CodeAnnexe>110</CodeAnnexe>
+  </Entete>
+  <Annexe id="110">
+    <Rubrique id="11001000000000">
+      <Colonnes>
+        <Colonne id="1">0.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+        <Colonne id="3">800.000</Colonne>
+        <Colonne id="4">717.800</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="11001010000000">
+      <Colonnes>
+        <Colonne id="1">0.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+        <Colonne id="3">800.000</Colonne>
+        <Colonne id="4">717.800</Colonne>
+      </Colonnes>
+      <Societe>
+        <Identifiant>07636103</Identifiant>
+        <TypeIdentifiant>1</TypeIdentifiant>
+        <CodeGroupe/>
+        <RaisonSociale>TUNISO-QATARIE DE RECOUVREMENT</RaisonSociale>
+        <NomGroupe>QATAR NATIONAL BANK TUNISIE</NomGroupe>
+        <Secteur>Recouvrement des cré</Secteur>
+        <Colonnes>
+          <Colonne id="1">100.000</Colonne>
+          <Colonne id="2">1.000</Colonne>
+          <Colonne id="3">300.000</Colonne>
+          <Colonne id="4">300.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>07636756</Identifiant>
+        <TypeIdentifiant>1</TypeIdentifiant>
+        <CodeGroupe/>
+        <RaisonSociale>T.Q.F</RaisonSociale>
+        <NomGroupe>QATAR NATIONAL BANK TUNISIE</NomGroupe>
+        <Secteur>SICAF</Secteur>
+        <Colonnes>
+          <Colonne id="1">100.000</Colonne>
+          <Colonne id="2">1.000</Colonne>
+          <Colonne id="3">500.000</Colonne>
+          <Colonne id="4">417.800</Colonne>
+        </Colonnes>
+      </Societe>
+    </Rubrique>
+    <Rubrique id="11001020000000">
+      <Colonnes>
+        <Colonne id="1">0.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+        <Colonne id="4">0.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="11002000000000">
+      <Colonnes>
+        <Colonne id="1">0.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+        <Colonne id="4">0.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="11002010000000">
+      <Colonnes>
+        <Colonne id="1">0.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+        <Colonne id="4">0.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="11002020000000">
+      <Colonnes>
+        <Colonne id="1">0.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+        <Colonne id="3">0.000</Colonne>
+        <Colonne id="4">0.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="11099000000000">
+      <Colonnes>
+        <Colonne id="1">0.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+        <Colonne id="3">800.000</Colonne>
+        <Colonne id="4">717.800</Colonne>
+      </Colonnes>
+    </Rubrique>
+  </Annexe>
+</Document>

@@ -1,0 +1,199 @@
+<Document>
+  <Entete>
+    <CodeBanque>BANK-CODE</CodeBanque>
+    <DateAnnexe>20241231</DateAnnexe>
+    <CodeAnnexe>720</CodeAnnexe>
+  </Entete>
+  <Annexe id="720">
+    <Rubrique id="72001000000000">
+      <Colonnes>
+        <Colonne id="1">29.000</Colonne>
+        <Colonne id="2">29.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="72002000000000">
+      <Colonnes>
+        <Colonne id="1">29332.000</Colonne>
+        <Colonne id="2">30140.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="72002010000000">
+      <Colonnes>
+        <Colonne id="1">12219.000</Colonne>
+        <Colonne id="2">13033.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="72002010100000">
+      <Colonnes>
+        <Colonne id="1">8572.000</Colonne>
+        <Colonne id="2">8489.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="72002010200000">
+      <Colonnes>
+        <Colonne id="1">3496.000</Colonne>
+        <Colonne id="2">4385.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="72002010300000">
+      <Colonnes>
+        <Colonne id="1">151.000</Colonne>
+        <Colonne id="2">159.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="72002020000000">
+      <Colonnes>
+        <Colonne id="1">733.000</Colonne>
+        <Colonne id="2">809.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="72002030000000">
+      <Colonnes>
+        <Colonne id="1">13887.000</Colonne>
+        <Colonne id="2">14053.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="72002030100000">
+      <Colonnes>
+        <Colonne id="1">13757.000</Colonne>
+        <Colonne id="2">13925.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="72002030200000">
+      <Colonnes>
+        <Colonne id="1">33.000</Colonne>
+        <Colonne id="2">35.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="72002030300000">
+      <Colonnes>
+        <Colonne id="1">0.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="72002030400000">
+      <Colonnes>
+        <Colonne id="1">0.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="72002030500000">
+      <Colonnes>
+        <Colonne id="1">97.000</Colonne>
+        <Colonne id="2">93.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="72002040000000">
+      <Colonnes>
+        <Colonne id="1">2493.000</Colonne>
+        <Colonne id="2">2245.000</Colonne>
+      </Colonnes>
+      <Detail id="2493.0" nom="2245.0">
+        <Colonne id="1">2493.000</Colonne>
+        <Colonne id="2">2245.000</Colonne>
+      </Detail>
+    </Rubrique>
+    <Rubrique id="72003000000000">
+      <Colonnes>
+        <Colonne id="1">7387.000</Colonne>
+        <Colonne id="2">6403.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="72003010000000">
+      <Colonnes>
+        <Colonne id="1">7169.000</Colonne>
+        <Colonne id="2">6104.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="72003010100000">
+      <Colonnes>
+        <Colonne id="1">5.000</Colonne>
+        <Colonne id="2">5.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="72003010200000">
+      <Colonnes>
+        <Colonne id="1">1642.000</Colonne>
+        <Colonne id="2">1439.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="72003010300000">
+      <Colonnes>
+        <Colonne id="1">613.000</Colonne>
+        <Colonne id="2">574.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="72003010400000">
+      <Colonnes>
+        <Colonne id="1">4909.000</Colonne>
+        <Colonne id="2">4086.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="72003020000000">
+      <Colonnes>
+        <Colonne id="1">218.000</Colonne>
+        <Colonne id="2">299.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="72004000000000">
+      <Colonnes>
+        <Colonne id="1">1773.000</Colonne>
+        <Colonne id="2">1777.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="72004010000000">
+      <Colonnes>
+        <Colonne id="1">39.000</Colonne>
+        <Colonne id="2">40.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="72004020000000">
+      <Colonnes>
+        <Colonne id="1">1734.000</Colonne>
+        <Colonne id="2">1737.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="72004020100000">
+      <Colonnes>
+        <Colonne id="1">1585.000</Colonne>
+        <Colonne id="2">1542.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="72004020200000">
+      <Colonnes>
+        <Colonne id="1">149.000</Colonne>
+        <Colonne id="2">195.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="72005000000000">
+      <Colonnes>
+        <Colonne id="1">0.000</Colonne>
+        <Colonne id="2">0.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="72005010000000">
+      <Colonnes>
+        <Colonne id="1">389.000</Colonne>
+        <Colonne id="2">386.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="72005010100000">
+      <Colonnes>
+        <Colonne id="1">292.000</Colonne>
+        <Colonne id="2">296.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="72005010101000">
+      <Colonnes>
+        <Colonne id="1">282.000</Colonne>
+        <Colonne id="2">287.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="72005010200000">
+      <Colonnes>
+        <Colonne id="1">97.000</Colonne>
+        <Colonne id="2">90.000</Colonne>
+      </Colonnes>
+    </Rubrique>
+  </Annexe>
+</Document>

@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="windows-1252"?>
+<Document>
+    <Entete>
+        <CodeBanque>BANK-CODE</CodeBanque>
+        <DateAnnexe>20241231</DateAnnexe>
+		<CodeAnnexe>220</CodeAnnexe>
+    </Entete>
+    <Annexe id="220">
+        <CA id="22001000000000">
+        <NBREUNCA id="22001010000000">4</NBREUNCA>
+        <PRSIDCA id="22001020000000">
+        	<Colonne id="2">1353228</Colonne>
+        	<Colonne id="3">ABDULLA NASER AL KHALIFA</Colonne>
+        	<Colonne id="4">08/03/2021</Colonne>
+        	<Colonne id="5">17/04/2024</Colonne>
+        	<Colonne id="6"/>
+        	<Colonne id="7">3 ANS</Colonne>
+        	<Colonne id="8">2</Colonne>
+        	<Colonne id="9">3</Colonne>
+        	<Colonne id="10">Administrateur reprsentant un actionnaire (QNB)</Colonne>
+        	<Colonne id="11">5</Colonne>
+        </PRSIDCA>
+        <MEMBRESCA id="22001030000000">
+        <Membre>
+        	<Colonne id="2">1375271</Colonne>
+        	<Colonne id="3">ALI ABDULLA DARWISH</Colonne>
+        	<Colonne id="4">09/03/2015</Colonne>
+        	<Colonne id="5">04/05/2021</Colonne>
+        	<Colonne id="6"/>
+        	<Colonne id="7">3 ANS</Colonne>
+        	<Colonne id="8">3</Colonne>
+        	<Colonne id="9">3</Colonne>
+        	<Colonne id="10">Administrateur reprsentant un actionnaire (QNB)</Colonne>
+        	<Colonne id="11">3</Colonne>
+        </Membre>
+        <Membre>
+        	<Colonne id="2">1257777</Colonne>
+        	<Colonne id="3">KHALIL AL ANSARI</Colonne>
+        	<Colonne id="4">04/02/2013</Colonne>
+        	<Colonne id="5">04/05/2021</Colonne>
+        	<Colonne id="6"/>
+        	<Colonne id="7">3 ANS</Colonne>
+        	<Colonne id="8">4</Colonne>
+        	<Colonne id="9">3</Colonne>
+        	<Colonne id="10">Administrateur reprsentant un actionnaire (QNB)</Colonne>
+        	<Colonne id="11">3</Colonne>
+        </Membre>
+        <Membre>
+        	<Colonne id="2">123118468</Colonne>
+        	<Colonne id="3">George BELL</Colonne>
+        	<Colonne id="4">05/05/2022</Colonne>
+        	<Colonne id="5">04/05/2021</Colonne>
+        	<Colonne id="6">06/06/2022</Colonne>
+        	<Colonne id="7">3 ANS</Colonne>
+        	<Colonne id="8">1</Colonne>
+        	<Colonne id="9">3</Colonne>
+        	<Colonne id="10">Administrateur reprsentant un actionnaire (QNB) ( Administrateur a remplac l'Administrateu Tarek Fayed pour le mandat en cours) </Colonne>
+        	<Colonne id="11">2</Colonne>
+        </Membre>
+        <Membre>
+        	<Colonne id="2">1479753</Colonne>
+        	<Colonne id="3">SALAH AL MADANI</Colonne>
+        	<Colonne id="4">08/03/2021</Colonne>
+        	<Colonne id="5">04/05/2021</Colonne>
+        	<Colonne id="6"/>
+        	<Colonne id="7">3 ANS</Colonne>
+        	<Colonne id="8">1</Colonne>
+        	<Colonne id="9">3</Colonne>
+        	<Colonne id="10">Administrateur reprsentant un actionnaire (QNB)</Colonne>
+        	<Colonne id="11">4</Colonne>
+        </Membre>
+        <Membre>
+        	<Colonne id="2">01349794</Colonne>
+        	<Colonne id="3">TALAL AL-MULLA</Colonne>
+        	<Colonne id="4">22/07/2019</Colonne>
+        	<Colonne id="5">04/05/2021</Colonne>
+        	<Colonne id="6">13/09/2019</Colonne>
+        	<Colonne id="7">3 ANS</Colonne>
+        	<Colonne id="8">2</Colonne>
+        	<Colonne id="9">3</Colonne>
+        	<Colonne id="10">Administrateur reprsentant un actionnaire (QNB)</Colonne>
+        	<Colonne id="11">3</Colonne>
+        </Membre>
+        <Membre>
+        	<Colonne id="2">181175E50306</Colonne>
+        	<Colonne id="3">Alexandre ZIBAUT</Colonne>
+        	<Colonne id="4">18/01/2022</Colonne>
+        	<Colonne id="5">04/05/2021</Colonne>
+        	<Colonne id="6">28/02/2022</Colonne>
+        	<Colonne id="7">3 ANS</Colonne>
+        	<Colonne id="8">1</Colonne>
+        	<Colonne id="9">3</Colonne>
+        	<Colonne id="10">Administrateur reprsentant un actionnaire (QNB) ( Administrateur a remplac l'Administrateur  Hassan Al Asmakh pour le mandat en cours) </Colonne>
+        	<Colonne id="11">4</Colonne>
+        </Membre>
+        <Membre>
+        	<Colonne id="2">1276775</Colonne>
+        	<Colonne id="3">Ahmed Kallel</Colonne>
+        	<Colonne id="4">31/01/2021</Colonne>
+        	<Colonne id="5"/>
+        	<Colonne id="6">21/06/2024</Colonne>
+        	<Colonne id="7">3 ANS</Colonne>
+        	<Colonne id="8">1</Colonne>
+        	<Colonne id="9">1</Colonne>
+        	<Colonne id="10">Administrateur indpendant </Colonne>
+        	<Colonne id="11">2</Colonne>
+        </Membre>
+        <Membre>
+        	<Colonne id="2">4698766</Colonne>
+        	<Colonne id="3">Raja Darghouth</Colonne>
+        	<Colonne id="4">23/07/2024</Colonne>
+        	<Colonne id="5"/>
+        	<Colonne id="6">03/09/2024</Colonne>
+        	<Colonne id="7">3 ANS</Colonne>
+        	<Colonne id="8">2</Colonne>
+        	<Colonne id="9">1</Colonne>
+        	<Colonne id="10">Administrateur indpendant</Colonne>
+        	<Colonne id="11">1</Colonne>
+        </Membre>
+        </MEMBRESCA>
+        </CA>
+        <CAUDIT id="22002000000000">
+        <NBREUNCAUDIT id="22002010000000">4</NBREUNCAUDIT>
+        <SECRETCAUDIT id="22002020000000">
+        	<Colonne id="2">00756534</Colonne>
+        	<Colonne id="3"/>
+        	<Colonne id="4"/>
+        	<Colonne id="5"/>
+        	<Colonne id="6"/>
+        	<Colonne id="7"/>
+        	<Colonne id="8"/>
+        	<Colonne id="9"/>
+        	<Colonne id="10">Secrtaire</Colonne>
+        	<Colonne id="11">4</Colonne>
+        </SECRETCAUDIT>
+        <PRESIDCAUDIT id="22002030000000">
+        	<Colonne id="2">04698766</Colonne>
+        	<Colonne id="3">LOBNA FEKI</Colonne>
+        	<Colonne id="4">05/08/2018</Colonne>
+        	<Colonne id="5">04/05/2021</Colonne>
+        	<Colonne id="6">12/09/2018</Colonne>
+        	<Colonne id="7">3 ans</Colonne>
+        	<Colonne id="8">2</Colonne>
+        	<Colonne id="9">1</Colonne>
+        	<Colonne id="10">Administrateur indpendant</Colonne>
+        	<Colonne id="11">1</Colonne>
+        </PRESIDCAUDIT>
+        <MEMBRESCAUDIT id="22002040000000">
+        <Membre>
+        	<Colonne id="2">01349794</Colonne>
+        	<Colonne id="3">Ahmed Kallel</Colonne>
+        	<Colonne id="4">02/05/2024</Colonne>
+        	<Colonne id="5"/>
+        	<Colonne id="6">21/06/2024</Colonne>
+        	<Colonne id="7">3 ans</Colonne>
+        	<Colonne id="8">2</Colonne>
+        	<Colonne id="9">3</Colonne>
+        	<Colonne id="10">Administrateur reprsentant un actionnaire (QNB)</Colonne>
+        	<Colonne id="11">3</Colonne>
+        </Membre>
+        </MEMBRESCAUDIT>
+        </CAUDIT>
+        <CR id="22003000000000">
+        <NBREUNCR id="22003010000000">4</NBREUNCR>
+        <SECRETCR id="22003020000000">
+        	<Colonne id="2">00569999</Colonne>
+        	<Colonne id="3"/>
+        	<Colonne id="4"/>
+        	<Colonne id="5"/>
+        	<Colonne id="6"/>
+        	<Colonne id="7"/>
+        	<Colonne id="8"/>
+        	<Colonne id="9"/>
+        	<Colonne id="10"/>
+        	<Colonne id="11">4</Colonne>
+        </SECRETCR>
+        <PRESIDCR id="22003030000000">
+        	<Colonne id="2">04698766</Colonne>
+        	<Colonne id="3">Raja Darghouth</Colonne>
+        	<Colonne id="4">23/07/2024</Colonne>
+        	<Colonne id="5"/>
+        	<Colonne id="6"/>
+        	<Colonne id="7">3 ANS</Colonne>
+        	<Colonne id="8">1</Colonne>
+        	<Colonne id="9">1</Colonne>
+        	<Colonne id="10">Administrateur indpendant</Colonne>
+        	<Colonne id="11">3</Colonne>
+        </PRESIDCR>
+        <MEMBRESCR id="22003040000000">
+        <Membre>
+        	<Colonne id="2">123118468</Colonne>
+        	<Colonne id="3">Gearge BELL</Colonne>
+        	<Colonne id="4">05/05/2022</Colonne>
+        	<Colonne id="5">04/05/2021</Colonne>
+        	<Colonne id="6">06/06/2022</Colonne>
+        	<Colonne id="7">3 ANS</Colonne>
+        	<Colonne id="8">1</Colonne>
+        	<Colonne id="9">3</Colonne>
+        	<Colonne id="10">Administrateur reprsentant un actionnaire (QNB)</Colonne>
+        	<Colonne id="11">3</Colonne>
+        </Membre>
+        <Membre>
+        	<Colonne id="2">1479753</Colonne>
+        	<Colonne id="3">SALAH AL MADANI</Colonne>
+        	<Colonne id="4">08/03/2021</Colonne>
+        	<Colonne id="5">04/05/2021</Colonne>
+        	<Colonne id="6"/>
+        	<Colonne id="7">3 ANS</Colonne>
+        	<Colonne id="8">1</Colonne>
+        	<Colonne id="9">3</Colonne>
+        	<Colonne id="10">Administrateur reprsentant un actionnaire (QNB)</Colonne>
+        	<Colonne id="11">3</Colonne>
+        </Membre>
+        <Membre>
+        	<Colonne id="2">181175E50306</Colonne>
+        	<Colonne id="3">Alexandre ZIBAUT</Colonne>
+        	<Colonne id="4">18/01/2022</Colonne>
+        	<Colonne id="5">04/05/2021</Colonne>
+        	<Colonne id="6">28/02/2022</Colonne>
+        	<Colonne id="7">3 ANS</Colonne>
+        	<Colonne id="8">1</Colonne>
+        	<Colonne id="9">3</Colonne>
+        	<Colonne id="10">Administrateur reprsentant un actionnaire (QNB)</Colonne>
+        	<Colonne id="11">4</Colonne>
+        </Membre>
+        </MEMBRESCR>
+        </CR>
+        <CRN id="22004000000000">
+        <NBREUNCRN id="22004010000000">2</NBREUNCRN>
+        <SECRETCRN id="22004020000000">
+        	<Colonne id="2">4660722</Colonne>
+        	<Colonne id="3"/>
+        	<Colonne id="4"/>
+        	<Colonne id="5"/>
+        	<Colonne id="6"/>
+        	<Colonne id="7"/>
+        	<Colonne id="8"/>
+        	<Colonne id="9"/>
+        	<Colonne id="10"/>
+        	<Colonne id="11">2</Colonne>
+        </SECRETCRN>
+        <PRESIDCRN id="22004030000000">
+        	<Colonne id="2">1257777</Colonne>
+        	<Colonne id="3">KHALIL AL ANSARI</Colonne>
+        	<Colonne id="4">04/02/2013</Colonne>
+        	<Colonne id="5">04/05/2021</Colonne>
+        	<Colonne id="6"/>
+        	<Colonne id="7">3 ANS</Colonne>
+        	<Colonne id="8">4</Colonne>
+        	<Colonne id="9">3</Colonne>
+        	<Colonne id="10">Administrateur reprsentant un actionnaire (QNB)</Colonne>
+        	<Colonne id="11">4</Colonne>
+        </PRESIDCRN>
+        <MEMBRESCRN id="22004040000000">
+        <Membre>
+        	<Colonne id="2">1375271</Colonne>
+        	<Colonne id="3">ALI ABDULLA DARWISH</Colonne>
+        	<Colonne id="4">09/03/2015</Colonne>
+        	<Colonne id="5">04/05/2021</Colonne>
+        	<Colonne id="6"/>
+        	<Colonne id="7">3 ans</Colonne>
+        	<Colonne id="8">3</Colonne>
+        	<Colonne id="9">3</Colonne>
+        	<Colonne id="10">Administrateur reprsentant un actionnaire (QNB)</Colonne>
+        	<Colonne id="11">4</Colonne>
+        </Membre>
+        </MEMBRESCRN>
+        </CRN>
+        <CCCFNBI id="22005000000000">
+        <NBREUNCCCFNBI id="22005010000000">0</NBREUNCCCFNBI>
+        <SECRETCCCNBI id="22005020000000">
+        	<Colonne id="2"/>
+        	<Colonne id="3"/>
+        	<Colonne id="4"/>
+        	<Colonne id="5"/>
+        	<Colonne id="6"/>
+        	<Colonne id="7"/>
+        	<Colonne id="8"/>
+        	<Colonne id="9"/>
+        	<Colonne id="10"/>
+        	<Colonne id="11"/>
+        </SECRETCCCNBI>
+        <PRESIDCCNBI id="22005030000000">
+        	<Colonne id="2"/>
+        	<Colonne id="3"/>
+        	<Colonne id="4"/>
+        	<Colonne id="5"/>
+        	<Colonne id="6"/>
+        	<Colonne id="7"/>
+        	<Colonne id="8"/>
+        	<Colonne id="9"/>
+        	<Colonne id="10"/>
+        	<Colonne id="11"/>
+        </PRESIDCCNBI>
+        <MEMBRESCCCNBI id="22005040000000">
+        </MEMBRESCCCNBI>
+        </CCCFNBI>
+    </Annexe>
+</Document>

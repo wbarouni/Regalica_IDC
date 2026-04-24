@@ -1,0 +1,1719 @@
+<Document>
+  <Entete>
+    <CodeBanque>BANK-CODE</CodeBanque>
+    <DateAnnexe>20260228</DateAnnexe>
+    <CodeAnnexe>00</CodeAnnexe>
+  </Entete>
+  <Annexe id="00">
+    <Rubrique id="AC090000000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC010000000000">
+      <Colonne id="1">6003.066</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">15454.905</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">21457.971</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">21457.971</Colonne>
+    </Rubrique>
+    <Rubrique id="AC010100000000">
+      <Colonne id="1">4822.869</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">2419.624</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">7242.493</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">7242.493</Colonne>
+    </Rubrique>
+    <Rubrique id="AC010101000000">
+      <Colonne id="1">4822.869</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">2419.624</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">7242.493</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">7242.493</Colonne>
+    </Rubrique>
+    <Rubrique id="AC010102000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC010200000000">
+      <Colonne id="1">1180.197</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">10678.167</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">11858.364</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">11858.364</Colonne>
+    </Rubrique>
+    <Rubrique id="AC010300000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC010301000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC010302000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC010400000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">2357.114</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">2357.114</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">2357.114</Colonne>
+    </Rubrique>
+    <Rubrique id="AC010401000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">2357.114</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">2357.114</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">2357.114</Colonne>
+    </Rubrique>
+    <Rubrique id="AC010402000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC010409000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC020000000000">
+      <Colonne id="1">85301.350</Colonne>
+      <Colonne id="2">1500.584</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">174052.715</Colonne>
+      <Colonne id="5">260854.649</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">260854.649</Colonne>
+    </Rubrique>
+    <Rubrique id="AC020100000000">
+      <Colonne id="1">25099.918</Colonne>
+      <Colonne id="2">1500.584</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">174052.715</Colonne>
+      <Colonne id="5">200653.217</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">200653.217</Colonne>
+    </Rubrique>
+    <Rubrique id="AC020101000000">
+      <Colonne id="1">25099.918</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">25099.918</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">25099.918</Colonne>
+    </Rubrique>
+    <Rubrique id="AC020101010000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC020101020000">
+      <Colonne id="1">25099.918</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">25099.918</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">25099.918</Colonne>
+    </Rubrique>
+    <Rubrique id="AC020101020100">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC020101020200">
+      <Colonne id="1">25099.918</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">25099.918</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">25099.918</Colonne>
+    </Rubrique>
+    <Rubrique id="AC020101090000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC020102000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">1500.584</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">174052.715</Colonne>
+      <Colonne id="5">175553.299</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">175553.299</Colonne>
+    </Rubrique>
+    <Rubrique id="AC020102010000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">1500.584</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">1500.584</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">1500.584</Colonne>
+    </Rubrique>
+    <Rubrique id="AC020102010100">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC020102010200">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">1500.584</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">1500.584</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">1500.584</Colonne>
+    </Rubrique>
+    <Rubrique id="AC020102010900">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC020102020000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">174052.715</Colonne>
+      <Colonne id="5">174052.715</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">174052.715</Colonne>
+    </Rubrique>
+    <Rubrique id="AC020102020100">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">8313.037</Colonne>
+      <Colonne id="5">8313.037</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">8313.037</Colonne>
+    </Rubrique>
+    <Rubrique id="AC020102020200">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC020102020900">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">165739.678</Colonne>
+      <Colonne id="5">165739.678</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">165739.678</Colonne>
+    </Rubrique>
+    <Rubrique id="AC020200000000">
+      <Colonne id="1">60201.432</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">60201.432</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">60201.432</Colonne>
+    </Rubrique>
+    <Rubrique id="AC030000000000">
+      <Colonne id="1">1404919.364</Colonne>
+      <Colonne id="2">17219.403</Colonne>
+      <Colonne id="3">66437.351</Colonne>
+      <Colonne id="4">275.379</Colonne>
+      <Colonne id="5">1488851.497</Colonne>
+      <Colonne id="6">201808.865</Colonne>
+      <Colonne id="7">140727.655</Colonne>
+      <Colonne id="8">1146314.977</Colonne>
+    </Rubrique>
+    <Rubrique id="AC030100000000">
+      <Colonne id="1">333949.092</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">65067.536</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">399016.628</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">399016.628</Colonne>
+    </Rubrique>
+    <Rubrique id="AC030200000000">
+      <Colonne id="1">515557.069</Colonne>
+      <Colonne id="2">3608.797</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">519165.866</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">519165.866</Colonne>
+    </Rubrique>
+    <Rubrique id="AC030300000000">
+      <Colonne id="1">81202.543</Colonne>
+      <Colonne id="2">11599.989</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">92802.532</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">92802.532</Colonne>
+    </Rubrique>
+    <Rubrique id="AC030400000000">
+      <Colonne id="1">5192.144</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">5192.144</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">5192.144</Colonne>
+    </Rubrique>
+    <Rubrique id="AC030500000000">
+      <Colonne id="1">64770.193</Colonne>
+      <Colonne id="2">958.228</Colonne>
+      <Colonne id="3">1.815</Colonne>
+      <Colonne id="4">35.316</Colonne>
+      <Colonne id="5">65765.552</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">65765.552</Colonne>
+    </Rubrique>
+    <Rubrique id="AC030600000000">
+      <Colonne id="1">88674.932</Colonne>
+      <Colonne id="2">84.502</Colonne>
+      <Colonne id="3">302.265</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">89061.699</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">89061.699</Colonne>
+    </Rubrique>
+    <Rubrique id="AC030700000000">
+      <Colonne id="1">253705.172</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">1008.051</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">254713.223</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">254713.223</Colonne>
+    </Rubrique>
+    <Rubrique id="AC030800000000">
+      <Colonne id="1">55677.106</Colonne>
+      <Colonne id="2">172.825</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">55849.931</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">55849.931</Colonne>
+    </Rubrique>
+    <Rubrique id="AC030900000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC030901000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC030902000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC030903000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC031000000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC031100000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC031200000000">
+      <Colonne id="1">6191.113</Colonne>
+      <Colonne id="2">795.062</Colonne>
+      <Colonne id="3">57.684</Colonne>
+      <Colonne id="4">240.063</Colonne>
+      <Colonne id="5">7283.922</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">7283.922</Colonne>
+    </Rubrique>
+    <Rubrique id="AC031900000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC450000000000">
+      <Colonne id="1">614222.644</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">614222.644</Colonne>
+      <Colonne id="6">2015.358</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">612207.286</Colonne>
+    </Rubrique>
+    <Rubrique id="AC040000000000">
+      <Colonne id="1">1739.357</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">1739.357</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">1739.357</Colonne>
+    </Rubrique>
+    <Rubrique id="AC040100000000">
+      <Colonne id="1">1739.357</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">1739.357</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">1739.357</Colonne>
+    </Rubrique>
+    <Rubrique id="AC040101000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC040102000000">
+      <Colonne id="1">1739.357</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">1739.357</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">1739.357</Colonne>
+    </Rubrique>
+    <Rubrique id="AC040103000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC040104000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC040105000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC040106000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC040109000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC040200000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC040201000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC040202000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC040203000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC040204000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC040205000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC040206000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC040209000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC050000000000">
+      <Colonne id="1">612483.287</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">612483.287</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">612483.287</Colonne>
+    </Rubrique>
+    <Rubrique id="AC050100000000">
+      <Colonne id="1">610349.007</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">610349.007</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">610349.007</Colonne>
+    </Rubrique>
+    <Rubrique id="AC050101000000">
+      <Colonne id="1">505947.422</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">505947.422</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">505947.422</Colonne>
+    </Rubrique>
+    <Rubrique id="AC050102000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC050103000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC050104000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC050105000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC050109000000">
+      <Colonne id="1">104401.585</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">104401.585</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">104401.585</Colonne>
+    </Rubrique>
+    <Rubrique id="AC050200000000">
+      <Colonne id="1">1334.400</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">1334.400</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">1334.400</Colonne>
+    </Rubrique>
+    <Rubrique id="AC050201000000">
+      <Colonne id="1">1334.400</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">1334.400</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">1334.400</Colonne>
+    </Rubrique>
+    <Rubrique id="AC050202000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC050300000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC050400000000">
+      <Colonne id="1">799.880</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">799.880</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">799.880</Colonne>
+    </Rubrique>
+    <Rubrique id="AC060000000000">
+      <Colonne id="1">58527.600</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">58527.600</Colonne>
+      <Colonne id="6">36169.310</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">22358.290</Colonne>
+    </Rubrique>
+    <Rubrique id="AC060100000000">
+      <Colonne id="1">18760.386</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">18760.386</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">18760.386</Colonne>
+    </Rubrique>
+    <Rubrique id="AC060200000000">
+      <Colonne id="1">39767.214</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">39767.214</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">39767.214</Colonne>
+    </Rubrique>
+    <Rubrique id="AC070000000000">
+      <Colonne id="1">68284.558</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">120.550</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">68405.108</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">68405.108</Colonne>
+    </Rubrique>
+    <Rubrique id="AC070100000000">
+      <Colonne id="1">265.277</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">265.277</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">265.277</Colonne>
+    </Rubrique>
+    <Rubrique id="AC070200000000">
+      <Colonne id="1">64582.020</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">64582.020</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">64582.020</Colonne>
+    </Rubrique>
+    <Rubrique id="AC070300000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="AC070400000000">
+      <Colonne id="1">352.784</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">352.784</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">352.784</Colonne>
+    </Rubrique>
+    <Rubrique id="AC070500000000">
+      <Colonne id="1">2396.019</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">120.550</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">2516.569</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">2516.569</Colonne>
+    </Rubrique>
+    <Rubrique id="AC070900000000">
+      <Colonne id="1">688.458</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">688.458</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">688.458</Colonne>
+    </Rubrique>
+    <Rubrique id="AC990000000000">
+      <Colonne id="1">2237258.582</Colonne>
+      <Colonne id="2">18719.987</Colonne>
+      <Colonne id="3">82012.806</Colonne>
+      <Colonne id="4">174328.094</Colonne>
+      <Colonne id="5">2512319.469</Colonne>
+      <Colonne id="6">239993.533</Colonne>
+      <Colonne id="7">140727.655</Colonne>
+      <Colonne id="8">2131598.281</Colonne>
+    </Rubrique>
+    <Rubrique id="PA090000000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PA010000000000">
+      <Colonne id="1">185766.604</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">185766.604</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">185766.604</Colonne>
+    </Rubrique>
+    <Rubrique id="PA010100000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PA010200000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PA010300000000">
+      <Colonne id="1">185766.604</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">185766.604</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">185766.604</Colonne>
+    </Rubrique>
+    <Rubrique id="PA010301000000">
+      <Colonne id="1">185766.604</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">185766.604</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">185766.604</Colonne>
+    </Rubrique>
+    <Rubrique id="PA010301010000">
+      <Colonne id="1">185766.604</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">185766.604</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">185766.604</Colonne>
+    </Rubrique>
+    <Rubrique id="PA010301020000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PA010301030000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PA010309000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PA020000000000">
+      <Colonne id="1">19602.862</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">5024.296</Colonne>
+      <Colonne id="5">24627.158</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">24627.158</Colonne>
+    </Rubrique>
+    <Rubrique id="PA020100000000">
+      <Colonne id="1">6022.679</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">5024.296</Colonne>
+      <Colonne id="5">11046.975</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">11046.975</Colonne>
+    </Rubrique>
+    <Rubrique id="PA020101000000">
+      <Colonne id="1">6022.679</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">6022.679</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">6022.679</Colonne>
+    </Rubrique>
+    <Rubrique id="PA020101010000">
+      <Colonne id="1">20.349</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">20.349</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">20.349</Colonne>
+    </Rubrique>
+    <Rubrique id="PA020101020000">
+      <Colonne id="1">6002.330</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">6002.330</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">6002.330</Colonne>
+    </Rubrique>
+    <Rubrique id="PA020101020100">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PA020101020200">
+      <Colonne id="1">6002.330</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">6002.330</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">6002.330</Colonne>
+    </Rubrique>
+    <Rubrique id="PA020101090000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PA020102000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">5024.296</Colonne>
+      <Colonne id="5">5024.296</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">5024.296</Colonne>
+    </Rubrique>
+    <Rubrique id="PA020102010000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PA020102010100">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PA020102010200">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PA020102010900">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PA020102020000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">5024.296</Colonne>
+      <Colonne id="5">5024.296</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">5024.296</Colonne>
+    </Rubrique>
+    <Rubrique id="PA020102020100">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">5024.296</Colonne>
+      <Colonne id="5">5024.296</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">5024.296</Colonne>
+    </Rubrique>
+    <Rubrique id="PA020102020200">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PA020102020900">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PA020200000000">
+      <Colonne id="1">13580.183</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">13580.183</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">13580.183</Colonne>
+    </Rubrique>
+    <Rubrique id="PA030000000000">
+      <Colonne id="1">978079.411</Colonne>
+      <Colonne id="2">211372.313</Colonne>
+      <Colonne id="3">50280.579</Colonne>
+      <Colonne id="4">179486.210</Colonne>
+      <Colonne id="5">1419218.513</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">1419218.513</Colonne>
+    </Rubrique>
+    <Rubrique id="PA030100000000">
+      <Colonne id="1">188929.884</Colonne>
+      <Colonne id="2">81790.487</Colonne>
+      <Colonne id="3">17816.756</Colonne>
+      <Colonne id="4">130560.145</Colonne>
+      <Colonne id="5">419097.272</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">419097.272</Colonne>
+    </Rubrique>
+    <Rubrique id="PA030200000000">
+      <Colonne id="1">149642.241</Colonne>
+      <Colonne id="2">19365.944</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">169008.185</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">169008.185</Colonne>
+    </Rubrique>
+    <Rubrique id="PA030201000000">
+      <Colonne id="1">149008.706</Colonne>
+      <Colonne id="2">19313.874</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">168322.580</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">168322.580</Colonne>
+    </Rubrique>
+    <Rubrique id="PA030202000000">
+      <Colonne id="1">119.423</Colonne>
+      <Colonne id="2">52.070</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">171.493</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">171.493</Colonne>
+    </Rubrique>
+    <Rubrique id="PA030209000000">
+      <Colonne id="1">514.112</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">514.112</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">514.112</Colonne>
+    </Rubrique>
+    <Rubrique id="PA030300000000">
+      <Colonne id="1">611751.538</Colonne>
+      <Colonne id="2">109785.765</Colonne>
+      <Colonne id="3">31587.797</Colonne>
+      <Colonne id="4">46667.079</Colonne>
+      <Colonne id="5">799792.179</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">799792.179</Colonne>
+    </Rubrique>
+    <Rubrique id="PA030400000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PA030900000000">
+      <Colonne id="1">27755.748</Colonne>
+      <Colonne id="2">430.117</Colonne>
+      <Colonne id="3">876.026</Colonne>
+      <Colonne id="4">2258.986</Colonne>
+      <Colonne id="5">31320.877</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">31320.877</Colonne>
+    </Rubrique>
+    <Rubrique id="PA040000000000">
+      <Colonne id="1">147912.225</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">147912.225</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">147912.225</Colonne>
+    </Rubrique>
+    <Rubrique id="PA040100000000">
+      <Colonne id="1">147912.225</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">147912.225</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">147912.225</Colonne>
+    </Rubrique>
+    <Rubrique id="PA040101000000">
+      <Colonne id="1">147912.225</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">147912.225</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">147912.225</Colonne>
+    </Rubrique>
+    <Rubrique id="PA040102000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PA040103000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PA040109000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PA040200000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PA040201000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PA040209000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PA040300000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PA040301000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PA040302000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PA050000000000">
+      <Colonne id="1">65597.739</Colonne>
+      <Colonne id="2">5153.469</Colonne>
+      <Colonne id="3">20000.309</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">90751.517</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">90751.517</Colonne>
+    </Rubrique>
+    <Rubrique id="PA050100000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="PA050200000000">
+      <Colonne id="1">2339.713</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">2339.713</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">2339.713</Colonne>
+    </Rubrique>
+    <Rubrique id="PA050300000000">
+      <Colonne id="1">28391.391</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">185.697</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">28577.088</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">28577.088</Colonne>
+    </Rubrique>
+    <Rubrique id="PA050400000000">
+      <Colonne id="1">30122.961</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">30122.961</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">30122.961</Colonne>
+    </Rubrique>
+    <Rubrique id="PA050900000000">
+      <Colonne id="1">4743.674</Colonne>
+      <Colonne id="2">5153.469</Colonne>
+      <Colonne id="3">19814.612</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">29711.755</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">29711.755</Colonne>
+    </Rubrique>
+    <Rubrique id="PA990000000000">
+      <Colonne id="1">1396958.841</Colonne>
+      <Colonne id="2">216525.782</Colonne>
+      <Colonne id="3">70280.888</Colonne>
+      <Colonne id="4">184510.506</Colonne>
+      <Colonne id="5">1868276.017</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">1868276.017</Colonne>
+    </Rubrique>
+    <Rubrique id="CP090000000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CP010000000000">
+      <Colonne id="1">282300.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">282300.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">282300.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CP010100000000">
+      <Colonne id="1">282300.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">282300.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">282300.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CP010200000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CP020000000000">
+      <Colonne id="1">647.344</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">647.344</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">647.344</Colonne>
+    </Rubrique>
+    <Rubrique id="CP020100000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CP020200000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CP020300000000">
+      <Colonne id="1">647.344</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">647.344</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">647.344</Colonne>
+    </Rubrique>
+    <Rubrique id="CP020400000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CP020500000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CP020600000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CP020900000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CP030000000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CP040000000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CP040100000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CP040200000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CP040300000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CP040900000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CP050000000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CP050100000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CP050200000000">
+      <Colonne id="1">0.000</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">0.000</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="CP060000000000">
+      <Colonne id="1">-17855.187</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">0.000</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">-17855.187</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">-17855.187</Colonne>
+    </Rubrique>
+    <Rubrique id="CP070000000000">
+      <Colonne id="1">-2227.239</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">457.346</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">-1769.893</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">-1769.893</Colonne>
+    </Rubrique>
+    <Rubrique id="CP990000000000">
+      <Colonne id="1">262864.918</Colonne>
+      <Colonne id="2">0.000</Colonne>
+      <Colonne id="3">457.346</Colonne>
+      <Colonne id="4">0.000</Colonne>
+      <Colonne id="5">263322.264</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">263322.264</Colonne>
+    </Rubrique>
+    <Rubrique id="PACP9900000000">
+      <Colonne id="1">1659823.759</Colonne>
+      <Colonne id="2">216525.782</Colonne>
+      <Colonne id="3">70738.234</Colonne>
+      <Colonne id="4">184510.506</Colonne>
+      <Colonne id="5">2131598.281</Colonne>
+      <Colonne id="6">0.000</Colonne>
+      <Colonne id="7">0.000</Colonne>
+      <Colonne id="8">2131598.281</Colonne>
+    </Rubrique>
+  </Annexe>
+</Document>

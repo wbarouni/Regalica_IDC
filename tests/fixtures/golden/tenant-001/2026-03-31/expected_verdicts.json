@@ -1,0 +1,77 @@
+{
+  "$schema": "https://regflow.algoria.factory/schemas/expected_verdicts.v1.json",
+  "batch_metadata": {
+    "batch_id": "tenant-001-2026-03-31",
+    "tenant_slug": "tenant-001",
+    "bank_code_bct": "BANK-CODE",
+    "arrete_date": "2026-03-31",
+    "arrete_type": "quarterly",
+    "files_count_filled": 1,
+    "files_count_structurally_valid_empty": 0,
+    "total_annexes_covered": 1
+  },
+  "bct_submission": {
+    "has_been_submitted": true,
+    "submission_date": null,
+    "bct_response_status": "accepted",
+    "bct_response_file_available": false,
+    "bct_response_file_path": null,
+    "notes": null
+  },
+  "validation_author": {
+    "name": "Wissem Barouni",
+    "role": "CEO ALGORIA Factory / Head of Financial & Regulatory Reporting",
+    "validation_date": "2026-04-24",
+    "validation_method": "manual_review_as_compliance_officer",
+    "confidence_level": "high"
+  },
+  "expected_totals": {
+    "rules_applicable_total": null,
+    "pass": null,
+    "fail_severe": 0,
+    "fail_rounding": null,
+    "skipped_missing_annexe": null,
+    "skipped_missing_rubrique": null,
+    "skipped_missing_colonne": null,
+    "skipped_missing_data": null,
+    "skipped_conditional": null,
+    "skipped_unsupported_op": null,
+    "skipped_literal_text": null,
+    "capture_mode": true
+  },
+  "expected_fails": [],
+  "expected_skips_by_annexe": {},
+  "companion_annexes_missing_in_batch": [
+    {
+      "annexe_code": "00",
+      "required_by": [
+        "47"
+      ],
+      "dependency_source": "CC-tech §9.5 or circ. 2018-06",
+      "consequence": "skipped_missing_annexe verdicts on inter-annexe rules",
+      "justification_for_absence": null
+    },
+    {
+      "annexe_code": "01",
+      "required_by": [
+        "47"
+      ],
+      "dependency_source": "CC-tech §9.5 or circ. 2018-06",
+      "consequence": "skipped_missing_annexe verdicts on inter-annexe rules",
+      "justification_for_absence": null
+    },
+    {
+      "annexe_code": "51",
+      "required_by": [
+        "47"
+      ],
+      "dependency_source": "CC-tech §9.5 or circ. 2018-06",
+      "consequence": "skipped_missing_annexe verdicts on inter-annexe rules",
+      "justification_for_absence": null
+    }
+  ],
+  "annexes_in_scope": [
+    "47"
+  ],
+  "annexes_out_of_scope": []
+}

@@ -1,0 +1,27 @@
+<Document>
+  <Entete>
+    <CodeBanque>BANK-CODE</CodeBanque>
+    <DateAnnexe>20241231</DateAnnexe>
+    <CodeAnnexe>134</CodeAnnexe>
+  </Entete>
+  <Annexe id="134">
+<Rubrique id="13005010000000">
+      <Colonne id="1">70316.000</Colonne>
+    </Rubrique>
+    <Rubrique id="13005020000000">
+      <Colonne id="1">55930.000</Colonne>
+    </Rubrique>
+    <Rubrique id="13005030000000">
+      <Colonne id="1">37503.000</Colonne>
+    </Rubrique>
+    <Rubrique id="13005040000000">
+      <Colonne id="1">54583.000</Colonne>
+    </Rubrique>
+    <Rubrique id="13005050000000">
+      <Colonne id="1">8187.450</Colonne>
+    </Rubrique>
+    <Rubrique id="13005060000000">
+      <Colonne id="1">102343.125</Colonne>
+    </Rubrique>
+  </Annexe>
+</Document>

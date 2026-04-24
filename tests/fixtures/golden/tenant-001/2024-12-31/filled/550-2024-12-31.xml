@@ -1,0 +1,818 @@
+<Document>
+  <Entete>
+    <CodeBanque>BANK-CODE</CodeBanque>
+    <DateAnnexe>20241231</DateAnnexe>
+    <CodeAnnexe>550</CodeAnnexe>
+  </Entete>
+  <Annexe id="550">
+    <Rubrique id="55099000000000">
+      <Colonnes>
+        <Colonne id="1">108741.000</Colonne>
+        <Colonne id="2">375084.000</Colonne>
+        <Colonne id="3">6896.000</Colonne>
+        <Colonne id="4">264000.000</Colonne>
+        <Colonne id="5">754721.000</Colonne>
+      </Colonnes>
+      <Societe>
+        <Identifiant>0789012H</Identifiant>
+        <TypeIdentifiant>13</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>OOREDOO TUNISIE SA</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>II64202</Secteur>
+        <Categorie>S</Categorie>
+        <Colonnes>
+          <Colonne id="1">27554.000</Colonne>
+          <Colonne id="2">15791.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">120000.000</Colonne>
+          <Colonne id="5">163345.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>B173391996</Identifiant>
+        <TypeIdentifiant>9</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>STAR</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>JJ66010</Secteur>
+        <Categorie>I</Categorie>
+        <Colonnes>
+          <Colonne id="1">1765.000</Colonne>
+          <Colonne id="2">55000.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">20000.000</Colonne>
+          <Colonne id="5">76765.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>0005666L</Identifiant>
+        <TypeIdentifiant>13</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>LES CIMENTS DE JBEL EL OUEST</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>DI26612</Secteur>
+        <Categorie>S</Categorie>
+        <Colonnes>
+          <Colonne id="1">13.000</Colonne>
+          <Colonne id="2">5345.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">37000.000</Colonne>
+          <Colonne id="5">42358.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>1119127Z</Identifiant>
+        <TypeIdentifiant>13</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>AMBASSADE DE QATAR</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>QQ99000</Secteur>
+        <Categorie>I</Categorie>
+        <Colonnes>
+          <Colonne id="1">39612.000</Colonne>
+          <Colonne id="2">0.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">39612.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>0970061L</Identifiant>
+        <TypeIdentifiant>13</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>SICAV PATRIMOINE OBLIGATAIRE</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>JJ67130</Secteur>
+        <Categorie>I</Categorie>
+        <Colonnes>
+          <Colonne id="1">0.000</Colonne>
+          <Colonne id="2">0.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">35000.000</Colonne>
+          <Colonne id="5">35000.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>B123611999</Identifiant>
+        <TypeIdentifiant>9</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>BEST LEASE</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>JJ65210</Secteur>
+        <Categorie>S</Categorie>
+        <Colonnes>
+          <Colonne id="1">0.000</Colonne>
+          <Colonne id="2">27344.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">27344.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>B158941996</Identifiant>
+        <TypeIdentifiant>9</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>EKUITY CAPITAL</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>HH55220</Secteur>
+        <Categorie>S</Categorie>
+        <Colonnes>
+          <Colonne id="1">0.000</Colonne>
+          <Colonne id="2">20833.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">5000.000</Colonne>
+          <Colonne id="5">25833.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>B01221282010</Identifiant>
+        <TypeIdentifiant>9</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>CARTE VIE</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>JJ66010</Secteur>
+        <Categorie>I</Categorie>
+        <Colonnes>
+          <Colonne id="1">0.000</Colonne>
+          <Colonne id="2">24336.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">24336.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>0033270B</Identifiant>
+        <TypeIdentifiant>13</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>GAT VIE</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>JJ66010</Secteur>
+        <Categorie>I</Categorie>
+        <Colonnes>
+          <Colonne id="1">1.000</Colonne>
+          <Colonne id="2">23100.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">23101.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>0381567E</Identifiant>
+        <TypeIdentifiant>13</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>TUNISIE SICAV</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>JJ67130</Secteur>
+        <Categorie>I</Categorie>
+        <Colonnes>
+          <Colonne id="1">0.000</Colonne>
+          <Colonne id="2">0.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">20500.000</Colonne>
+          <Colonne id="5">20500.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>B01173782009</Identifiant>
+        <TypeIdentifiant>9</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>ASSURANCES MAGHREBIA VIE</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>JJ66010</Secteur>
+        <Categorie>I</Categorie>
+        <Colonnes>
+          <Colonne id="1">8.000</Colonne>
+          <Colonne id="2">14500.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">14508.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>08927189</Identifiant>
+        <TypeIdentifiant>2</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>AHMED AKAICHI</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>KK74150</Secteur>
+        <Categorie>P</Categorie>
+        <Colonnes>
+          <Colonne id="1">180.000</Colonne>
+          <Colonne id="2">12600.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">12780.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>01245982</Identifiant>
+        <TypeIdentifiant>2</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>KHALED HAMMAMI</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>KK72100</Secteur>
+        <Categorie>P</Categorie>
+        <Colonnes>
+          <Colonne id="1">322.000</Colonne>
+          <Colonne id="2">10000.000</Colonne>
+          <Colonne id="3">1372.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">11694.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>02937881</Identifiant>
+        <TypeIdentifiant>2</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>HATEM LADJIMI</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>KK74150</Secteur>
+        <Categorie>P</Categorie>
+        <Colonnes>
+          <Colonne id="1">788.000</Colonne>
+          <Colonne id="2">10176.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">10964.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>0031440S</Identifiant>
+        <TypeIdentifiant>13</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>TUNISIE LEASING ET FACTORING</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>JJ65210</Secteur>
+        <Categorie>S</Categorie>
+        <Colonnes>
+          <Colonne id="1">100.000</Colonne>
+          <Colonne id="2">0.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">10000.000</Colonne>
+          <Colonne id="5">10100.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>02557986</Identifiant>
+        <TypeIdentifiant>2</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>TAOUFIK REBAI</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>KK74150</Secteur>
+        <Categorie>P</Categorie>
+        <Colonnes>
+          <Colonne id="1">73.000</Colonne>
+          <Colonne id="2">10000.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">10073.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>1274199J</Identifiant>
+        <TypeIdentifiant>13</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>STE FOCUS INTERNATIONAL</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>JJ66010</Secteur>
+        <Categorie>S</Categorie>
+        <Colonnes>
+          <Colonne id="1">1.000</Colonne>
+          <Colonne id="2">9942.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">9943.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>01322193</Identifiant>
+        <TypeIdentifiant>2</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>HAFEDH HAMMAMI</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>KK74150</Secteur>
+        <Categorie>P</Categorie>
+        <Colonnes>
+          <Colonne id="1">0.000</Colonne>
+          <Colonne id="2">8500.000</Colonne>
+          <Colonne id="3">826.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">9326.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>B166571997</Identifiant>
+        <TypeIdentifiant>10</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>ASSURANCES MAGHREBIA S A</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>JJ66010</Secteur>
+        <Categorie>I</Categorie>
+        <Colonnes>
+          <Colonne id="1">262.000</Colonne>
+          <Colonne id="2">9000.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">9262.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>1723389P</Identifiant>
+        <TypeIdentifiant>13</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>GAT ASSURANCES</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>JJ66010</Secteur>
+        <Categorie>I</Categorie>
+        <Colonnes>
+          <Colonne id="1">0.000</Colonne>
+          <Colonne id="2">8000.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">8000.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>0012378Y</Identifiant>
+        <TypeIdentifiant>13</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>SILOGIE SARL</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>GG51180</Secteur>
+        <Categorie>S</Categorie>
+        <Colonnes>
+          <Colonne id="1">0.000</Colonne>
+          <Colonne id="2">7871.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">7871.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>05106811</Identifiant>
+        <TypeIdentifiant>2</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>CHAHIR DAOUD</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>KK70110</Secteur>
+        <Categorie>P</Categorie>
+        <Colonnes>
+          <Colonne id="1">54.000</Colonne>
+          <Colonne id="2">7465.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">7519.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>15FV20389</Identifiant>
+        <TypeIdentifiant>3</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>MOURAD GHAZI</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>MM80420</Secteur>
+        <Categorie>P</Categorie>
+        <Colonnes>
+          <Colonne id="1">66.000</Colonne>
+          <Colonne id="2">7317.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">7383.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>01660520</Identifiant>
+        <TypeIdentifiant>2</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>MR ABDELKADER OU MME RAJA NCIRI</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>KK74150</Secteur>
+        <Categorie>P</Categorie>
+        <Colonnes>
+          <Colonne id="1">231.000</Colonne>
+          <Colonne id="2">7150.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">7381.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>YA0441893</Identifiant>
+        <TypeIdentifiant>3</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>ANNA MASCHERI</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>KK74150</Secteur>
+        <Categorie>P</Categorie>
+        <Colonnes>
+          <Colonne id="1">6763.000</Colonne>
+          <Colonne id="2">0.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">6763.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>B2457952006</Identifiant>
+        <TypeIdentifiant>9</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>INTERCONTINENTAL LTD</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>KK74150</Secteur>
+        <Categorie>S</Categorie>
+        <Colonnes>
+          <Colonne id="1">6525.000</Colonne>
+          <Colonne id="2">0.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">6525.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>00586502</Identifiant>
+        <TypeIdentifiant>2</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>DORA BERGAOUI</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>KK74150</Secteur>
+        <Categorie>P</Categorie>
+        <Colonnes>
+          <Colonne id="1">2.000</Colonne>
+          <Colonne id="2">6369.000</Colonne>
+          <Colonne id="3">49.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">6420.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>B129521998</Identifiant>
+        <TypeIdentifiant>10</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>S T I C</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>HH55122</Secteur>
+        <Categorie>S</Categorie>
+        <Colonnes>
+          <Colonne id="1">409.000</Colonne>
+          <Colonne id="2">0.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">6000.000</Colonne>
+          <Colonne id="5">6409.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>06295458</Identifiant>
+        <TypeIdentifiant>2</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>MOHAMED ALI DAOUD</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>KK74150</Secteur>
+        <Categorie>P</Categorie>
+        <Colonnes>
+          <Colonne id="1">0.000</Colonne>
+          <Colonne id="2">6250.000</Colonne>
+          <Colonne id="3">58.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">6308.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>04033776</Identifiant>
+        <TypeIdentifiant>2</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>EZZEDDINE ZARRAD</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>JJ67200</Secteur>
+        <Categorie>P</Categorie>
+        <Colonnes>
+          <Colonne id="1">46.000</Colonne>
+          <Colonne id="2">6200.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">6246.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>0768711P</Identifiant>
+        <TypeIdentifiant>13</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>FEDERATION TUNISIENNE DE TENNIS</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>OO92620</Secteur>
+        <Categorie>S</Categorie>
+        <Colonnes>
+          <Colonne id="1">495.000</Colonne>
+          <Colonne id="2">5649.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">6144.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>000NN1121726N</Identifiant>
+        <TypeIdentifiant>5</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>SGMIA SONDOUK MOUKAFAAT AL KHADMA</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>MM80420</Secteur>
+        <Categorie>S</Categorie>
+        <Colonnes>
+          <Colonne id="1">0.000</Colonne>
+          <Colonne id="2">5882.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">5882.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>0030581B</Identifiant>
+        <TypeIdentifiant>13</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>GLE ETUDES PLACEMENT ASSUR ET REASS</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>JJ66030</Secteur>
+        <Categorie>S</Categorie>
+        <Colonnes>
+          <Colonne id="1">5774.000</Colonne>
+          <Colonne id="2">0.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">5774.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>B121461997</Identifiant>
+        <TypeIdentifiant>10</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>STEG</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>JJ67130</Secteur>
+        <Categorie>I</Categorie>
+        <Colonnes>
+          <Colonne id="1">229.000</Colonne>
+          <Colonne id="2">5486.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">5715.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>04013090</Identifiant>
+        <TypeIdentifiant>2</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>ABDERRAZAK TEKAYA</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>KK74150</Secteur>
+        <Categorie>P</Categorie>
+        <Colonnes>
+          <Colonne id="1">1060.000</Colonne>
+          <Colonne id="2">0.000</Colonne>
+          <Colonne id="3">4591.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">5651.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>1178799P</Identifiant>
+        <TypeIdentifiant>13</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>FCP VALEURS MIXTES</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>JJ67130</Secteur>
+        <Categorie>I</Categorie>
+        <Colonnes>
+          <Colonne id="1">0.000</Colonne>
+          <Colonne id="2">0.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">5500.000</Colonne>
+          <Colonne id="5">5500.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>B0940592005</Identifiant>
+        <TypeIdentifiant>9</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>STE TUNISIAN UNITED SOLUTIONS</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>DK29710</Secteur>
+        <Categorie>S</Categorie>
+        <Colonnes>
+          <Colonne id="1">0.000</Colonne>
+          <Colonne id="2">5481.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">5481.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>0769281S</Identifiant>
+        <TypeIdentifiant>13</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>STE TUNISIE CATERING SA</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>HH55520</Secteur>
+        <Categorie>S</Categorie>
+        <Colonnes>
+          <Colonne id="1">5405.000</Colonne>
+          <Colonne id="2">0.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">5405.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>08303945</Identifiant>
+        <TypeIdentifiant>3</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>MR OU MME SAHBI AMARA</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>KK74150</Secteur>
+        <Categorie>P</Categorie>
+        <Colonnes>
+          <Colonne id="1">280.000</Colonne>
+          <Colonne id="2">5060.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">5340.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>00772939</Identifiant>
+        <TypeIdentifiant>2</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>FAOUZI OU CORINNE MARTINE BARKATI</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>KK74150</Secteur>
+        <Categorie>P</Categorie>
+        <Colonnes>
+          <Colonne id="1">2230.000</Colonne>
+          <Colonne id="2">2940.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">5170.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>0341443W</Identifiant>
+        <TypeIdentifiant>13</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>STE TUNISIE VALEUR</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>JJ67130</Secteur>
+        <Categorie>I</Categorie>
+        <Colonnes>
+          <Colonne id="1">0.000</Colonne>
+          <Colonne id="2">0.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">5000.000</Colonne>
+          <Colonne id="5">5000.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>YB5250615</Identifiant>
+        <TypeIdentifiant>3</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>BRUNO MONTANI</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>KK74150</Secteur>
+        <Categorie>P</Categorie>
+        <Colonnes>
+          <Colonne id="1">74.000</Colonne>
+          <Colonne id="2">4800.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">4874.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>1631377A</Identifiant>
+        <TypeIdentifiant>13</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>CONDOR INDUSTRY TUNISIE</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>HH55520</Secteur>
+        <Categorie>S</Categorie>
+        <Colonnes>
+          <Colonne id="1">230.000</Colonne>
+          <Colonne id="2">4500.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">4730.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>1325303Y</Identifiant>
+        <TypeIdentifiant>13</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>SLDA</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>GG51660</Secteur>
+        <Categorie>S</Categorie>
+        <Colonnes>
+          <Colonne id="1">1000.000</Colonne>
+          <Colonne id="2">3500.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">4500.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>02998714</Identifiant>
+        <TypeIdentifiant>2</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>SALEM BEN SAAD</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>KK74150</Secteur>
+        <Categorie>P</Categorie>
+        <Colonnes>
+          <Colonne id="1">20.000</Colonne>
+          <Colonne id="2">4418.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">4438.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>0349608J</Identifiant>
+        <TypeIdentifiant>13</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>GAT INVESTISSEMENT</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>JJ67120</Secteur>
+        <Categorie>S</Categorie>
+        <Colonnes>
+          <Colonne id="1">408.000</Colonne>
+          <Colonne id="2">4000.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">4408.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>B0135382004</Identifiant>
+        <TypeIdentifiant>9</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>QATAR AIRWAYS</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>JJ65230</Secteur>
+        <Categorie>S</Categorie>
+        <Colonnes>
+          <Colonne id="1">4323.000</Colonne>
+          <Colonne id="2">0.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">4323.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>00298999</Identifiant>
+        <TypeIdentifiant>2</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>RIM CHERIF</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>KK74150</Secteur>
+        <Categorie>P</Categorie>
+        <Colonnes>
+          <Colonne id="1">279.000</Colonne>
+          <Colonne id="2">4000.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">4279.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>03490409</Identifiant>
+        <TypeIdentifiant>2</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>HABIB BEN HARIZ</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>JJ65230</Secteur>
+        <Categorie>P</Categorie>
+        <Colonnes>
+          <Colonne id="1">2079.000</Colonne>
+          <Colonne id="2">2160.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">4239.000</Colonne>
+        </Colonnes>
+      </Societe>
+      <Societe>
+        <Identifiant>00772505</Identifiant>
+        <TypeIdentifiant>2</TypeIdentifiant>
+        <CodeGroupe>0</CodeGroupe>
+        <RaisonSociale>BELHASSEN BEN MOHAMED HAMROUNI</RaisonSociale>
+        <NomGroupe/>
+        <Secteur>KK74150</Secteur>
+        <Categorie>P</Categorie>
+        <Colonnes>
+          <Colonne id="1">80.000</Colonne>
+          <Colonne id="2">4119.000</Colonne>
+          <Colonne id="3">0.000</Colonne>
+          <Colonne id="4">0.000</Colonne>
+          <Colonne id="5">4199.000</Colonne>
+        </Colonnes>
+      </Societe>
+    </Rubrique>
+  </Annexe>
+</Document>
