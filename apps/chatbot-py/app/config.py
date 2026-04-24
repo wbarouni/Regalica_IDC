@@ -1,4 +1,17 @@
-"""Environment-driven configuration, validated by Pydantic Settings."""
+"""Environment-driven configuration, validated by Pydantic Settings.
+
+All LLM-related values (provider, model names, endpoint URLs) are REQUIRED
+from the environment. No defaults are declared here — per CLAUDE.md §11
+and the zero-hardcoding doctrine (docs/03 Niveau 3), a missing LLM config
+env var must fail the process at startup with a Pydantic validation error
+rather than silently fall back to a baked-in value. Canonical reference
+values for a local dev setup live in .env.example.
+
+Non-LLM knobs that are deployment-neutral (env name, port, log level)
+keep their defaults since they are either FSM grammar (`env`), protocol
+constants (`port` when running standalone), or log-verbosity choices
+that do not change the system's logical behaviour.
+"""
 
 from typing import Literal
 
@@ -26,16 +39,15 @@ class Settings(BaseSettings):
 
     database_url: str | None = Field(default=None, alias="DATABASE_URL")
 
-    llm_provider: Literal["gemini", "ollama"] = Field(default="gemini", alias="LLM_PROVIDER")
+    # LLM config — REQUIRED, no defaults. See module docstring.
+    llm_provider: Literal["gemini", "ollama"] = Field(alias="LLM_PROVIDER")
     gemini_api_key: str | None = Field(default=None, alias="GEMINI_API_KEY")
-    gemini_model: str = Field(default="gemini-2.5-flash", alias="GEMINI_MODEL")
-    ollama_url: str = Field(default="http://ollama:11434", alias="OLLAMA_URL")
-    ollama_model: str = Field(default="qwen2.5:3b", alias="OLLAMA_MODEL")
+    gemini_model: str = Field(alias="GEMINI_MODEL")
+    ollama_url: str = Field(alias="OLLAMA_URL")
+    ollama_model: str = Field(alias="OLLAMA_MODEL")
 
-    embedding_provider: Literal["gemini", "ollama"] = Field(
-        default="gemini", alias="EMBEDDING_PROVIDER"
-    )
-    embedding_model: str = Field(default="text-embedding-004", alias="EMBEDDING_MODEL")
+    embedding_provider: Literal["gemini", "ollama"] = Field(alias="EMBEDDING_PROVIDER")
+    embedding_model: str = Field(alias="EMBEDDING_MODEL")
 
 
 settings = Settings()
