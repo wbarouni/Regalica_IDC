@@ -299,6 +299,17 @@ pnpm dev                                            # up complet
 pnpm dev:down                                       # down
 ```
 
+**Migrations DB (Phase 1+) :**
+
+```bash
+# DATABASE_URL requis dans l'env (voir .env.example)
+pnpm --filter @regflow/api migrate:status           # appliquées / en attente / drift
+pnpm --filter @regflow/api migrate:up               # applique toutes les migrations en attente
+pnpm --filter @regflow/api migrate:verify           # vérifie les checksums contre la DB
+```
+
+Convention d'en-tête des fichiers `.sql` et règles d'idempotence dans `apps/api/migrations/README.md`.
+
 **Golden baseline :**
 
 ```bash

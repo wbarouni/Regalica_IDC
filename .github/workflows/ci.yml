@@ -118,6 +118,45 @@ jobs:
       - run: pnpm -r --if-present typecheck
 
   # =========================================================================
+  # Migration runner smoke (empty DB)
+  # =========================================================================
+  migrations-smoke:
+    name: Migration runner smoke (empty DB)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: regalica_app
+          POSTGRES_PASSWORD: ci_password
+          POSTGRES_DB: regflow_migrations_smoke
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U regalica_app -d regflow_migrations_smoke"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install
+      - name: Smoke run migrator against empty DB
+        working-directory: apps/api
+        env:
+          DATABASE_URL: postgresql://regalica_app:ci_password@localhost:5432/regflow_migrations_smoke
+        run: |
+          pnpm migrate:status
+          pnpm migrate:up
+          pnpm migrate:verify
+
+  # =========================================================================
   # Unit tests
   # =========================================================================
   test-api:
