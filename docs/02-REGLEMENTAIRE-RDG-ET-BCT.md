@@ -7,7 +7,7 @@
 **Périmètre :** cadre réglementaire BCT applicable aux banques résidentes, structure du référentiel RDG, nomenclatures XML historiques et courantes, dépendances inter-annexes, cycle de reporting et régime de sanctions
 **Auteur :** Équipe REGFlow
 **Statut :** référence canonique pour Claude Code — **les détails réglementaires non explicitement confirmés sont marqués `TODO(@wbarouni)` et ne doivent pas être inventés**
-**Dépendances :** Document 1 (vision produit), Document 7 (golden baseline et dépendances inter-annexes pratiquées sur QNB Tunisia)
+**Dépendances :** Document 1 (vision produit), Document 7 (golden baseline et dépendances inter-annexes pratiquées sur le tenant pilote)
 
 ---
 
@@ -47,7 +47,7 @@
 **Partie VI — Références**
 
 17. Liste des circulaires citées
-18. Renvoi vers le corpus golden QNB Tunisia
+18. Renvoi vers le corpus golden du tenant pilote
 
 ---
 
@@ -157,11 +157,11 @@ Le corpus de reportings historique manipule trois nomenclatures XML qui coexiste
 
 **Balises racines caractéristiques** : `<Entete>`, `<Annexe>`, `<Rubrique>`, `<Colonne>`.
 
-**Volume dans le corpus QNB Tunisia** : 56 fichiers sur 58 (voir Document 7).
+**Volume dans le corpus du tenant pilote** : 56 fichiers sur 58 (voir Document 7).
 
 **Métadonnées extraites** :
 
-- `<CodeBanque>` — code BCT de la banque déclarante (QNB = 23).
+- `<CodeBanque>` — code BCT de la banque déclarante (remplacé par `BANK-CODE` dans les fixtures anonymisées du repo).
 - `<DateAnnexe>` — date d'arrêté au format `YYYYMMDD`.
 - `<CodeAnnexe>` — code de l'annexe (00, 01, 47, 51, 620, 630, 640, etc.).
 
@@ -171,7 +171,7 @@ Le corpus de reportings historique manipule trois nomenclatures XML qui coexiste
 
 **Balises racines caractéristiques** : `<ENTETE>`, `<DATE_DECLAR>`, `<BQ>`, `<CODE_ANNEXE>`, `<RECAP_POS>`, `<DET_PSC>`.
 
-**Volume dans le corpus QNB Tunisia** : 1 fichier — annexe 810 position de change arrêté 2025-12-01.
+**Volume dans le corpus du tenant pilote** : 1 fichier — annexe 810 position de change arrêté 2025-12-01.
 
 **Métadonnées extraites** :
 
@@ -187,7 +187,7 @@ Le corpus de reportings historique manipule trois nomenclatures XML qui coexiste
 
 **Balises racines caractéristiques** : `<TauxCrediteurs>`, `<TauxDebiteurs>`, `<Produit>`, `<Operation>`.
 
-**Volume dans le corpus QNB Tunisia** : 1 fichier — annexe 781 taux créditeurs et débiteurs, sans date d'arrêté (référence structurelle).
+**Volume dans le corpus du tenant pilote** : 1 fichier — annexe 781 taux créditeurs et débiteurs, sans date d'arrêté (référence structurelle).
 
 **Usage** : cette nomenclature couvre les déclarations de taux d'intérêt applicables aux produits et opérations bancaires. Elle n'est pas temporalisée au sens habituel (pas de `DateAnnexe`), ce qui la range dans la catégorie `structural-reference` du golden baseline (voir Document 7 §6 structure cible).
 
@@ -249,7 +249,7 @@ Les reportings BCT suivent plusieurs fréquences, documentées dans les circulai
 - **LCR** — cycle spécifique au ratio de liquidité à court terme. Arrêtés selon périodicité imposée (voir circulaire LCR, TODO à confirmer).
 - **Ad hoc** — dates non calendaires (milieu de mois, dates exceptionnelles). Inférées par REGFlow via la classe `ArreteType.AD_HOC` du `golden-normalizer`.
 
-Le Document 7 §2 détaille la classification effective appliquée au corpus QNB Tunisia (9 batches, nature de chacun).
+Le Document 7 §2 détaille la classification effective appliquée au corpus du tenant pilote (9 batches, nature de chacun).
 
 ## 15. Régime de sanctions
 
@@ -290,7 +290,7 @@ Les circulaires BCT explicitement citées dans le corpus REGFlow et ses fixtures
 
 Toute nouvelle circulaire référencée dans le corpus ou dans les prompts `prompt_bank` (Document 5) doit être ajoutée à cette liste et citée avec sa date de publication et son numéro exact.
 
-## 18. Renvoi vers le corpus golden QNB Tunisia
+## 18. Renvoi vers le corpus golden du tenant pilote
 
 Le corpus golden de non-régression est documenté exhaustivement dans **Document 7 — Plan opérationnel Golden Baseline (v2)** :
 
@@ -299,7 +299,7 @@ Le corpus golden de non-régression est documenté exhaustivement dans **Documen
 - **Document 7 §11** — matrice de dépendances complète.
 - **Document 7 §12** — analyse par batch avec dépendances satisfaites ou manquantes.
 
-L'arborescence in-repo : `tests/fixtures/golden/qnb-tunisia/` et `tests/fixtures/structural-references/`.
+L'arborescence in-repo : `tests/fixtures/golden/tenant-001/` et `tests/fixtures/structural-references/`.
 
 Le contrat de non-régression : `pnpm --filter @regflow/evaluator test` doit produire **73 passed, 32 skipped (Phase 2), 0 failed** sur cette baseline. Voir également `CLAUDE.md` §8.
 

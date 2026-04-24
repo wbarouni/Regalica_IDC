@@ -25,7 +25,7 @@ Les livrables s'enchaînent dans cet ordre :
 
 ```
 Livrable 1 (golden-normalizer)
-    │  Produit tests/fixtures/golden/qnb-tunisia/
+    │  Produit tests/fixtures/golden/<tenant-slug>/
     ▼
 Livrable 2 (seed-referentials-from-xml)
     │  Lit tests/fixtures/golden/
@@ -36,7 +36,7 @@ Livrable 4 (bct-xml-parser)
     │  Utilisé par le moteur d'évaluation en Phase 2
     ▼
 Livrable 3 (golden test)
-    │  Itère sur tous les batches de tests/fixtures/golden/qnb-tunisia/
+    │  Itère sur tous les batches de tests/fixtures/golden/<tenant-slug>/
     │  Phase 0 : valide parsing + métadonnées
     │  Phase 2 : compare verdicts moteur aux expected_verdicts.json
 ```
@@ -47,7 +47,7 @@ Livrable 3 (golden test)
 
 **But.** Génère automatiquement les migrations SQL de seeding des tables `referentials_rubriques`, `referentials_colonnes`, `referentials_xml_structures` du Document 6 à partir du corpus golden.
 
-**Testé avec succès sur les 58 XML réels QNB Tunisia :**
+**Testé avec succès sur les 58 XML réels du tenant pilote :**
 
 - **1 282 rubriques** extraites avec hiérarchie parent/enfant inférée.
 - **308 combinaisons (annexe, colonne)** détectées.
@@ -80,7 +80,7 @@ uv run python seed.py \
 **Test golden testé avec succès sur le corpus :**
 
 - **73 tests passent**, 32 skippés (bloc Phase 2 activé quand le moteur sera connecté).
-- 9 batches découverts automatiquement dans `tests/fixtures/golden/qnb-tunisia/`.
+- 9 batches découverts automatiquement dans `tests/fixtures/golden/tenant-001/`.
 - Pour chaque batch : validation métadonnées, parsing dual-nomenclature, cohérence dates et bank codes, annexes in_scope, expected_skips.
 
 **Modes de fonctionnement :**

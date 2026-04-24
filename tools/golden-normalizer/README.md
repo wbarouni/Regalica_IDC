@@ -24,7 +24,9 @@ uv sync  # Installe les dépendances de développement si besoin
 uv run python normalize.py \
   --source-dir /path/to/uploaded/xmls \
   --target-dir ../../tests/fixtures \
-  --tenant-slug qnb-tunisia \
+  --tenant-slug tenant-001 \
+  --bank-code-placeholder BANK-CODE \
+  --bank-id-placeholder BANK-ID \
   --validation-author "Wissem Barouni" \
   --report-file ./reports/normalization-2026-04-22.json
 ```
@@ -37,7 +39,9 @@ Pour planifier sans copier les fichiers :
 uv run python normalize.py \
   --source-dir /path/to/uploaded/xmls \
   --target-dir ../../tests/fixtures \
-  --tenant-slug qnb-tunisia \
+  --tenant-slug tenant-001 \
+  --bank-code-placeholder BANK-CODE \
+  --bank-id-placeholder BANK-ID \
   --validation-author "Wissem Barouni" \
   --dry-run
 ```
@@ -49,7 +53,7 @@ uv run python normalize.py \
 3. **Extraction des métadonnées** : `CodeBanque`, `DateAnnexe`, `CodeAnnexe`, toutes nomenclatures confondues.
 4. **Normalisation des dates** : conversion `DD/MM/YYYY` et `YYYYMMDD` vers `YYYY-MM-DD`.
 5. **Classification par statut** : `filled`, `structurally-valid-empty`, `structural-reference`, `anomaly`.
-6. **Classification par batch** : dates principales (2024-12-31, 2026-02-28, 2026-03-31, 2024-09-30) dans `golden/qnb-tunisia/<date>/`, autres dans `golden/qnb-tunisia/historical/<date>/`.
+6. **Classification par batch** : dates principales (2024-12-31, 2026-02-28, 2026-03-31, 2024-09-30) dans `golden/<tenant-slug>/<date>/`, autres dans `golden/<tenant-slug>/historical/<date>/`.
 7. **Renommage canonique** : `<code_annexe>-<YYYY-MM-DD>.xml`.
 8. **Copie vers la structure cible** avec création des dossiers `filled/` et `structurally-valid-empty/`.
 9. **Génération des `expected_verdicts.json`** pré-remplis par batch avec métadonnées.
@@ -63,7 +67,7 @@ uv run python normalize.py \
 ```
 tests/fixtures/
 ├── golden/
-│   └── qnb-tunisia/
+│   └── <tenant-slug>/
 │       ├── 2024-12-31/
 │       │   ├── filled/                       # XML avec données
 │       │   ├── structurally-valid-empty/     # XML vides mais structurellement OK
@@ -90,7 +94,9 @@ Le script embarque la matrice officielle CC-tech §9.5 et des circulaires 2018-0
 uv run python normalize.py \
   --source-dir ../tests/fixtures-source \
   --target-dir /tmp/fixtures-test \
-  --tenant-slug qnb-tunisia \
+  --tenant-slug tenant-001 \
+  --bank-code-placeholder BANK-CODE \
+  --bank-id-placeholder BANK-ID \
   --validation-author "Test User" \
   --dry-run
 ```

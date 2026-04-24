@@ -12,7 +12,9 @@ Usage:
     uv run python normalize.py \\
         --source-dir /path/to/uploaded/xmls \\
         --target-dir ./tests/fixtures \\
-        --tenant-slug qnb-tunisia \\
+        --tenant-slug tenant-001 \\
+        --bank-code-placeholder BANK-CODE \\
+        --bank-id-placeholder BANK-ID \\
         --validation-author "Wissem Barouni" \\
         --report-file ./reports/normalization-YYYY-MM-DD.json
 """
@@ -231,6 +233,32 @@ def _normalize_date(raw: str) -> str | None:
         d, mo, y = m.groups()
         return f"{y}-{mo.zfill(2)}-{d.zfill(2)}"
     return None
+
+
+def write_anonymised_xml(
+    src: Path,
+    dst: Path,
+    bank_code_placeholder: str,
+) -> None:
+    """Copy an XML to dst while anonymising bank-identifying header tags.
+
+    Rule: cell values inside <Rubrique>/<Colonne> are untouched; only
+    the <CodeBanque>, <BQ>, <Code_Banque> headers are rewritten to the
+    caller-supplied placeholder. This keeps the deterministic verdicts
+    produced by the engine bit-identical to the pre-anonymisation runs.
+    """
+    import os
+
+    content = src.read_text(encoding="utf-8", errors="ignore")
+    for tag in ("CodeBanque", "BQ", "Code_Banque"):
+        content = re.sub(
+            rf"(<{tag}>)\s*[^<]+\s*(</{tag}>)",
+            rf"\g<1>{bank_code_placeholder}\g<2>",
+            content,
+        )
+    dst.write_text(content, encoding="utf-8")
+    st = src.stat()
+    os.utime(dst, (st.st_atime, st.st_mtime))
 
 
 def _count_data_values(content: str) -> int:
@@ -488,6 +516,8 @@ def run(
     validation_author_role: str,
     report_file: Path | None,
     dry_run: bool,
+    bank_code_placeholder: str = "BANK-CODE",
+    bank_id_placeholder: str = "BANK-ID",
 ) -> dict[str, Any]:
     """Execute the full normalization pipeline and return a report dict."""
     started_at = datetime.now(timezone.utc).isoformat()
@@ -532,7 +562,7 @@ def run(
             batches[key] = Batch(
                 batch_id=f"{tenant_slug}-{meta.date_annexe}",
                 tenant_slug=tenant_slug,
-                bank_code_bct=meta.code_banque or "",
+                bank_code_bct=bank_code_placeholder,
                 arrete_date=meta.date_annexe,
                 arrete_type=infer_arrete_type(meta.date_annexe),
             )
@@ -553,7 +583,7 @@ def run(
                 copies_skipped += 1
                 continue
             target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(meta.source_path, target)
+            write_anonymised_xml(meta.source_path, target, bank_code_placeholder)
             seen_targets.add(target)
             copies_count += 1
 
@@ -619,7 +649,7 @@ def run(
             {
                 "source_name": meta.source_name,
                 "nomenclature": meta.nomenclature.value,
-                "code_banque": meta.code_banque,
+                "code_banque": bank_code_placeholder,
                 "date_annexe": meta.date_annexe,
                 "code_annexe": meta.code_annexe,
                 "data_values_count": meta.data_values_count,
@@ -666,8 +696,12 @@ def main() -> None:
                         help="Directory containing source XML files")
     parser.add_argument("--target-dir", type=Path, required=True,
                         help="Target tests/fixtures/ directory")
-    parser.add_argument("--tenant-slug", type=str, default="qnb-tunisia",
-                        help="Tenant slug (default: qnb-tunisia)")
+    parser.add_argument("--tenant-slug", type=str, default="tenant-001",
+                        help="Tenant slug used in target paths and metadata (default: tenant-001)")
+    parser.add_argument("--bank-code-placeholder", type=str, default="BANK-CODE",
+                        help="Placeholder written in <CodeBanque>/<BQ>/<Code_Banque> tags and bank_code_bct metadata, overriding the real source code")
+    parser.add_argument("--bank-id-placeholder", type=str, default="BANK-ID",
+                        help="Placeholder reserved for future substitution of matricule patterns in filenames or anomalies/")
     parser.add_argument("--validation-author", type=str, required=True,
                         help="Full name of the Compliance Officer validating")
     parser.add_argument("--validation-author-role", type=str,
@@ -690,6 +724,8 @@ def main() -> None:
         validation_author_role=args.validation_author_role,
         report_file=args.report_file,
         dry_run=args.dry_run,
+        bank_code_placeholder=args.bank_code_placeholder,
+        bank_id_placeholder=args.bank_id_placeholder,
     )
 
     t = report["totals"]

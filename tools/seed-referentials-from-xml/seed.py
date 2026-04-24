@@ -298,7 +298,7 @@ def aggregate_referentials(
 SQL_HEADER = """-- REGFlow — Migration de seeding des référentiels BCT depuis le golden corpus
 -- Générée automatiquement par tools/seed-referentials-from-xml/seed.py
 -- Date de génération: {generated_at}
--- Source: {source_count} XML du golden baseline QNB Tunisia
+-- Source: {source_count} XML du golden baseline (tenant pilote anonymisé)
 -- Auteur technique: {author}
 --
 -- IMPORTANT:

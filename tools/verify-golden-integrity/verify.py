@@ -1,7 +1,7 @@
 """Verify integrity of the golden baseline fixtures.
 
 Placeholder jusqu'à la Phase 1. La version canonique vérifiera :
-- Présence de chaque batch attendu sous tests/fixtures/golden/qnb-tunisia/
+- Présence de chaque batch attendu sous tests/fixtures/golden/tenant-001/
 - Checksum SHA256 de chaque XML contre manifest.json
 - Cohérence des expected_verdicts.json
 

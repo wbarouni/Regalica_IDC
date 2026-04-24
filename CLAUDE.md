@@ -136,12 +136,12 @@ Tous les packages TypeScript du workspace portent le scope **`@regflow/*`**. C'e
 
 ## 8. Golden baseline — contrat de non-régression
 
-Le corpus **QNB Tunisia** est la source of truth pour la non-régression du moteur. Détails exhaustifs dans `docs/07-PLAN-GOLDEN-BASELINE-v2.md`.
+Le corpus du **tenant pilote** (identité réelle retirée du repo par Guard C) est la source of truth pour la non-régression du moteur. Détails exhaustifs dans `docs/07-PLAN-GOLDEN-BASELINE-v2.md`.
 
 **Chiffres à connaître par cœur :**
 
-- **58 XML** sources normalisés via `tools/golden-normalizer/`.
-- **8 batches** répartis dans `tests/fixtures/golden/qnb-tunisia/` : `2024-09-30`, `2024-12-31`, `2026-02-28`, `2026-03-31`, `historical/2021-12-31`, `historical/2022-12-31`, `historical/2025-12-01`, `historical/2025-12-31`.
+- **58 XML** sources normalisés via `tools/golden-normalizer/` (en-têtes anonymisés, cellules intactes).
+- **8 batches** répartis dans `tests/fixtures/golden/tenant-001/` : `2024-09-30`, `2024-12-31`, `2026-02-28`, `2026-03-31`, `historical/2021-12-31`, `historical/2022-12-31`, `historical/2025-12-01`, `historical/2025-12-31`.
 - **1 référence structurelle** dans `tests/fixtures/structural-references/` (annexe 781 sans date).
 - **0 anomalie** acceptée à la normalisation.
 
@@ -169,7 +169,7 @@ pnpm --filter @regflow/evaluator test
 | 4   | `docs/04-WORKFLOW-UTILISATEUR-COMPLET.md`    | Parcours T0/T1/T2/T3, écrans, cas limites                         |
 | 5   | `docs/05-AGENTS-ET-PROMPTS-BANK.md`          | Source of truth prompts, 14 agents, 4-yeux, rédaction             |
 | 6   | `docs/06-SCHEMA-SQL-COMPLET.md`              | 22 tables, 37 migrations, RLS, triggers                           |
-| 7   | `docs/07-PLAN-GOLDEN-BASELINE-v2.md`         | Plan du corpus QNB Tunisia                                        |
+| 7   | `docs/07-PLAN-GOLDEN-BASELINE-v2.md`         | Plan du corpus golden du tenant pilote                            |
 | 8   | `docs/08-STATE-MACHINES-WORKFLOW.md`         | FSM formelles T0, T1, T2/T3, 4-yeux                               |
 | 9   | `docs/09-CONTRATS-JSON-AGENTS.md`            | Contrats Pydantic des 14 agents                                   |
 | 10  | `docs/10-ORCHESTRATION-REGALICA.md`          | Router, Planner, Aggregator, 7 types de questions                 |
@@ -202,7 +202,7 @@ pnpm --filter @regflow/evaluator test
 | `tools/verify-golden-integrity/`        | Vérification checksums fixtures                |
 | `tools/check-forbidden-deps.sh`         | Guard A                                        |
 | `tools/check-no-residual-debt.sh`       | Guard B                                        |
-| `tests/fixtures/golden/qnb-tunisia/`    | Corpus golden baseline (58 XML, 8 batches)     |
+| `tests/fixtures/golden/tenant-001/`     | Corpus golden baseline (58 XML, 8 batches)     |
 | `tests/fixtures/structural-references/` | Références structurelles (781)                 |
 
 ## 10. Ce qui t'est interdit
@@ -306,7 +306,9 @@ pnpm dev:down                                       # down
 uv run python tools/golden-normalizer/normalize.py \
   --source-dir <path-to-xml-sources> \
   --target-dir tests/fixtures \
-  --tenant-slug qnb-tunisia \
+  --tenant-slug tenant-001 \
+  --bank-code-placeholder BANK-CODE \
+  --bank-id-placeholder BANK-ID \
   --validation-author "Wissem Barouni" \
   --report-file tools/golden-normalizer/reports/normalization.json
 
@@ -321,10 +323,10 @@ pnpm golden:verify
 **Éditeur et équipe produit :**
 
 - **ALGORIA Factory** (Tunis) — éditeur, propriétaire du code et de la roadmap.
-- **Wissem Barouni** — CEO fondateur ALGORIA Factory, Head of Financial & Regulatory Reporting chez QNB Tunisia. Autorité finale sur les décisions produit, les invariants non négociables, et la validation réglementaire (voir PRD §3).
+- **Wissem Barouni** — CEO fondateur ALGORIA Factory, Head of Financial & Regulatory Reporting (banque tunisienne pilote, identité réelle retirée du repo par Guard C). Autorité finale sur les décisions produit, les invariants non négociables, et la validation réglementaire (voir PRD §3).
 - **Handle interne dans la doc :** `@wbarouni` — utilisé dans les `TODO(@wbarouni)` laissés par Claude Code quand un point réglementaire, produit ou architectural n'est pas confirmé par le canon.
 
-**Tenant pilote :** QNB Tunisia (`CodeBanque` BCT = 23). Corpus golden (58 XML) produit par cette banque, arrêtés 2021 à 2026. Confidentialité : repo privé, fixtures en clair, accès restreint aux devs habilités, **pas d'anonymisation** (elle casserait les tests).
+**Tenant pilote :** banque tunisienne pilote dont l'identité est retirée du repo par règle de confidentialité permanente. `CodeBanque` BCT, identifiant unique et slug remplacés par `BANK-CODE`, `BANK-ID`, `tenant-001` dans `tests/fixtures/golden/tenant-001/` via `tools/golden-normalizer`. Le corpus (58 XML, arrêtés 2021 à 2026) reste bit-identique sur les valeurs de cellules — seuls les en-têtes et métadonnées sont anonymisés, ce qui préserve les verdicts PASS/FAIL/SKIP. **Guard C** (`tools/check-no-bank-data.sh`) bloque toute ré-introduction accidentelle d'identifiant réel.
 
 **Relation avec RegTrack.** REGFlow et RegTrack sont deux applications sœurs d'ALGORIA Factory avec une stack commune. Bases séparées, codebases distincts, pipelines CI séparés (invariant n°9 Document 3 §25). Les évolutions de l'une ne doivent jamais impacter l'autre. Ne jamais importer du code RegTrack dans REGFlow ni l'inverse.
 

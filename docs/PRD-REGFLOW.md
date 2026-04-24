@@ -53,11 +53,11 @@ REGFlow s'insère **avant** le SED, jamais en substitution. Il apporte quatre va
 
 ## 3. Identité et gouvernance
 
-**Éditeur.** ALGORIA Factory (Tunis). CEO et fondateur : **Wissem Barouni**. Également Head of Financial & Regulatory Reporting chez QNB Tunisia, ce qui garantit la proximité produit-métier.
+**Éditeur.** ALGORIA Factory (Tunis). CEO et fondateur : **Wissem Barouni**. Également Head of Financial & Regulatory Reporting dans la banque tunisienne pilote du projet (identité retirée du repo par Guard C), ce qui garantit la proximité produit-métier.
 
 **Relation avec RegTrack.** REGFlow et RegTrack sont deux applications sœurs d'ALGORIA Factory avec une stack commune. Bases de données séparées, codebases distincts, releases indépendantes. Vente possible séparément. Les évolutions de l'une ne doivent jamais impacter l'autre.
 
-**Tenant primaire pilote.** QNB Tunisia (CodeBanque BCT = 23). Les 58 XML du golden baseline proviennent de cette banque, arrêtés 2021 à 2026.
+**Tenant primaire pilote.** Banque tunisienne pilote (CodeBanque BCT = BANK-CODE, slug `tenant-001` dans le repo). Les 58 XML du golden baseline proviennent de ce tenant, arrêtés 2021 à 2026. Identifiants réels retirés du repo par Guard C.
 
 **Extension géographique naturelle.** Grâce au zéro hardcoding absolu, REGFlow peut s'étendre à d'autres banques tunisiennes immédiatement, puis Maghreb et Afrique francophone en Phase ultérieure via ajout de tenants.
 
@@ -92,7 +92,7 @@ Ces invariants sont des **contrats de non-régression**. Chaque PR qui les viole
 
 1. **Zéro hardcoding.** Toute connaissance métier vit en base (`rules`, `prompt_bank`, `referentials_*`, `referentials_sentinelles`, etc.). Aucun code ne contient de valeur réglementaire BCT en dur.
 
-2. **Moteur produit des verdicts déterministes.** Le test golden sur les 58 XML QNB Tunisia doit produire des totaux exacts à chaque run. Toute divergence après modification du moteur est un bug bloquant le merge.
+2. **Moteur produit des verdicts déterministes.** Le test golden sur les 58 XML du tenant pilote doit produire des totaux exacts à chaque run. Toute divergence après modification du moteur est un bug bloquant le merge.
 
 3. **Règles actives jamais modifiées en place.** Une modification de règle crée une nouvelle version (`valid_to` sur l'ancienne, `valid_from` sur la nouvelle). Traçabilité bitemporelle intégrale via migrations 002-003 du schéma SQL.
 
@@ -179,7 +179,7 @@ Plan brute séquentiel avec zéro tolérance dette résiduelle (détaillé dans 
 
 **Phase 1 — Base de données canonique (3 semaines).** Écriture des 37 migrations SQL du Document 6. Runner de migrations pg natif. Tests RLS, triggers d'immutabilité, triggers d'audit, partitions `audit_log`. Import des 4611 règles RDG depuis XLSX. Seed des référentiels via Livrable 2 (`seed-referentials-from-xml`).
 
-**Phase 2 — Moteur et non-régression golden (3 semaines).** Création `packages/evaluator` selon capture AS-IS (Livrable 5). Moteur en 5 phases A/B/D/E, support dual-parsing via `@regflow/bct-xml-parser` (Livrable 4), lecture règles depuis DB. **Critère de sortie strict : le test golden (Livrable 3) passe sur tous les batches QNB Tunisia.**
+**Phase 2 — Moteur et non-régression golden (3 semaines).** Création `packages/evaluator` selon capture AS-IS (Livrable 5). Moteur en 5 phases A/B/D/E, support dual-parsing via `@regflow/bct-xml-parser` (Livrable 4), lecture règles depuis DB. **Critère de sortie strict : le test golden (Livrable 3) passe sur tous les batches du tenant pilote.**
 
 **Phase 3 — Backend API canonique (4 semaines).** Express + pg natif. JWT complet avec middleware actif. FSM T0/T1/T2/T3/4-eyes implémentées selon Document 8. Endpoints RESTful du Document 4. Absorption des routes `chatbot-node` dans `apps/api`. Tests Jest couvrant endpoints, RLS, immutabilité, 4-yeux.
 
@@ -187,19 +187,19 @@ Plan brute séquentiel avec zéro tolérance dette résiduelle (détaillé dans 
 
 **Phase 5 — Frontend canonique (6 semaines).** React + Tailwind + Vite. Import des maquettes Edition One validées (Workspace v5, Library v3, Filings). Composants extraits dans `packages/ui`. TanStack Query + Socket.IO client. State management Zustand. 3 langues FR/EN/AR avec RTL. Tests Playwright pour parcours critiques.
 
-**Phase 6 — Durcissement production (3 semaines).** Observabilité (Pino + OpenTelemetry + Prometheus + Grafana). SLO/SLI et alertes. Tests de charge. Sécurité OWASP. Documentation runbook. Fallback Ollama + Qwen 2.5 3B. Pré-prod QNB Tunisia pour recette.
+**Phase 6 — Durcissement production (3 semaines).** Observabilité (Pino + OpenTelemetry + Prometheus + Grafana). SLO/SLI et alertes. Tests de charge. Sécurité OWASP. Documentation runbook. Fallback Ollama + Qwen 2.5 3B. Pré-prod tenant pilote pour recette.
 
 **Total : 26 semaines = 6 mois.**
 
 ---
 
-## 10. Golden baseline QNB Tunisia
+## 10. Golden baseline du tenant pilote
 
-**Corpus.** 58 XML, 9 batches, 51 annexes distinctes sur 52 du RDG. Détails exhaustifs dans `07-PLAN-GOLDEN-BASELINE-v2.md`.
+**Corpus.** 58 XML, 9 batches, 51 annexes distinctes sur 52 du RDG, anonymisés en repo sous `tenant-001`. Détails exhaustifs dans `07-PLAN-GOLDEN-BASELINE-v2.md`.
 
 | Batch                 | Nature                                   | Fichiers                    | Statut                |
 | --------------------- | ---------------------------------------- | --------------------------- | --------------------- |
-| 2024-12-31            | Annuel QNB Tunisia 2024                  | 45 (38 remplis + 7 vides)   | **Golden primaire**   |
+| 2024-12-31            | Annuel tenant pilote 2024                | 45 (38 remplis + 7 vides)   | **Golden primaire**   |
 | 2026-02-28            | Mensuel février 2026                     | 5 (Bilan + SM complet)      | **Golden secondaire** |
 | 2026-03-31            | LCR isolé                                | 1                           | Golden unitaire       |
 | 2024-09-30            | T3 isolé                                 | 1 (annexe 139)              | Golden unitaire       |
@@ -211,7 +211,7 @@ Plan brute séquentiel avec zéro tolérance dette résiduelle (détaillé dans 
 
 **Vérité terrain.** Niveau intermédiaire (Document 7 §9) — Wissem Barouni valide manuellement, produit `expected_verdicts.json` par batch. Dates validées par BCT (toutes soumissions acceptées).
 
-**Confidentialité.** Repo privé, fixtures en clair, accès restreint aux devs habilités, pas d'anonymisation (casserait les tests).
+**Confidentialité.** Repo privé, fixtures **anonymisées** (CodeBanque → `BANK-CODE`, identifiant unique → `BANK-ID`, slug tenant → `tenant-001`) via `tools/golden-normalizer`. Les valeurs de cellules restent intactes, ce qui préserve les verdicts déterministes. `Guard C` (`tools/check-no-bank-data.sh`) bloque toute ré-introduction d'identifiant réel.
 
 ---
 
@@ -245,7 +245,7 @@ Monochrome encre + papier + accent marigold unique. Référence absolue : `Regal
 | 4   | `04-WORKFLOW-UTILISATEUR-COMPLET.md`    | Workflow T0/T1/T2/T3, 3 étapes BCT, livrables           |
 | 5   | `05-AGENTS-ET-PROMPTS-BANK.md`          | 14 agents, prompt_bank, cycle de vie                    |
 | 6   | `06-SCHEMA-SQL-COMPLET.md`              | 22 tables, 37 migrations, bitemporalité, RLS            |
-| 7   | `07-PLAN-GOLDEN-BASELINE-v2.md`         | Plan golden 58 XML QNB Tunisia                          |
+| 7   | `07-PLAN-GOLDEN-BASELINE-v2.md`         | Plan golden 58 XML du tenant pilote                     |
 | 8   | `08-STATE-MACHINES-WORKFLOW.md`         | 4 FSM (T0, T1, T2/T3, 4-eyes), Mode Signature révocable |
 | 9   | `09-CONTRATS-JSON-AGENTS.md`            | Contrats Pydantic des 14 agents                         |
 | 10  | `10-ORCHESTRATION-REGALICA.md`          | Router, Planner, Aggregator, 7 types de questions       |
@@ -294,7 +294,7 @@ Monochrome encre + papier + accent marigold unique. Référence absolue : `Regal
 
 **Décisions produit.** Wissem Barouni, CEO ALGORIA Factory.
 **Décisions architecturales.** Wissem Barouni en concertation avec l'équipe plateforme.
-**Décisions réglementaires.** Wissem Barouni (autorité métier : Head of Financial & Regulatory Reporting QNB Tunisia).
+**Décisions réglementaires.** Wissem Barouni (autorité métier : Head of Financial & Regulatory Reporting, banque tunisienne pilote).
 
 **Escalade en cas de blocage Claude Code.**
 

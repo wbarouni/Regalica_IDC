@@ -91,6 +91,14 @@ jobs:
       - name: Run tools/check-no-residual-debt.sh
         run: bash tools/check-no-residual-debt.sh
 
+  no-bank-data:
+    name: Guard no tenant-identifying data
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tools/check-no-bank-data.sh
+        run: bash tools/check-no-bank-data.sh
+
   # =========================================================================
   # Typecheck
   # =========================================================================

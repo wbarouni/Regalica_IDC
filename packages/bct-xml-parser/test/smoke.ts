@@ -5,7 +5,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { parseBctXml, detectNomenclature } from '../src/index.js';
 
-const goldenDir = '/tmp/test_fixtures/golden/qnb-tunisia';
+const goldenDir = '/tmp/test_fixtures/golden/tenant-001';
 const structRefsDir = '/tmp/test_fixtures/structural-references';
 
 function findAllXmls(dir: string): string[] {

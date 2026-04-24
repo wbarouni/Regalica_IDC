@@ -4,7 +4,7 @@ Génère automatiquement les migrations SQL de seeding des tables `referentials_
 
 ## Gain de productivité
 
-Ce script évite la saisie manuelle de plusieurs milliers de lignes de référentiels. Sur le corpus QNB Tunisia complet :
+Ce script évite la saisie manuelle de plusieurs milliers de lignes de référentiels. Sur le corpus complet du tenant pilote :
 
 - **1 282 rubriques** extraites automatiquement avec hiérarchie parent/enfant inférée.
 - **308 combinaisons (annexe, colonne)** détectées.

@@ -4,7 +4,7 @@
 
 **Version :** 2.0
 **Date :** avril 2026
-**Périmètre :** construction du golden baseline fonctionnel depuis les 58 XML QNB Tunisia, plan de normalisation, expected_verdicts.json, analyse des dépendances inter-annexes, références structurelles
+**Périmètre :** construction du golden baseline fonctionnel depuis les 58 XML du tenant pilote, plan de normalisation (avec anonymisation des identifiants bancaires réels), expected_verdicts.json, analyse des dépendances inter-annexes, références structurelles
 **Auteur :** Équipe REGFlow
 **Statut :** référence canonique pour Claude Code
 **Supersedes :** version 1.0 (obsolète, pré-ajout des 5 XML manquants)
@@ -13,7 +13,7 @@
 
 ## Changements vs v1
 
-La version 1.0 décrivait un batch 2024-12-31 incomplet avec 12 annexes en dépendance manquante (absence de RCM00 et RCM01). Après ajout des 5 XML manquants (`12_2024_RCM00.xml`, `12_2024_RCM01.xml`, `620-0014247W-12-2024.xml`, `630-0014247W-12-2024.xml`, `640-0014247W-12-2024.xml`), le batch 2024-12-31 est désormais **complet avec toutes les dépendances inter-annexes satisfaites**. La présente version 2.0 reflète cette nouvelle réalité et devient la référence canonique.
+La version 1.0 décrivait un batch 2024-12-31 incomplet avec 12 annexes en dépendance manquante (absence de RCM00 et RCM01). Après ajout des 5 XML manquants (`12_2024_RCM00.xml`, `12_2024_RCM01.xml`, `620-BANK-ID-12-2024.xml`, `630-BANK-ID-12-2024.xml`, `640-BANK-ID-12-2024.xml`), le batch 2024-12-31 est désormais **complet avec toutes les dépendances inter-annexes satisfaites**. La présente version 2.0 reflète cette nouvelle réalité et devient la référence canonique.
 
 ---
 
@@ -56,10 +56,10 @@ La version 1.0 décrivait un batch 2024-12-31 incomplet avec 12 annexes en dépe
 
 ## 1. Inventaire final des 58 XML
 
-Après analyse exhaustive incluant toutes les nomenclatures (moderne `<Entete>`, ancienne `<ENTETE>`, spécialisée `<TauxCrediteurs>` pour 781, `<RECAP_POS>` pour 810), le corpus final se compose de **58 fichiers XML** provenant de QNB Tunisia (CodeBanque 23).
+Après analyse exhaustive incluant toutes les nomenclatures (moderne `<Entete>`, ancienne `<ENTETE>`, spécialisée `<TauxCrediteurs>` pour 781, `<RECAP_POS>` pour 810), le corpus final se compose de **58 fichiers XML** provenant du tenant pilote (CodeBanque réel remplacé par `BANK-CODE` dans les fixtures).
 
 **51 fichiers remplis avec données exploitables.**
-**7 fichiers structurellement vides** correspondant aux annexes 133, 136, 137, 140, 141, 142, 830 à la date 31/12/2024 (annexes non applicables à QNB Tunisia, soumises vides pour respecter le formalisme BCT).
+**7 fichiers structurellement vides** correspondant aux annexes 133, 136, 137, 140, 141, 142, 830 à la date 31/12/2024 (annexes non applicables au tenant pilote, soumises vides pour respecter le formalisme BCT).
 
 La distinction entre "rempli" et "vide" est faite par comptage exhaustif de toutes les feuilles XML portant une valeur non vide, toutes nomenclatures confondues.
 
@@ -87,7 +87,7 @@ Trois nomenclatures XML coexistent dans le corpus.
 
 **Nomenclature moderne** avec `<Entete>` et `<Annexe id="X">` contenant `<Rubrique>` et `<Colonne>`. Standard BCT actuel. **56 fichiers** suivent ce standard.
 
-**Nomenclature ancienne** avec `<ENTETE>` majuscules, `<DATE_DECLAR>`, `<BQ>`, `<CODE_ANNEXE>`, et balises métier spécialisées pour la position de change (`<RECAP_POS>`, `<MAV_VEIL>`, `<MENG_VEIL>`, `<ACHAT>`, `<VENTE>`, `<COURS>`, `<CONTREVAL>`, `<FPN_PR>`). **1 fichier** : `810-0014247W-01-12-2025.xml` pour l'annexe RNLPQ810 Position de change au 01/12/2025.
+**Nomenclature ancienne** avec `<ENTETE>` majuscules, `<DATE_DECLAR>`, `<BQ>`, `<CODE_ANNEXE>`, et balises métier spécialisées pour la position de change (`<RECAP_POS>`, `<MAV_VEIL>`, `<MENG_VEIL>`, `<ACHAT>`, `<VENTE>`, `<COURS>`, `<CONTREVAL>`, `<FPN_PR>`). **1 fichier** : `810-BANK-ID-01-12-2025.xml` pour l'annexe RNLPQ810 Position de change au 01/12/2025.
 
 **Nomenclature spécialisée** avec des balises métier propres au contenu déclaratif. **1 fichier** : `781_31-12-2024.xml` utilise `<TauxCrediteurs>`, `<TauxDebiteurs>`, `<Produit>`, `<Operation>`, `<CodeNatureCompte>`, `<CodeSegmentClient>` pour les taux créditeurs et débiteurs.
 
@@ -104,7 +104,7 @@ Le parser REGFlow doit supporter les trois nomenclatures en mode dual-parsing av
 ```
 tests/fixtures/
 ├── golden/
-│   └── qnb-tunisia/
+│   └── tenant-001/
 │       ├── 2024-12-31/
 │       │   ├── filled/
 │       │   │   ├── 00-2024-12-31.xml
@@ -201,13 +201,13 @@ Chaque XML est renommé selon le pattern strict `<code_annexe>-<YYYY>-<MM>-<DD>.
 
 ## 6. Politique de confidentialité et accès
 
-Les fixtures golden contiennent des données réelles QNB Tunisia. **Jamais** dans un dépôt public, **jamais** d'export.
+Les fixtures golden contiennent les **valeurs de cellules** réelles du tenant pilote (code banque, identifiant unique et slug anonymisés via `tools/golden-normalizer`). **Jamais** dans un dépôt public, **jamais** d'export hors du périmètre de confiance validé par le tenant.
 
 **Règles d'accès.** Dépôt Git privé avec accès restreint. Fichiers en clair dans le dépôt (choix validé). Liste des personnes habilitées tenue à jour par le CEO ALGORIA Factory. Copies locales sur machines avec chiffrement au repos (FileVault, LUKS, BitLocker). Aucune fixture uploadée sur service tiers (pas de Copilot cloud, pas de Claude.ai en développement).
 
 **Règles de gestion.** Fixtures versionnées comme le code. Modification via pull request avec revue. Script `tools/verify-golden-integrity.py` en CI pour checksum SHA-256 par fichier golden.
 
-**Règles de disposition.** Si QNB retire consentement : suppression via `git rm`, réécriture historique `git filter-branch`, nouveau dépôt. Copies locales supprimées sur instruction écrite.
+**Règles de disposition.** Si le tenant pilote retire son consentement : suppression via `git rm`, réécriture historique `git filter-branch`, nouveau dépôt. Copies locales supprimées sur instruction écrite. Le Guard C (`tools/check-no-bank-data.sh`) bloque toute ré-introduction ultérieure des identifiants réels.
 
 ---
 
@@ -215,7 +215,7 @@ Les fixtures golden contiennent des données réelles QNB Tunisia. **Jamais** da
 
 ## 7. Schéma canonique du fichier
 
-Le fichier `expected_verdicts.json` est présent dans chaque batch. Il contient la vérité terrain validée par vous, Wissem Barouni, CEO ALGORIA Factory et Head of Financial & Regulatory Reporting QNB Tunisia.
+Le fichier `expected_verdicts.json` est présent dans chaque batch. Il contient la vérité terrain validée par vous, Wissem Barouni, CEO ALGORIA Factory et Head of Financial & Regulatory Reporting (banque tunisienne pilote).
 
 **Schéma structuré.**
 
@@ -225,7 +225,7 @@ Le fichier `expected_verdicts.json` est présent dans chaque batch. Il contient 
 
   "batch_metadata": {
     "batch_id": "string",
-    "tenant_slug": "qnb-tunisia",
+    "tenant_slug": "tenant-001",
     "bank_code_bct": "23",
     "arrete_date": "YYYY-MM-DD",
     "arrete_type": "monthly | quarterly | semi_annual | annual | ad_hoc",
@@ -245,7 +245,7 @@ Le fichier `expected_verdicts.json` est présent dans chaque batch. Il contient 
 
   "validation_author": {
     "name": "Wissem Barouni",
-    "role": "CEO ALGORIA Factory / Head of Financial & Regulatory Reporting QNB Tunisia",
+    "role": "CEO ALGORIA Factory / Head of Financial & Regulatory Reporting (banque tunisienne pilote)",
     "validation_date": "YYYY-MM-DD",
     "validation_method": "manual_review_as_compliance_officer | bct_return_file_exact | hybrid",
     "confidence_level": "high | medium | low"
@@ -307,8 +307,8 @@ Le fichier `expected_verdicts.json` est présent dans chaque batch. Il contient 
 ```json
 {
   "batch_metadata": {
-    "batch_id": "qnb-tunisia-2024-12-31",
-    "tenant_slug": "qnb-tunisia",
+    "batch_id": "tenant-001-2024-12-31",
+    "tenant_slug": "tenant-001",
     "bank_code_bct": "23",
     "arrete_date": "2024-12-31",
     "arrete_type": "annual",
@@ -323,12 +323,12 @@ Le fichier `expected_verdicts.json` est présent dans chaque batch. Il contient 
     "bct_response_status": "accepted",
     "bct_response_file_available": false,
     "bct_response_file_path": null,
-    "notes": "Soumission annuelle QNB Tunisia 2024, acceptée par BCT, batch complet avec RCM00, RCM01, et toutes annexes SM 620/630/640"
+    "notes": "Soumission annuelle tenant pilote 2024, acceptée par BCT, batch complet avec RCM00, RCM01, et toutes annexes SM 620/630/640"
   },
 
   "validation_author": {
     "name": "Wissem Barouni",
-    "role": "CEO ALGORIA Factory / Head of Financial & Regulatory Reporting QNB Tunisia",
+    "role": "CEO ALGORIA Factory / Head of Financial & Regulatory Reporting (banque tunisienne pilote)",
     "validation_date": "2026-04-22",
     "validation_method": "manual_review_as_compliance_officer",
     "confidence_level": "high"
@@ -419,8 +419,8 @@ Le fichier `expected_verdicts.json` est présent dans chaque batch. Il contient 
 ```json
 {
   "batch_metadata": {
-    "batch_id": "qnb-tunisia-2026-02-28",
-    "tenant_slug": "qnb-tunisia",
+    "batch_id": "tenant-001-2026-02-28",
+    "tenant_slug": "tenant-001",
     "bank_code_bct": "23",
     "arrete_date": "2026-02-28",
     "arrete_type": "monthly",
@@ -440,7 +440,7 @@ Le fichier `expected_verdicts.json` est présent dans chaque batch. Il contient 
 
   "validation_author": {
     "name": "Wissem Barouni",
-    "role": "CEO ALGORIA Factory / Head of Financial & Regulatory Reporting QNB Tunisia",
+    "role": "CEO ALGORIA Factory / Head of Financial & Regulatory Reporting (banque tunisienne pilote)",
     "validation_date": "2026-04-22",
     "validation_method": "manual_review_as_compliance_officer",
     "confidence_level": "high"
@@ -584,7 +584,9 @@ Script Python 3.12 packagé avec `uv` et `pyproject.toml` autonome. Prend en ent
 uv run python tools/golden-normalizer/normalize.py \
   --source-dir /path/to/uploaded/xmls \
   --target-dir ./tests/fixtures \
-  --tenant-slug qnb-tunisia \
+  --tenant-slug tenant-001 \
+  --bank-code-placeholder BANK-CODE \
+  --bank-id-placeholder BANK-ID \
   --validation-author "Wissem Barouni" \
   --report-file ./tools/golden-normalizer/reports/normalization-2026-04-22.json
 ```
@@ -648,7 +650,7 @@ Parser étendu pour gérer les trois nomenclatures du corpus.
 
 **Étape 3** — Exécution du script sur les 58 XML localement pour produire la structure cible `tests/fixtures/` testable.
 
-**Étape 4** — Import dans le nouveau monorepo REGFlow en Phase 0 du plan brute. Commit unique `feat: golden baseline v1 qnb-tunisia (58 xml, 9 batches)` taggé `golden-baseline-v1`.
+**Étape 4** — Import dans le nouveau monorepo REGFlow en Phase 0 du plan brute. Commit unique `feat: golden baseline v1 tenant-001 (58 xml, 9 batches)` taggé `golden-baseline-v1`.
 
 **Étape 5** — Premier run moteur en mode capture après Phase 2 du plan brute.
 

@@ -50,7 +50,7 @@ const FIXTURES_ROOT =
   process.env.REGFLOW_GOLDEN_FIXTURES_DIR ??
   path.resolve(__dirname, '../../../tests/fixtures/golden');
 
-const TENANT_SLUG = 'qnb-tunisia';
+const TENANT_SLUG = 'tenant-001';
 
 // ---------------------------------------------------------------------------
 // Batch discovery

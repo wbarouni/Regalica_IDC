@@ -36,7 +36,7 @@
 
 11. ALGORIA Factory et équipe fondatrice
 12. Relation avec RegTrack — applications sœurs à stacks séparés
-13. Tenant pilote QNB Tunisia
+13. Tenant pilote (banque tunisienne anonymisée)
 14. Modèle de déploiement on-premises
 
 **Partie V — Ce que REGFlow n'est pas**
@@ -134,7 +134,7 @@ Les reportings réglementaires suivent plusieurs fréquences :
 - **LCR** — quotidien/hebdomadaire/mensuel selon le dispositif, avec arrêtés spécifiques (p.ex. 31 mars pour LCR trimestriel).
 - **Ad hoc** — arrêtés non calendaires (milieu de mois, dates exceptionnelles) sur demande BCT ou suite à événement réglementaire.
 
-Chaque fréquence a son propre calendrier de soumission et sa propre fenêtre de tolérance. Le **Document 7** (golden baseline) documente la classification effective appliquée au corpus QNB Tunisia.
+Chaque fréquence a son propre calendrier de soumission et sa propre fenêtre de tolérance. Le **Document 7** (golden baseline) documente la classification effective appliquée au corpus du tenant pilote.
 
 TODO(@wbarouni) : confirmer la liste exhaustive des fréquences et leurs échéances canoniques pour inclusion détaillée dans le Document 2.
 
@@ -168,7 +168,7 @@ Cette décomposition est visible dans les livrables de validation (voir Document
 
 **Valeur n° 3.** REGFlow détecte les **grappes** : ensembles de FAILs qui partagent une cause racine commune.
 
-Exemple documenté dans le corpus QNB : 17 FAILs apparents sur les annexes 620/630/640 convergent vers une cause unique — l'absence de la ventilation sectorielle « Ménages » dans le mapping comptable source. Sans corrélation, le Compliance Officer traite 17 problèmes. Avec la détection de grappe, il traite **un** problème et les 17 FAILs disparaissent après une correction ciblée.
+Exemple documenté dans le corpus du tenant pilote : 17 FAILs apparents sur les annexes 620/630/640 convergent vers une cause unique — l'absence de la ventilation sectorielle « Ménages » dans le mapping comptable source. Sans corrélation, le Compliance Officer traite 17 problèmes. Avec la détection de grappe, il traite **un** problème et les 17 FAILs disparaissent après une correction ciblée.
 
 L'algorithme de clustering exploite la structure inter-annexe des règles (voir Document 2 §11-13) et les patterns de rubriques impactées. Il est documenté au Document 10 §6 (question de type 2 — Grappe).
 
@@ -192,7 +192,7 @@ La promesse n'est **pas** l'auto-correction : REGFlow ne touche jamais le SI sou
 
 **Éditeur.** ALGORIA Factory, société basée à Tunis.
 
-**CEO et fondateur.** Wissem Barouni, également Head of Financial & Regulatory Reporting chez QNB Tunisia. Cette double casquette garantit la proximité produit-métier : le concepteur du produit est aussi utilisateur expert du domaine.
+**CEO et fondateur.** Wissem Barouni, également Head of Financial & Regulatory Reporting dans la banque tunisienne pilote (identité retirée du repo par Guard C). Cette double casquette garantit la proximité produit-métier : le concepteur du produit est aussi utilisateur expert du domaine.
 
 **Organisation produit.** Équipe REGFlow dédiée, documents canoniques 1 à 10 maintenus à jour, cycle de revue entre la direction produit et le Compliance Officer pilote.
 
@@ -215,15 +215,15 @@ Elles se distinguent par :
 
 **Invariant de non-contamination.** Toute évolution de REGFlow qui dégrade ou casse RegTrack (ou inversement) est rejetée au merge. La CI de REGFlow ne référence aucune partie de RegTrack et réciproquement.
 
-## 13. Tenant pilote QNB Tunisia
+## 13. Tenant pilote (banque tunisienne anonymisée)
 
-**Tenant primaire pilote.** QNB Tunisia, CodeBanque BCT = 23.
+**Tenant primaire pilote.** Banque tunisienne pilote (CodeBanque BCT = BANK-CODE, slug `tenant-001` dans le repo). L'identité réelle est retirée du repo par règle de confidentialité permanente (Guard C).
 
-**Corpus golden.** Les 58 XML qui constituent le golden baseline de non-régression proviennent de cette banque, arrêtés 2021 à 2026. Le Document 7 détaille la composition du corpus. Le Document 10 §10-11 détaille la procédure golden.
+**Corpus golden.** Les 58 XML qui constituent le golden baseline de non-régression proviennent de ce tenant, arrêtés 2021 à 2026. Le Document 7 détaille la composition du corpus. Le Document 10 §10-11 détaille la procédure golden.
 
 **Vérité terrain.** Le Compliance Officer pilote (Wissem Barouni) valide manuellement les `expected_verdicts.json` par batch. Les dates incluses ont toutes été validées par BCT (soumissions acceptées), ce qui donne un point d'ancrage réglementaire authentique.
 
-**Confidentialité.** Repo privé, fixtures en clair, accès restreint aux développeurs habilités, pas d'anonymisation des données (casserait les tests de non-régression). Voir Document 7 §6.
+**Confidentialité.** Repo privé, fixtures **anonymisées** : `CodeBanque` → `BANK-CODE`, identifiant unique → `BANK-ID`, slug tenant → `tenant-001`. Les valeurs de cellules restent intactes à 100 %, ce qui préserve les verdicts déterministes du moteur. Guard C (`tools/check-no-bank-data.sh`) bloque toute ré-introduction d'identifiant réel. Voir Document 7 §6.
 
 ## 14. Modèle de déploiement on-premises
 

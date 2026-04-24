@@ -311,7 +311,7 @@ Le monorepo est structuré en trois familles de packages gouvernées par `pnpm-w
 - Produire des verdicts typés `Verdict ∈ {PASS, FAIL_SEVERE, FAIL_ROUNDING, SKIPPED_*}` avec décomposition terme-par-terme et `rule_id`, `expected`, `calculated`, `delta`.
 - Préserver la précision Decimal 38 digits ROUND_HALF_EVEN sur toute la chaîne.
 
-**Phase 0.** Le package ship aujourd'hui le test golden (`test/golden.test.ts`, Document 7 §15) qui valide le parsing et les métadonnées sur les 8 batches du corpus QNB Tunisia. 73 tests passent, 32 sont skippés (bloc Phase 2 `describe.skip`, à activer quand le moteur sera opérationnel). **Aucun échec autorisé** — voir `CLAUDE.md` §8 pour le contrat de non-régression.
+**Phase 0.** Le package ship aujourd'hui le test golden (`test/golden.test.ts`, Document 7 §15) qui valide le parsing et les métadonnées sur les 8 batches du corpus du tenant pilote. 73 tests passent, 32 sont skippés (bloc Phase 2 `describe.skip`, à activer quand le moteur sera opérationnel). **Aucun échec autorisé** — voir `CLAUDE.md` §8 pour le contrat de non-régression.
 
 **Dépendance workspace.** `@regflow/evaluator` dépend de `@regflow/bct-xml-parser` via `workspace:*`. La résolution TypeScript passe par le champ `paths` du `tsconfig.json` d'evaluator (voir notes de l'extraction Livrables 1-4).
 
@@ -470,7 +470,7 @@ Les 15 invariants ci-dessous consolident PRD §5 (10 invariants produit), les r�
 
 3. **Stack gelée non négociable.** Node + Express + `pg` natif, PostgreSQL + pgvector, FastAPI + asyncpg, React + Tailwind + Vite, Gemini 2.5 Flash. Toute alternative est refusée (§1, §2).
 
-4. **Moteur produit des verdicts déterministes.** Le test golden sur les 58 XML QNB Tunisia doit produire 73 passed / 32 skipped / 0 failed à chaque run sur une même version du moteur. Toute divergence est un bug bloquant (PRD §5.2).
+4. **Moteur produit des verdicts déterministes.** Le test golden sur les 58 XML du tenant pilote doit produire 73 passed / 32 skipped / 0 failed à chaque run sur une même version du moteur. Toute divergence est un bug bloquant (PRD §5.2).
 
 5. **Règles actives jamais modifiées en place.** Historisation bitemporelle via `valid_from` / `valid_to`. Une modif crée une nouvelle version (PRD §5.3, Document 6 §6).
 

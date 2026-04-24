@@ -10,7 +10,7 @@
  * - Des utilitaires d'agrégation (totaux à partir de verdicts).
  *
  * Le test golden (test/golden.test.ts) utilise ces types pour valider le
- * corpus QNB Tunisia. Il s'exécute en mode capture en Phase 0 sur une portion
+ * corpus du tenant pilote. Il s'exécute en mode capture en Phase 0 sur une portion
  * testable (parsing + metadata) et bascule en mode assert complet en Phase 2
  * quand le moteur sera connecté.
  */

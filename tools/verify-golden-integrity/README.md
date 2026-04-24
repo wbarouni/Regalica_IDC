@@ -1,6 +1,6 @@
 # verify-golden-integrity
 
-Utilitaire Python qui vérifie l'intégrité du golden baseline QNB Tunisia (58 XML, 9 batches) après import via `tools/golden-normalizer/`.
+Utilitaire Python qui vérifie l'intégrité du golden baseline du tenant pilote (58 XML, 9 batches) après import via `tools/golden-normalizer/`.
 
 ## Statut
 
@@ -21,7 +21,7 @@ pnpm golden:verify
 
 ## Contrôles prévus
 
-- Chaque batch attendu est présent sous `tests/fixtures/golden/qnb-tunisia/`.
+- Chaque batch attendu est présent sous `tests/fixtures/golden/tenant-001/`.
 - Chaque XML a un SHA256 qui matche `manifest.json`.
 - Chaque `expected_verdicts.json` est un JSON valide avec les totaux attendus.
 - Aucun fichier parasite.

@@ -79,7 +79,7 @@ Cette discipline a un coût émotionnel : on jette du travail qui a été fait. 
 
 Trois invariants ne doivent **jamais** être compromis pendant la Phase 0.
 
-**Invariant 1 — Corpus golden baseline.** Les 58 XML du golden baseline validés par Wissem Barouni (CEO ALGORIA Factory / Head of Financial & Regulatory Reporting QNB Tunisia) doivent être importés intacts dans la nouvelle structure. La Phase 0 produit la première version de `tests/fixtures/golden/qnb-tunisia/` conforme au Document 7 v2.
+**Invariant 1 — Corpus golden baseline.** Les 58 XML du golden baseline validés par Wissem Barouni (CEO ALGORIA Factory / Head of Financial & Regulatory Reporting, banque tunisienne pilote) doivent être importés intacts dans la nouvelle structure — identifiants bancaires anonymisés au passage via `tools/golden-normalizer`. La Phase 0 produit la première version de `tests/fixtures/golden/tenant-001/` conforme au Document 7 v2.
 
 **Invariant 2 — Algorithme du moteur d'évaluation.** Le pipeline en 5 phases (A/B/D/E) du RDG Evaluator est conservé algorithmiquement. Il sera réécrit proprement en Phase 2 dans `packages/evaluator`, mais la logique fonctionnelle doit rester identique pour que le test golden passe à chaque run après refactoring. Le code existant dans `apps/api/src/agents/evaluator/` est étudié, compris, puis supprimé, avec un document d'architecture `packages/evaluator/ALGORITHM.md` qui capture la logique pour le refactoring ultérieur.
 
@@ -369,7 +369,7 @@ REGFlow/
 ├── tests/
 │   ├── fixtures/
 │   │   ├── golden/
-│   │   │   └── qnb-tunisia/        # Importé via golden-normalizer
+│   │   │   └── tenant-001/         # Importé via golden-normalizer (anonymisé)
 │   │   │       ├── 2024-12-31/
 │   │   │       ├── 2026-02-28/
 │   │   │       ├── 2026-03-31/
@@ -589,7 +589,7 @@ Nouveau `package.json` racine :
     "typecheck": "pnpm -r --if-present typecheck",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "golden:normalize": "uv run python tools/golden-normalizer/normalize.py --source-dir tests/fixtures-source --target-dir tests/fixtures --tenant-slug qnb-tunisia --validation-author \"Wissem Barouni\" --report-file tools/golden-normalizer/reports/normalization.json",
+    "golden:normalize": "uv run python tools/golden-normalizer/normalize.py --source-dir tests/fixtures-source --target-dir tests/fixtures --tenant-slug tenant-001 --bank-code-placeholder BANK-CODE --bank-id-placeholder BANK-ID --validation-author \"Wissem Barouni\" --report-file tools/golden-normalizer/reports/normalization.json",
     "golden:verify": "uv run python tools/verify-golden-integrity/verify.py --fixtures-dir tests/fixtures/golden"
   },
   "devDependencies": {
@@ -861,7 +861,7 @@ Ces deux tests existaient déjà dans l'AS-IS. Ils sont conservés et doivent re
 
 ## 25. Tests de propreté
 
-**Test 3 — Golden baseline intégré.** Le dossier `tests/fixtures/golden/qnb-tunisia/` contient la structure normalisée avec 58 XML et 9 `expected_verdicts.json`. Script `tools/verify-golden-integrity/verify.py` vérifie les checksums.
+**Test 3 — Golden baseline intégré.** Le dossier `tests/fixtures/golden/tenant-001/` contient la structure normalisée (anonymisée) avec 58 XML et 9 `expected_verdicts.json`. Script `tools/verify-golden-integrity/verify.py` vérifie les checksums.
 
 **Test 4 — Pas de dette résiduelle.** Job CI `verify-no-residual-debt` passe (pas de `_legacy/`, pas de `TODO: remove`, pas de `.skip()`).
 
@@ -953,7 +953,7 @@ Utilisateur primaire : Compliance Officer en banque tunisienne résidente.
 - docs/04-WORKFLOW-UTILISATEUR-COMPLET.md — Workflow T0/T1/T2/T3
 - docs/05-AGENTS-ET-PROMPTS-BANK.md — 14 agents et prompt_bank
 - docs/06-SCHEMA-SQL-COMPLET.md — Schéma SQL canonique (22 tables)
-- docs/07-PLAN-GOLDEN-BASELINE-v2.md — Golden baseline QNB Tunisia (58 XML)
+- docs/07-PLAN-GOLDEN-BASELINE-v2.md — Golden baseline du tenant pilote (58 XML)
 - docs/08-STATE-MACHINES-WORKFLOW.md — State machines T0/T1/T2/T3/4-yeux
 
 ## Règles de développement
@@ -967,7 +967,7 @@ Utilisateur primaire : Compliance Officer en banque tunisienne résidente.
 
 ## Invariants non négociables
 
-1. Golden baseline QNB Tunisia 58 XML doit toujours passer
+1. Golden baseline du tenant pilote (58 XML) doit toujours passer
 2. Règles actives jamais modifiées en place
 3. Historique validation_runs immuable
 4. Performance p95 validation XML standard < 3s
