@@ -1,0 +1,92 @@
+{
+  "version": 1,
+  "source": "Document 6 §5 role catalogue + §22.4 RLS references + §15 roles table",
+  "consumers": [
+    "apps/api/migrations/007_seed_system_roles.sql — embeds this array verbatim in seed_system_roles_for_tenant()",
+    "apps/api/tests/migrations/007_seed_system_roles.test.ts — asserts consistency between this file and what the seed function inserts"
+  ],
+  "todo_phase_5_arabic_review": "label_ar translations drafted without a native reviewer. Submit for native review in Phase 5 (frontend i18n) and update this file; the migration's jsonb literal must be kept in sync (the consistency test will flag drift).",
+  "ordering_convention": "seniority — tenant governance first, then compliance, then signatory/auditor, then editors",
+  "roles": [
+    {
+      "code": "platform_owner",
+      "label_fr": "Propriétaire plateforme",
+      "label_en": "Platform owner",
+      "label_ar": "مالك المنصة",
+      "permissions": { "v": 1, "capabilities": [] },
+      "is_system_role": true
+    },
+    {
+      "code": "tenant_admin",
+      "label_fr": "Administrateur tenant",
+      "label_en": "Tenant admin",
+      "label_ar": "مدير المستأجر",
+      "permissions": { "v": 1, "capabilities": [] },
+      "is_system_role": true
+    },
+    {
+      "code": "compliance_director",
+      "label_fr": "Directeur conformité",
+      "label_en": "Compliance director",
+      "label_ar": "مدير الامتثال",
+      "permissions": { "v": 1, "capabilities": [] },
+      "is_system_role": true
+    },
+    {
+      "code": "compliance_officer",
+      "label_fr": "Responsable conformité",
+      "label_en": "Compliance officer",
+      "label_ar": "مسؤول الامتثال",
+      "permissions": { "v": 1, "capabilities": [] },
+      "is_system_role": true
+    },
+    {
+      "code": "support_readonly",
+      "label_fr": "Support lecture seule",
+      "label_en": "Support read-only",
+      "label_ar": "دعم للقراءة فقط",
+      "permissions": { "v": 1, "capabilities": [] },
+      "is_system_role": true
+    },
+    {
+      "code": "signatory",
+      "label_fr": "Signataire",
+      "label_en": "Signatory",
+      "label_ar": "موقّع",
+      "permissions": { "v": 1, "capabilities": [] },
+      "is_system_role": true
+    },
+    {
+      "code": "auditor",
+      "label_fr": "Auditeur",
+      "label_en": "Auditor",
+      "label_ar": "مراجع",
+      "permissions": { "v": 1, "capabilities": [] },
+      "is_system_role": true
+    },
+    {
+      "code": "rule_editor",
+      "label_fr": "Éditeur de règles",
+      "label_en": "Rule editor",
+      "label_ar": "محرّر القواعد",
+      "permissions": { "v": 1, "capabilities": [] },
+      "is_system_role": true
+    },
+    {
+      "code": "referential_editor",
+      "label_fr": "Éditeur de référentiels",
+      "label_en": "Referential editor",
+      "label_ar": "محرّر المراجع",
+      "permissions": { "v": 1, "capabilities": [] },
+      "is_system_role": true
+    },
+    {
+      "code": "prompt_editor",
+      "label_fr": "Éditeur de prompts",
+      "label_en": "Prompt editor",
+      "label_ar": "محرّر الموجّهات",
+      "permissions": { "v": 1, "capabilities": [] },
+      "is_system_role": true
+    }
+  ]
+}
