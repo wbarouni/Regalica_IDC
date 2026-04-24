@@ -1,0 +1,100 @@
+<Document>
+  <Entete>
+    <CodeBanque>BANK-CODE</CodeBanque>
+    <DateAnnexe>20241231</DateAnnexe>
+    <CodeAnnexe>230</CodeAnnexe>
+  </Entete>
+  <Annexe id="230">
+    <Rubrique id="23001000000000">
+      <Detail>
+        <Colonne id="1">08173073</Colonne>
+        <Colonne id="2">WAJDI BOUDEGGA</Colonne>
+        <Colonne id="3">(+216)29948319</Colonne>
+        <Colonne id="4">wajdi.boudegga@qnb.com.tn</Colonne>
+        <Colonne id="5">(+216)36005010</Colonne>
+        <Colonne id="6">Qatar National Bank - Tunisia
+Rue cité des sciences, B.P.320 - 1080 Tunis</Colonne>
+        <Colonne id="7">18</Colonne>
+        <Colonne id="8">15</Colonne>
+        <Colonne id="9">0</Colonne>
+        <Colonne id="10">31/12/2024</Colonne>
+        <Colonne id="11">0</Colonne>
+      </Detail>
+    </Rubrique>
+    <Rubrique id="23002000000000">
+      <Colonnes>
+        <Colonne id="1">00756534</Colonne>
+        <Colonne id="2">Zied BOUDRIGUA</Colonne>
+        <Colonne id="3">(+216)29153947</Colonne>
+        <Colonne id="4">zied.boudrigua@qnb.com.tn</Colonne>
+        <Colonne id="5">(+216)36005011</Colonne>
+        <Colonne id="6">Qatar National Bank - Tunisia
+Rue cité des sciences, B.P.320 - 1080 Tunis</Colonne>
+        <Colonne id="7">10</Colonne>
+        <Colonne id="8">9</Colonne>
+        <Colonne id="9">56</Colonne>
+        <Colonne id="10">01/10/2020</Colonne>
+        <Colonne id="11">0</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="23003000000000">
+      <Colonnes>
+        <Colonne id="1">03161176</Colonne>
+        <Colonne id="2">Majdi GOUADER</Colonne>
+        <Colonne id="3">(+216) 29 948302</Colonne>
+        <Colonne id="4">majdi.gouader@qnb.com.tn</Colonne>
+        <Colonne id="5">(+216) 71 766 565</Colonne>
+        <Colonne id="6">Qatar National Bank - Tunisia
+Rue cité des sciences, B.P.320 - 1080 Tunis</Colonne>
+        <Colonne id="7">6</Colonne>
+        <Colonne id="8">5</Colonne>
+        <Colonne id="9">0</Colonne>
+        <Colonne id="10">01/01/2021</Colonne>
+        <Colonne id="11">0</Colonne>
+      </Colonnes>
+    </Rubrique>
+    <Rubrique id="23004000000000">
+      <Detail>
+        <Colonne id="1">00000000</Colonne>
+        <Colonne id="2">Cherif BEN ZINA</Colonne>
+        <Colonne id="3">(+216) 71 880933</Colonne>
+        <Colonne id="4">cabinetcmc@dfk.tn</Colonne>
+        <Colonne id="5">0</Colonne>
+        <Colonne id="6">02 Rue 7299 El Menzah 9A, El Manar II -1030 Tunis </Colonne>
+        <Colonne id="7">0</Colonne>
+        <Colonne id="8">0</Colonne>
+        <Colonne id="9">0</Colonne>
+        <Colonne id="10">14/06/2022</Colonne>
+        <Colonne id="11">3 Ans</Colonne>
+      </Detail>
+      <Detail>
+        <Colonne id="1">'000000000</Colonne>
+        <Colonne id="2">Chiheb Ghanmi</Colonne>
+        <Colonne id="3">(+216) 98441569</Colonne>
+        <Colonne id="4">cheheb.gac@gnet.com</Colonne>
+        <Colonne id="5">0</Colonne>
+        <Colonne id="6">9 Place Ben Hafsa Muteul Ville</Colonne>
+        <Colonne id="7">0</Colonne>
+        <Colonne id="8">0</Colonne>
+        <Colonne id="9">0</Colonne>
+        <Colonne id="10">01/03/2024</Colonne>
+        <Colonne id="11">3 Ans</Colonne>
+      </Detail>
+    </Rubrique>
+    <Rubrique id="23005000000000">
+      <Colonnes>
+        <Colonne id="1">01808497</Colonne>
+        <Colonne id="2">MEFTAH ZIADI</Colonne>
+        <Colonne id="3">(+216) 50428037</Colonne>
+        <Colonne id="4">ziadi.meftah@cbf.org.tn</Colonne>
+        <Colonne id="5">(+216) 94371576</Colonne>
+        <Colonne id="6">20 Rue Mohamed TRIKI- Ennaser 2-2001</Colonne>
+        <Colonne id="7">0</Colonne>
+        <Colonne id="8">0</Colonne>
+        <Colonne id="9">0</Colonne>
+        <Colonne id="10">02/11/2024</Colonne>
+        <Colonne id="11">3 Ans</Colonne>
+      </Colonnes>
+    </Rubrique>
+  </Annexe>
+</Document>

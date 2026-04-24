@@ -1,0 +1,57 @@
+<Document>
+  <Entete>
+    <CodeBanque>BANK-CODE</CodeBanque>
+    <DateAnnexe>20241231</DateAnnexe>
+    <CodeAnnexe>486</CodeAnnexe>
+  </Entete>
+  <Annexe id="486">
+    <Rubrique id="486REC00000000">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="48601000000000">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="48602000000000">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="48602010000000">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="48602020000000">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="48602030000000">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="48602040000000">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="486RAD00000000">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="48603000000000">
+      <Colonne id="1">276934.000</Colonne>
+    </Rubrique>
+    <Rubrique id="48604000000000">
+      <Colonne id="1">71518.000</Colonne>
+    </Rubrique>
+    <Rubrique id="48604010000000">
+      <Colonne id="1">54061.000</Colonne>
+    </Rubrique>
+    <Rubrique id="48604020000000">
+      <Colonne id="1">17457.000</Colonne>
+    </Rubrique>
+    <Rubrique id="486CPP00000000">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="48605000000000">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="48605010000000">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+    <Rubrique id="48605020000000">
+      <Colonne id="1">0.000</Colonne>
+    </Rubrique>
+  </Annexe>
+</Document>
