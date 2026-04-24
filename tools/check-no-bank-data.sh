@@ -8,8 +8,15 @@
 # Scope: tracked files, excluding docs/archive/ and docs/as-is-captured/
 # (historical corpora frozen before this rule existed).
 #
+# Exclusion — `--tenant-name-pattern PATTERN=REPLACEMENT` CLI examples:
+# any line that contains `--tenant-name-pattern` is skipped because its
+# presence proves the pattern is being consumed as an anonymisation
+# input, not leaked as tenant data. Documenting the normalizer requires
+# spelling the pattern at least once; the guard tolerates that.
+#
 # To onboard a new tenant:
-#   1. Run normalize.py with --tenant-slug tenant-00X and placeholders.
+#   1. Run normalize.py with --tenant-slug tenant-00X, --bank-code-placeholder,
+#      --bank-id-placeholder, and the required --tenant-name-pattern entries.
 #   2. Append the tenant's real identifiers (bank code, matricule,
 #      legal name, slug variants) to BANNED_PATTERNS below.
 #   3. Re-run this guard locally: bash tools/check-no-bank-data.sh
@@ -37,6 +44,7 @@ for pat in "${BANNED_PATTERNS[@]}"; do
       | grep -vE '^pnpm-lock\.yaml$' \
       | xargs -r grep -nF --binary-files=without-match -- "$pat" 2>/dev/null \
       | grep -v "^tools/${SELF}:" \
+      | grep -v -- '--tenant-name-pattern' \
       || true)
   if [ -n "$hits" ]; then
     report+="  pattern: ${pat}"$'\n'

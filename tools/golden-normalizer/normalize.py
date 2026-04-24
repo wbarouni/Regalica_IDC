@@ -15,6 +15,10 @@ Usage:
         --tenant-slug tenant-001 \\
         --bank-code-placeholder BANK-CODE \\
         --bank-id-placeholder BANK-ID \\
+        --tenant-name-pattern "QNB AL AHLI=TENANT-SUBSIDIARY" \\
+        --tenant-name-pattern "QNB PARIS=TENANT-SUBSIDIARY" \\
+        --tenant-name-pattern "QNB GROUP=TENANT-GROUP" \\
+        --tenant-name-pattern "QNB=TENANT-NAME" \\
         --validation-author "Wissem Barouni" \\
         --report-file ./reports/normalization-YYYY-MM-DD.json
 """
@@ -235,17 +239,71 @@ def _normalize_date(raw: str) -> str | None:
     return None
 
 
+TenantNamePattern = tuple[str, str]
+
+
+def parse_tenant_name_patterns(raw_entries: list[str]) -> list[TenantNamePattern]:
+    """Parse --tenant-name-pattern CLI args of the form PATTERN=REPLACEMENT.
+
+    Returns pairs sorted by descending pattern length so the runner applies
+    the longest phrases first. Without this ordering, a shorter 3-letter
+    token would match inside a longer 'TOKEN SUFFIX' phrase before the
+    full phrase is substituted, corrupting the output.
+    """
+    pairs: list[TenantNamePattern] = []
+    for entry in raw_entries:
+        if "=" not in entry:
+            raise SystemExit(
+                f"Invalid --tenant-name-pattern '{entry}', expected PATTERN=REPLACEMENT"
+            )
+        pattern, replacement = entry.split("=", 1)
+        pattern = pattern.strip()
+        replacement = replacement.strip()
+        if not pattern:
+            raise SystemExit(f"Empty pattern in --tenant-name-pattern '{entry}'")
+        pairs.append((pattern, replacement))
+    pairs.sort(key=lambda p: len(p[0]), reverse=True)
+    return pairs
+
+
+def apply_tenant_name_patterns(
+    content: str,
+    patterns: list[TenantNamePattern],
+) -> str:
+    """Substitute tenant-identifying strings in XML text content.
+
+    Multi-word patterns (containing whitespace) match literally so inner
+    spaces are preserved. Single-word patterns use word boundaries so the
+    token does not match partially inside a longer word.
+    """
+    for pattern, replacement in patterns:
+        if re.search(r"\s", pattern):
+            regex = re.escape(pattern)
+        else:
+            regex = rf"\b{re.escape(pattern)}\b"
+        content = re.sub(regex, replacement, content)
+    return content
+
+
 def write_anonymised_xml(
     src: Path,
     dst: Path,
     bank_code_placeholder: str,
+    tenant_name_patterns: list[TenantNamePattern] | None = None,
 ) -> None:
-    """Copy an XML to dst while anonymising bank-identifying header tags.
+    """Copy an XML to dst while anonymising tenant-identifying content.
 
-    Rule: cell values inside <Rubrique>/<Colonne> are untouched; only
-    the <CodeBanque>, <BQ>, <Code_Banque> headers are rewritten to the
-    caller-supplied placeholder. This keeps the deterministic verdicts
-    produced by the engine bit-identical to the pre-anonymisation runs.
+    Two anonymisation layers are applied before the file is written:
+
+    1. Header tags (<CodeBanque>, <BQ>, <Code_Banque>) are rewritten to
+       the caller-supplied `bank_code_placeholder`.
+    2. Text cells matching any of the `tenant_name_patterns` are rewritten
+       to their replacement string (PATTERN=REPLACEMENT pairs).
+
+    Numeric cell values are never touched: the header substitution targets
+    only known header tags, and the tenant-name substitution targets
+    patterns that are by nature non-numeric (legal names, group labels).
+    Deterministic verdicts produced by the engine stay bit-identical.
     """
     import os
 
@@ -256,6 +314,8 @@ def write_anonymised_xml(
             rf"\g<1>{bank_code_placeholder}\g<2>",
             content,
         )
+    if tenant_name_patterns:
+        content = apply_tenant_name_patterns(content, tenant_name_patterns)
     dst.write_text(content, encoding="utf-8")
     st = src.stat()
     os.utime(dst, (st.st_atime, st.st_mtime))
@@ -518,6 +578,7 @@ def run(
     dry_run: bool,
     bank_code_placeholder: str = "BANK-CODE",
     bank_id_placeholder: str = "BANK-ID",
+    tenant_name_patterns: list[TenantNamePattern] | None = None,
 ) -> dict[str, Any]:
     """Execute the full normalization pipeline and return a report dict."""
     started_at = datetime.now(timezone.utc).isoformat()
@@ -583,7 +644,12 @@ def run(
                 copies_skipped += 1
                 continue
             target.parent.mkdir(parents=True, exist_ok=True)
-            write_anonymised_xml(meta.source_path, target, bank_code_placeholder)
+            write_anonymised_xml(
+                meta.source_path,
+                target,
+                bank_code_placeholder,
+                tenant_name_patterns,
+            )
             seen_targets.add(target)
             copies_count += 1
 
@@ -702,6 +768,18 @@ def main() -> None:
                         help="Placeholder written in <CodeBanque>/<BQ>/<Code_Banque> tags and bank_code_bct metadata, overriding the real source code")
     parser.add_argument("--bank-id-placeholder", type=str, default="BANK-ID",
                         help="Placeholder reserved for future substitution of matricule patterns in filenames or anomalies/")
+    parser.add_argument(
+        "--tenant-name-pattern",
+        type=str,
+        action="append",
+        default=[],
+        help=(
+            "Substitute a tenant-identifying string in XML text cells. "
+            "Format: PATTERN=REPLACEMENT. May be repeated for several patterns. "
+            "Multi-word patterns match literally; single-word patterns use \\b word boundaries. "
+            "Longest patterns are applied first regardless of CLI order."
+        ),
+    )
     parser.add_argument("--validation-author", type=str, required=True,
                         help="Full name of the Compliance Officer validating")
     parser.add_argument("--validation-author-role", type=str,
@@ -716,6 +794,8 @@ def main() -> None:
     if not args.source_dir.is_dir():
         raise SystemExit(f"Source dir not found: {args.source_dir}")
 
+    tenant_name_patterns = parse_tenant_name_patterns(args.tenant_name_pattern)
+
     report = run(
         source_dir=args.source_dir,
         target_dir=args.target_dir,
@@ -726,6 +806,7 @@ def main() -> None:
         dry_run=args.dry_run,
         bank_code_placeholder=args.bank_code_placeholder,
         bank_id_placeholder=args.bank_id_placeholder,
+        tenant_name_patterns=tenant_name_patterns,
     )
 
     t = report["totals"]

@@ -320,6 +320,10 @@ uv run python tools/golden-normalizer/normalize.py \
   --tenant-slug tenant-001 \
   --bank-code-placeholder BANK-CODE \
   --bank-id-placeholder BANK-ID \
+  --tenant-name-pattern "QNB AL AHLI=TENANT-SUBSIDIARY" \
+  --tenant-name-pattern "QNB PARIS=TENANT-SUBSIDIARY" \
+  --tenant-name-pattern "QNB GROUP=TENANT-GROUP" \
+  --tenant-name-pattern "QNB=TENANT-NAME" \
   --validation-author "Wissem Barouni" \
   --report-file tools/golden-normalizer/reports/normalization.json
 

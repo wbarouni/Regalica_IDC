@@ -27,6 +27,10 @@ uv run python normalize.py \
   --tenant-slug tenant-001 \
   --bank-code-placeholder BANK-CODE \
   --bank-id-placeholder BANK-ID \
+  --tenant-name-pattern "QNB AL AHLI=TENANT-SUBSIDIARY" \
+  --tenant-name-pattern "QNB PARIS=TENANT-SUBSIDIARY" \
+  --tenant-name-pattern "QNB GROUP=TENANT-GROUP" \
+  --tenant-name-pattern "QNB=TENANT-NAME" \
   --validation-author "Wissem Barouni" \
   --report-file ./reports/normalization-2026-04-22.json
 ```
@@ -42,6 +46,10 @@ uv run python normalize.py \
   --tenant-slug tenant-001 \
   --bank-code-placeholder BANK-CODE \
   --bank-id-placeholder BANK-ID \
+  --tenant-name-pattern "QNB AL AHLI=TENANT-SUBSIDIARY" \
+  --tenant-name-pattern "QNB PARIS=TENANT-SUBSIDIARY" \
+  --tenant-name-pattern "QNB GROUP=TENANT-GROUP" \
+  --tenant-name-pattern "QNB=TENANT-NAME" \
   --validation-author "Wissem Barouni" \
   --dry-run
 ```
@@ -97,6 +105,10 @@ uv run python normalize.py \
   --tenant-slug tenant-001 \
   --bank-code-placeholder BANK-CODE \
   --bank-id-placeholder BANK-ID \
+  --tenant-name-pattern "QNB AL AHLI=TENANT-SUBSIDIARY" \
+  --tenant-name-pattern "QNB PARIS=TENANT-SUBSIDIARY" \
+  --tenant-name-pattern "QNB GROUP=TENANT-GROUP" \
+  --tenant-name-pattern "QNB=TENANT-NAME" \
   --validation-author "Test User" \
   --dry-run
 ```

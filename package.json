@@ -23,7 +23,7 @@
     "dev": "docker compose up",
     "dev:down": "docker compose down",
     "typecheck": "pnpm -r --if-present typecheck",
-    "golden:normalize": "uv run python tools/golden-normalizer/normalize.py --source-dir tests/fixtures-source --target-dir tests/fixtures --tenant-slug tenant-001 --bank-code-placeholder BANK-CODE --bank-id-placeholder BANK-ID --validation-author \"Wissem Barouni\" --report-file tools/golden-normalizer/reports/normalization.json",
+    "golden:normalize": "uv run python tools/golden-normalizer/normalize.py --source-dir tests/fixtures-source --target-dir tests/fixtures --tenant-slug tenant-001 --bank-code-placeholder BANK-CODE --bank-id-placeholder BANK-ID --tenant-name-pattern \"QNB AL AHLI=TENANT-SUBSIDIARY\" --tenant-name-pattern \"QNB PARIS=TENANT-SUBSIDIARY\" --tenant-name-pattern \"QNB GROUP=TENANT-GROUP\" --tenant-name-pattern \"QNB=TENANT-NAME\" --validation-author \"Wissem Barouni\" --report-file tools/golden-normalizer/reports/normalization.json",
     "golden:verify": "uv run python tools/verify-golden-integrity/verify.py --fixtures-dir tests/fixtures/golden"
   },
   "devDependencies": {
