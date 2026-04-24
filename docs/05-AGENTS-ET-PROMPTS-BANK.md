@@ -303,3 +303,205 @@ Si une nouvelle version de prompt dérive en production (verdict qualitatif de l
 **Priorité absolue.** Un rollback de prompt passe devant toute autre tâche en cours : la confiance utilisateur dans Regalica est l'actif le plus fragile du produit.
 
 ---
+
+# Partie V — Versioning et audit
+
+## 16. Historisation bitemporelle
+
+`prompt_bank` applique le même modèle bitemporel que `rules` et `referentials_*` (Document 6 §6). Chaque ligne porte deux colonnes temporelles :
+
+- `valid_from` — timestamp à partir duquel la version est effective en production.
+- `valid_to` — timestamp à partir duquel la version n'est plus effective. NULL tant que la version reste `active`.
+
+**Reconstruction d'état à l'instant T.** Pour toute question du type « quel prompt a été utilisé pour cet agent à la date D du run historique R ? », la requête canonique est :
+
+```sql
+SELECT prompt_template
+FROM prompt_bank
+WHERE agent_key = $1
+  AND status IN ('active', 'deprecated')
+  AND valid_from <= $2
+  AND (valid_to IS NULL OR valid_to > $2)
+  AND (tenant_slug IS NULL OR tenant_slug = $3);
+```
+
+Cette capacité de relecture historique est obligatoire pour l'audit réglementaire : un régulateur qui conteste une réponse de Regalica doit pouvoir reconstruire exactement le contexte prompt de cette réponse, même deux ans plus tard.
+
+**Interaction avec `validation_runs`.** Chaque ligne de `messages` dans une conversation T2 persiste le `prompt_bank_id` utilisé pour la réponse assistant. C'est une clé étrangère vers la ligne exacte (et donc la version) du prompt — pas seulement l'`agent_key`. Voir Document 6 §20.
+
+**Jamais de hard delete.** Une version `deprecated` ne peut pas être supprimée, même des années après. La contrainte est portée par un trigger `prompt_bank_no_delete` au niveau DB (Document 6 §23). Le cleanup s'opère par archivage à froid via partitionnement si le volume l'exige (TODO(@wbarouni) : évaluer en Phase 6 selon la taille réelle).
+
+## 17. Audit log obligatoire
+
+Toute opération sur `prompt_bank` produit une ligne dans `audit_log` partitionné (Document 6 §17). Schéma d'entrée type :
+
+| Champ              | Valeur typique                                                                                                           |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `entity_type`      | `prompt_bank`                                                                                                            |
+| `entity_id`        | UUID de la ligne `prompt_bank`                                                                                           |
+| `action`           | `draft_created`, `submitted_for_review`, `approved`, `rejected`, `deprecated`, `feature_flag_changed`, `rollback_forced` |
+| `actor_user_id`    | UUID de l'utilisateur effectuant l'action                                                                                |
+| `reviewer_user_id` | UUID du reviewer pour les actions `approved` / `rejected`                                                                |
+| `payload`          | JSON avec `agent_key`, `version`, et diff complet                                                                        |
+| `justification`    | Texte libre obligatoire pour `rejected` et `rollback_forced`                                                             |
+| `occurred_at`      | Timestamp UTC ISO-8601                                                                                                   |
+
+**Conservation.** Les entrées `audit_log` liées à `prompt_bank` sont conservées au minimum 10 ans (PRD §14 — conservation signatures 10 ans, étendue aux prompts parce qu'ils pilotent les signatures). Règle à valider en Phase 6 contre la politique tenant.
+
+**Requêtes d'audit.** L'onglet « Prompts » de Library expose un lien « Audit trail » sur chaque `agent_key` qui déroule toutes les actions historiques, lisible par les rôles `auditor`, `tenant_admin`, et par l'auteur original du prompt.
+
+## 18. Capture des outputs pour régression
+
+Pour détecter une dérive qualitative d'un prompt après un changement de version, `apps/chatbot-py` capture pour un échantillon stratifié d'appels agents :
+
+- Le `prompt_bank_id` exact utilisé.
+- Les paramètres d'entrée (substituables pour replay).
+- L'output brut LLM.
+- L'output Pydantic validé.
+- Le confidence score retourné.
+- La latence observée.
+
+**Utilisation en régression.** Lors du passage d'une version N-1 vers une version N d'un `agent_key`, le pipeline de test peut rejouer les captures N-1 contre N et comparer les outputs sémantiquement (scoring de similarité, extraction de champs structurés, etc.). Une régression détectée bloque la promotion `in_review → active`.
+
+**Table de capture.** `prompt_capture_samples` — TODO(@wbarouni) : schéma à définir en Phase 4, probablement en partition par mois pour borner la taille. Échantillonnage 1 % par défaut, 100 % pour les 24 heures qui suivent une mise en `active` d'une nouvelle version.
+
+**Confidentialité des captures.** Les payloads de captures peuvent contenir des données tenant. Ils sont soumis aux mêmes politiques RLS que `conversations` / `messages` (Document 3 §21). Pas d'agrégation cross-tenant pour le scoring qualité.
+
+---
+
+# Partie VI — Stratégie de cold-start
+
+## 19. Pas de `prompt_bank` en Phase 0
+
+La table `prompt_bank` est créée par les migrations SQL du Document 6 en **Phase 1** (socle base de données). Elle reste **vide** tout au long de la Phase 0 et de la Phase 1 : aucun agent LLM n'est invoqué tant que le moteur d'évaluation (Phase 2) et le backend API canonique (Phase 3) ne sont pas en place.
+
+**Raison.** Les 14 agents du Document 9 dépendent de l'API (persistance des conversations), du moteur (pour `InvestigatorAgent` notamment qui consomme les verdicts), et des référentiels seedés (pour `CitationAgent` qui cite des sources réglementaires). Alimenter `prompt_bank` avant ces prérequis serait prématuré et produirait des prompts non testables.
+
+**Conséquence pratique pour Phase 0.** Aucun travail de rédaction de prompt dans Phase 0. Les fichiers de documentation (Documents 1-10, CLAUDE.md) décrivent la doctrine mais n'instancient aucun prompt. Le seed `prompt_bank` arrive en Phase 4.
+
+## 20. Seed initial en Phase 4
+
+La Phase 4 du roadmap (PRD §9) — 5 semaines consacrées aux agents canoniques et Regalica — intègre comme livrable le seed initial de `prompt_bank` avec ses 22 entrées `agent_key` (§11). Le seed se fait par migration SQL numérotée, pas par appel applicatif.
+
+**Structure de la migration de seed.**
+
+```sql
+-- Migration NNN_seed_prompt_bank_initial.sql
+INSERT INTO prompt_bank (
+  id, agent_key, version, prompt_template, params_schema,
+  status, tenant_slug, valid_from, created_by_user_id
+)
+VALUES
+  (uuid_generate_v7(), 'regalica_router_v1', 1, $$...$$, $$...$$::jsonb,
+   'active', NULL, NOW(), '<system-user-uuid>'),
+  -- ... 21 autres entrées
+;
+```
+
+**L'utilisateur système.** Le seed initial n'a pas d'auteur humain au sens 4-yeux — c'est une migration d'initialisation. La contrainte `requested_by_user_id != decided_by_user_id` s'applique à partir de la première modification post-seed. L'utilisateur `<system>` est une ligne spéciale de `users` avec `is_system = true`, incapable de se connecter (mot de passe NULL, sessions interdites).
+
+**Pas de seed en production sans review humaine.** Même si c'est une migration, le contenu des 22 prompts aura été revu par l'équipe produit et le Compliance Officer pilote (Wissem Barouni) avant application en production. La migration est jouée après validation.
+
+## 21. Matrice Document 5 ↔ Document 9 ↔ Document 10
+
+Pour chaque `agent_key` de §7-11, trois documents canoniques à consulter lors de l'écriture ou la modification :
+
+| Concern                                  | Document            | Partie / Section              |
+| ---------------------------------------- | ------------------- | ----------------------------- |
+| Gouvernance et cycle de vie du prompt    | **5** (ce document) | Parties II, IV, V             |
+| Contrat JSON input (`params_schema`)     | **9**               | §7-20 (une section par agent) |
+| Contrat JSON output (Pydantic)           | **9**               | §7-20 (une section par agent) |
+| Température, modèle, latence cible       | **9**               | §4 et §23 (tableau consolidé) |
+| Garde-fous et cas d'erreur               | **9**               | §5                            |
+| Orchestration (si applicable à Regalica) | **10**              | Parties I et IV               |
+| Type de question T2 (si aggregator)      | **10**              | Partie II (§5-11)             |
+
+**Règle d'or.** Une modification de prompt qui change le `params_schema` doit s'accompagner d'une mise à jour Document 9 de la section correspondante, dans le même commit. Un `params_schema` divergeant entre `prompt_bank` et Document 9 est un bug de documentation bloquant.
+
+**Règle miroir.** Toute évolution d'un contrat JSON dans Document 9 doit déclencher une vérification que les prompts `prompt_bank` utilisant ce contrat restent valides. L'automatisation de cette vérification (un test qui charge chaque prompt actif et le valide contre le contrat Document 9) est une TODO(@wbarouni) de Phase 4.
+
+---
+
+# Partie VII — Règles de rédaction des prompts
+
+Les règles ci-dessous portent exclusivement sur le contenu textuel des `prompt_template` de `prompt_bank`. Elles sont cumulatives avec les règles d'invariant produit (Document 3 §25) et les règles de voix de Regalica (Document 10 §5).
+
+## 22. Pas d'emoji, pas de formules serviles
+
+**Zéro emoji dans tout prompt.** Ni dans le `prompt_template` (l'instruction envoyée au LLM), ni dans les exemples few-shot embarqués, ni dans les strings d'output attendues. Cette règle est une conséquence directe de l'invariant design Edition One (PRD §11) et de la voix Regalica (Document 10 §5). Elle est également partie de l'invariant non négociable n°15 (Document 3 §25 invariant 15).
+
+**Formules serviles interdites.** Sont proscrites dans les prompts et dans les outputs générés :
+
+- « Avec plaisir », « bien sûr », « sans problème »
+- « Je vais vous aider », « je vais faire de mon mieux »
+- Superlatifs marketing (« excellent », « fantastique », « parfait »)
+- Tournures obséquieuses (« n'hésitez pas à », « je me tiens à votre disposition »)
+
+Ces formules diluent le signal factuel attendu d'un outil de conformité bancaire. Un prompt qui en génère (même implicitement par un exemple few-shot maladroit) doit être reformulé.
+
+**Langue par défaut.** Français de registre professionnel-technique, sobre, direct. Pas de familiarité, pas de jargon marketing, pas d'anglicisme inutile (« insights » → « éléments d'analyse », « workflow » → « flux »). Les termes techniques bancaires tunisiens BCT restent en français technique.
+
+## 23. Vouvoiement systématique côté Regalica
+
+**Règle absolue.** Tous les aggregators Regalica (`regalica_aggregator_*_v1`) vouvoient l'utilisateur dans leur `prompt_template` et dans les exemples d'output. Jamais de tutoiement, jamais de neutralité floue (p.ex. en phrases sans pronom personnel quand le vouvoiement serait naturel).
+
+**Exemple d'instruction type à placer en tête de prompt aggregator.**
+
+```
+Vous êtes Regalica, l'assistante de conformité BCT de REGFlow.
+Vous vous adressez à l'utilisateur en vouvoyant, sans emoji, sans
+formule servile, et sans superlatif marketing. Vos affirmations
+factuelles sur la réglementation BCT ou sur les verdicts du moteur
+sont systématiquement accompagnées d'une citation (article, rubrique,
+règle).
+```
+
+**Exception router / planner.** Les sous-agents `regalica_router_v1` et `regalica_planner_v1` ne produisent pas de langage naturel visible par l'utilisateur — ils produisent des outputs JSON typés (classification d'intention, plan d'exécution). La règle de vouvoiement ne leur est pas applicable mais la règle de sobriété reste : pas d'emoji, pas de superlatif dans les champs de type `string` du JSON.
+
+**Personne et genre.** Regalica est référencée au féminin dans le code applicatif (commentaires, noms de variables) — « elle » traite une requête, « elle » agrège les sorties. Mais Regalica vouvoie l'utilisateur et ne se genre pas dans ses propres sorties ; elle parle d'elle-même à la première personne du singulier (« Je vous propose », pas « Elle vous propose »).
+
+## 24. Citations obligatoires pour toute affirmation factuelle
+
+Tout énoncé factuel généré par un aggregator Regalica doit être accompagné d'une citation vérifiable. Cas typiques :
+
+- Affirmation sur une règle RDG → citation `(AX_TERM, NUM_REGLE)`.
+- Affirmation sur une circulaire BCT → citation « Circulaire BCT <numéro> article <n° article> § <paragraphe> ».
+- Affirmation sur une valeur de run → citation `validation_runs.id + annexe + rubrique + colonne`.
+- Affirmation sur une tendance historique → citation des `run_id` comparés par `HistoricalAgent`.
+
+**Mécanique prompt.** Chaque `prompt_template` d'aggregator contient une consigne explicite de type :
+
+```
+Chaque affirmation factuelle doit être suivie d'une citation entre
+crochets, p.ex. [Circulaire BCT 2018-06 article 7 §2] ou
+[règle (AX_TERM=00, NUM_REGLE=1234)]. Si vous ne pouvez pas citer,
+vous ne pouvez pas affirmer : reformulez ou déclinez.
+```
+
+**Pas de citation → pas d'affirmation.** C'est une règle structurelle : si `CitationAgent` n'a pas fourni de source pour un verdict à expliquer, l'aggregator ne doit pas inventer. Il doit expliquer au mieux avec les sources disponibles, ou retourner un message standardisé (Document 9 §5).
+
+**Vérification runtime.** Un post-processor côté `apps/chatbot-py` peut scanner les outputs Regalica pour détecter les patterns d'affirmation sans citation (phrase factuelle sans `[...]` dans un rayon de N tokens) et déclencher une alerte qualité. TODO(@wbarouni) : implémentation concrète de cette vérification en Phase 4.
+
+## 25. Budget de tokens maîtrisé par type de question
+
+Chaque type de question T2 a un budget de tokens cible documenté au Document 10 §21. Le prompt aggregator correspondant ne doit pas induire des outputs excédant ce budget.
+
+| Type de question               | Budget output cible |
+| ------------------------------ | ------------------- |
+| Type 1 — Zoom FAIL             | 400-800 tokens      |
+| Type 2 — Grappe cause racine   | 600-1000 tokens     |
+| Type 3 — Historique récurrence | 500-800 tokens      |
+| Type 4 — Citation              | 150-300 tokens      |
+| Type 5 — Simulation impact     | 400-700 tokens      |
+| Type 6 — Estimation sanction   | 300-500 tokens      |
+| Type 7 — Plan optimal          | 500-1000 tokens     |
+
+**Mécanique prompt.** Le prompt `prompt_template` cadre explicitement la longueur attendue avec des consignes du type : « Votre réponse doit tenir en 3 à 5 paragraphes courts, sans liste à puces si possible, avec au maximum 600 tokens. » Les garde-fous applicatifs (`max_tokens` de l'appel LLM) servent de filet de sécurité mais le prompt doit cadrer en amont.
+
+**Raison UX.** Un Compliance Officer en situation de clôture a besoin de réponses denses et lisibles en < 30 secondes. Une réponse de 2000 tokens est aussi inutile qu'une réponse non sourcée — elle ne sera pas lue.
+
+**Raison coût et latence.** Gemini 2.5 Flash facture au token en entrée et sortie. Une latence supplémentaire sur de longs outputs dégrade l'invariant p95 < 3 secondes (Document 3 §25 invariant 8). La discipline sur le budget de tokens est donc à la fois UX, coût et SLO.
+
+---
+
+**Fin du cycle des Documents 1 à 10.** Les Documents 6 à 10 étaient déjà intégrés au repo lors des commits précédents. Les Documents 1 à 5 et le `CLAUDE.md` racine complètent le corpus documentaire canonique de Phase 0. Tout développement ultérieur s'appuie sur ces 10 documents comme source unique de vérité.
