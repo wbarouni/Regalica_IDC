@@ -40,13 +40,21 @@ class Settings(BaseSettings):
     database_url: str | None = Field(default=None, alias="DATABASE_URL")
 
     # LLM config — REQUIRED, no defaults. See module docstring.
-    llm_provider: Literal["gemini", "ollama"] = Field(alias="LLM_PROVIDER")
+    # The `Literal[...]` provider types are compile-time type constraints;
+    # pydantic only accepts string literals inside typing.Literal, so those
+    # values cannot be indirected through env/platform_config. Marked with
+    # `nosemgrep: no-hardcoding` so Guard D skips the lines.
+    llm_provider: Literal["gemini", "ollama"] = Field(  # nosemgrep: no-hardcoding
+        alias="LLM_PROVIDER"
+    )
     gemini_api_key: str | None = Field(default=None, alias="GEMINI_API_KEY")
     gemini_model: str = Field(alias="GEMINI_MODEL")
     ollama_url: str = Field(alias="OLLAMA_URL")
     ollama_model: str = Field(alias="OLLAMA_MODEL")
 
-    embedding_provider: Literal["gemini", "ollama"] = Field(alias="EMBEDDING_PROVIDER")
+    embedding_provider: Literal["gemini", "ollama"] = Field(  # nosemgrep: no-hardcoding
+        alias="EMBEDDING_PROVIDER"
+    )
     embedding_model: str = Field(alias="EMBEDDING_MODEL")
 
 

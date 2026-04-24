@@ -99,6 +99,14 @@ jobs:
       - name: Run tools/check-no-bank-data.sh
         run: bash tools/check-no-bank-data.sh
 
+  no-hardcoding:
+    name: Guard no hardcoding (applicative code)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tools/check-no-hardcoding.sh
+        run: bash tools/check-no-hardcoding.sh
+
   # =========================================================================
   # Typecheck
   # =========================================================================
