@@ -1,10 +1,11 @@
 -- Migration 007_seed_system_roles.sql
--- Object: seed the 8 system roles per tenant + auto-seed trigger on future tenants
+-- Object: seed the 10 system roles per tenant + auto-seed trigger on future tenants
 -- Author: ALGORIA Factory
--- Date: 2026-04-24
+-- Date: 2026-04-24 (amended 2026-04-24: +compliance_director +support_readonly)
 -- Depends on: 003_tenants.sql, 004_users_roles.sql
--- References: Document 6 §15 (roles table), §26 entry 007;
---             docs/04 §17-21 (role semantics), docs/05 §12 (prompt_editor)
+-- References: Document 6 §5 (role catalogue), §15 (roles table), §22.4 (RLS),
+--             §26 entry 007; docs/04 §17-21 (role semantics),
+--             docs/05 §12 (prompt_editor)
 --
 -- TODO(@wbarouni) — Permissions JSONB payload: each role is seeded with
 -- the Phase 1 minimal marker { "v": 1, "capabilities": [] }. The real
@@ -15,10 +16,25 @@
 -- TODO(@wbarouni) — Arabic labels (label_ar) are literal translations
 -- drafted without a native reviewer. Submit for native review in Phase 5
 -- (frontend i18n) and update via a docs/i18n migration.
+--
+-- TODO(@wbarouni) — Labels (label_fr, label_en, label_ar) are currently
+-- hardcoded inside this migration. They must be externalised to
+-- apps/api/seeds/system_roles.json at commit 5 of the zero-hardcoding
+-- sequence (docs/03 doctrine v2 Niveau 3 platform configuration), so
+-- future label edits no longer require a new DDL migration.
+--
+-- Amendment note (2026-04-24): compliance_director and support_readonly
+-- were missing from the original 8-role seed. Doc 6 §5 lists them as
+-- system roles and §22.4 RLS on conversations / messages references
+-- them. Added here to close the canon gap; migration 007a backfills
+-- already-seeded tenants via a DO-loop calling this function, which is
+-- idempotent thanks to ON CONFLICT.
 
--- Seed function: idempotent insertion of the 8 system roles for a tenant.
+-- Seed function: idempotent insertion of the 10 system roles for a tenant.
 -- ON CONFLICT (tenant_id, code) DO NOTHING honours the roles_uk UNIQUE
 -- constraint, which makes a second call a no-op and allows safe retry.
+-- Order is seniority-based: tenant governance first, compliance
+-- next, then signatory / auditor / editors.
 CREATE OR REPLACE FUNCTION seed_system_roles_for_tenant(p_tenant_id UUID)
 RETURNS VOID AS $$
 BEGIN
@@ -26,7 +42,9 @@ BEGIN
   VALUES
     (p_tenant_id, 'platform_owner',      'Propriétaire plateforme',   'Platform owner',       'مالك المنصة',        '{"v":1,"capabilities":[]}'::jsonb, TRUE),
     (p_tenant_id, 'tenant_admin',        'Administrateur tenant',     'Tenant admin',         'مدير المستأجر',      '{"v":1,"capabilities":[]}'::jsonb, TRUE),
+    (p_tenant_id, 'compliance_director', 'Directeur conformité',      'Compliance director',  'مدير الامتثال',      '{"v":1,"capabilities":[]}'::jsonb, TRUE),
     (p_tenant_id, 'compliance_officer',  'Responsable conformité',    'Compliance officer',   'مسؤول الامتثال',     '{"v":1,"capabilities":[]}'::jsonb, TRUE),
+    (p_tenant_id, 'support_readonly',    'Support lecture seule',     'Support read-only',    'دعم للقراءة فقط',    '{"v":1,"capabilities":[]}'::jsonb, TRUE),
     (p_tenant_id, 'signatory',           'Signataire',                'Signatory',            'موقّع',              '{"v":1,"capabilities":[]}'::jsonb, TRUE),
     (p_tenant_id, 'auditor',             'Auditeur',                  'Auditor',              'مراجع',              '{"v":1,"capabilities":[]}'::jsonb, TRUE),
     (p_tenant_id, 'rule_editor',         'Éditeur de règles',         'Rule editor',          'محرّر القواعد',       '{"v":1,"capabilities":[]}'::jsonb, TRUE),

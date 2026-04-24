@@ -7,14 +7,21 @@ import {
 const hasDb = Boolean(process.env['DATABASE_URL']);
 const describeIfDb = hasDb ? describe : describe.skip;
 
+// 10 system roles post-amendment (Doc 6 §5 + §22.4 reconciliation):
+// platform_owner, tenant_admin, compliance_director, compliance_officer,
+// support_readonly, signatory, auditor, rule_editor, referential_editor,
+// prompt_editor. Listed alphabetically here because the SQL fetches
+// ORDER BY code.
 const EXPECTED_ROLE_CODES = [
   'auditor',
+  'compliance_director',
   'compliance_officer',
   'platform_owner',
   'prompt_editor',
   'referential_editor',
   'rule_editor',
   'signatory',
+  'support_readonly',
   'tenant_admin',
 ];
 
@@ -47,7 +54,7 @@ describeIfDb('migration 007 — seed_system_roles', () => {
     expect(rows).toHaveLength(1);
   });
 
-  it('inserts the 8 system roles when a new tenant is created', async () => {
+  it('inserts the 10 system roles when a new tenant is created', async () => {
     const { rows: tRows } = await ctx.testPool.query<{ id: string }>(
       `INSERT INTO tenants (slug, legal_name)
          VALUES ('tenant-test-007-a', 'Legal Test 007 A') RETURNING id`,
@@ -96,6 +103,24 @@ describeIfDb('migration 007 — seed_system_roles', () => {
       `SELECT COUNT(*)::text AS count FROM roles WHERE tenant_id = $1`,
       [tenantId],
     );
-    expect(rows[0]!.count).toBe('8');
+    expect(rows[0]!.count).toBe('10');
+  });
+
+  it('seeds compliance_director and support_readonly (canon gap §5/§22.4 closed)', async () => {
+    const { rows: tRows } = await ctx.testPool.query<{ id: string }>(
+      `INSERT INTO tenants (slug, legal_name)
+         VALUES ('tenant-test-007-d', 'Legal Test 007 D') RETURNING id`,
+    );
+    const tenantId = tRows[0]!.id;
+
+    const { rows } = await ctx.testPool.query<{ code: string; is_system_role: boolean }>(
+      `SELECT code, is_system_role FROM roles
+         WHERE tenant_id = $1
+           AND code IN ('compliance_director', 'support_readonly')
+         ORDER BY code`,
+      [tenantId],
+    );
+    expect(rows.map((r) => r.code)).toEqual(['compliance_director', 'support_readonly']);
+    expect(rows.every((r) => r.is_system_role)).toBe(true);
   });
 });

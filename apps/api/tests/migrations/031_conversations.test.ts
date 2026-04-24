@@ -47,22 +47,15 @@ describeIfDb('migration 031 — conversations', () => {
     );
     directorUserId = dir.rows[0]!.id;
 
-    // §22.4 RLS references `compliance_director`, but Doc 6 §5 lists it as a
-    // separate role while migration 007 seeds 8 other system roles. The
-    // canon is mutually inconsistent on the authoritative role catalogue.
-    // Until resolved, create the role locally for this test so the RLS
-    // bypass path is exercised. TODO(@wbarouni): reconcile Doc 6 §5
-    // catalogue vs migration 007 seed.
-    const dirRole = await ctx.testPool.query<{ id: string }>(
-      `INSERT INTO roles (tenant_id, code, label_fr, label_en, label_ar, permissions, is_system_role)
-         VALUES ($1, 'compliance_director', 'Directeur conformité', 'Compliance director',
-                 'مدير الامتثال', '{"v":1,"capabilities":[]}'::jsonb, TRUE)
-         RETURNING id`,
+    // compliance_director is now seeded by migration 007 (Doc 6 §5 + §22.4
+    // canon gap closed in commit 2 of the zero-hardcoding sequence).
+    const { rows: roleRows } = await ctx.testPool.query<{ id: string }>(
+      `SELECT id FROM roles WHERE tenant_id = $1 AND code = 'compliance_director'`,
       [tenantId],
     );
     await ctx.testPool.query(
       `INSERT INTO user_roles (tenant_id, user_id, role_id) VALUES ($1, $2, $3)`,
-      [tenantId, directorUserId, dirRole.rows[0]!.id],
+      [tenantId, directorUserId, roleRows[0]!.id],
     );
   });
 
