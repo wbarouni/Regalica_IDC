@@ -13,15 +13,21 @@ import { withConnection } from './pool.js';
  * first run. Wraps each file in `BEGIN/COMMIT` unless the file carries a
  * `-- migrator: no-transaction` directive.
  *
+ * Filenames are `NNN[a-z]?_slug.sql`. The optional lowercase suffix marks
+ * an amendment migration that runs after its NNN base migration but
+ * before NNN+1 (Flyway-style). The id is kept as text (`'007' < '007a'
+ * < '007b' < '008'` lexicographically) so the PRIMARY KEY on
+ * `schema_migrations.id` orders amendments naturally.
+ *
  * Canonical reference: docs/06-SCHEMA-SQL-COMPLET.md §25-26.
  */
 
 const META_TABLE = 'schema_migrations';
 const NO_TX_DIRECTIVE = /^--\s*migrator:\s*no-transaction\s*$/m;
-const FILENAME_RE = /^(\d{3})_[a-z0-9][a-z0-9_]*\.sql$/;
+const FILENAME_RE = /^(\d{3}[a-z]?)_[a-z0-9][a-z0-9_]*\.sql$/;
 
 export interface MigrationFile {
-  id: number;
+  id: string;
   filename: string;
   fullPath: string;
   content: string;
@@ -30,7 +36,7 @@ export interface MigrationFile {
 }
 
 export interface AppliedMigration {
-  id: number;
+  id: string;
   filename: string;
   checksum: string;
   appliedAt: Date;
@@ -42,19 +48,19 @@ export interface MigratorOptions {
 }
 
 export interface MigratorUpReport {
-  applied: { id: number; filename: string }[];
-  skipped: { id: number; filename: string }[];
+  applied: { id: string; filename: string }[];
+  skipped: { id: string; filename: string }[];
 }
 
 export interface MigratorStatus {
   applied: AppliedMigration[];
   pending: MigrationFile[];
-  drifted: { id: number; filename: string; expected: string; actual: string }[];
+  drifted: { id: string; filename: string; expected: string; actual: string }[];
 }
 
 export interface VerifyReport {
   ok: boolean;
-  drifted: { id: number; filename: string; expected: string; actual: string }[];
+  drifted: { id: string; filename: string; expected: string; actual: string }[];
   missingOnDisk: AppliedMigration[];
 }
 
@@ -65,7 +71,7 @@ function sha256(content: string): string {
 async function ensureMetaTable(client: PoolClient, metaTable: string): Promise<void> {
   await client.query(
     `CREATE TABLE IF NOT EXISTS ${metaTable} (
-       id          integer PRIMARY KEY,
+       id          text PRIMARY KEY,
        filename    text NOT NULL UNIQUE,
        checksum    text NOT NULL,
        applied_at  timestamptz NOT NULL DEFAULT now()
@@ -91,12 +97,12 @@ async function loadMigrationFiles(dir: string): Promise<MigrationFile[]> {
     }
     const match = FILENAME_RE.exec(entry);
     if (!match) {
-      throw new Error(`[migrator] filename does not match NNN_slug.sql pattern: ${entry}`);
+      throw new Error(`[migrator] filename does not match NNN[a-z]?_slug.sql pattern: ${entry}`);
     }
     const fullPath = join(dir, entry);
     const content = await readFile(fullPath, 'utf8');
     files.push({
-      id: Number.parseInt(match[1]!, 10),
+      id: match[1]!,
       filename: entry,
       fullPath,
       content,
@@ -105,9 +111,9 @@ async function loadMigrationFiles(dir: string): Promise<MigrationFile[]> {
     });
   }
 
-  files.sort((a, b) => a.id - b.id);
+  files.sort((a, b) => a.id.localeCompare(b.id));
 
-  const seen = new Set<number>();
+  const seen = new Set<string>();
   for (const f of files) {
     if (seen.has(f.id)) {
       throw new Error(`[migrator] duplicate migration id ${f.id}`);
@@ -120,7 +126,7 @@ async function loadMigrationFiles(dir: string): Promise<MigrationFile[]> {
 
 async function getApplied(client: PoolClient, metaTable: string): Promise<AppliedMigration[]> {
   const { rows } = await client.query<{
-    id: number;
+    id: string;
     filename: string;
     checksum: string;
     applied_at: Date;

@@ -45,8 +45,16 @@ export async function setupMigrationsSchema(
   const client = await testPool.connect();
   try {
     await client.query(`SET search_path TO ${schemaName}, public`);
-    const files = (await readdir(MIGRATIONS_DIR)).filter((f) => /^\d{3}_.*\.sql$/.test(f)).sort();
+    // Matches both base migrations (NNN_slug.sql) and amendments
+    // (NNN[a-z]_slug.sql). Sort() gives the correct apply order because
+    // '007_base.sql' < '007a_amend.sql' < '008_next.sql' lexicographically.
+    const files = (await readdir(MIGRATIONS_DIR))
+      .filter((f) => /^\d{3}[a-z]?_.*\.sql$/.test(f))
+      .sort();
     for (const file of files) {
+      // The numeric prefix (first 3 digits) defines the tier; amendment
+      // files share the tier of their base migration, so they are
+      // included whenever lastMigrationId covers that tier.
       const id = Number.parseInt(file.slice(0, 3), 10);
       if (id > lastMigrationId) {
         break;

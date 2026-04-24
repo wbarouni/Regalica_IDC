@@ -76,10 +76,10 @@ describeIfDb('migrator', () => {
     );
 
     const report = await runUp(options);
-    expect(report.applied.map((m) => m.id)).toEqual([1, 2]);
+    expect(report.applied.map((m) => m.id)).toEqual(['001', '002']);
 
     const status = await getStatus(options);
-    expect(status.applied.map((a) => a.id)).toEqual([1, 2]);
+    expect(status.applied.map((a) => a.id)).toEqual(['001', '002']);
     expect(status.pending).toHaveLength(0);
   });
 
@@ -91,7 +91,7 @@ describeIfDb('migrator', () => {
     await runUp(options);
     const second = await runUp(options);
     expect(second.applied).toHaveLength(0);
-    expect(second.skipped.map((m) => m.id)).toEqual([1]);
+    expect(second.skipped.map((m) => m.id)).toEqual(['001']);
   });
 
   it('rolls back on SQL error and leaves schema_migrations untouched', async () => {
@@ -104,7 +104,7 @@ describeIfDb('migrator', () => {
     await expect(runUp(options)).rejects.toThrow(/002_bad\.sql/);
 
     const status = await getStatus(options);
-    expect(status.applied.map((a) => a.id)).toEqual([1]);
+    expect(status.applied.map((a) => a.id)).toEqual(['001']);
   });
 
   it('detects checksum drift after a file is modified', async () => {
@@ -141,7 +141,7 @@ CREATE TABLE ${schemaName}.concurrent_items (id int primary key);
     );
 
     const report = await runUp(options);
-    expect(report.applied.map((m) => m.id)).toEqual([1]);
+    expect(report.applied.map((m) => m.id)).toEqual(['001']);
 
     const rowsRes = await adminPool.query(`SELECT id FROM ${metaTable} WHERE filename = $1`, [
       '001_concurrent.sql',
@@ -149,9 +149,38 @@ CREATE TABLE ${schemaName}.concurrent_items (id int primary key);
     expect(rowsRes.rowCount).toBe(1);
   });
 
-  it('rejects files that do not match the NNN_slug.sql naming', async () => {
+  it('rejects files that do not match the NNN[a-z]?_slug.sql naming', async () => {
     await writeMigration('not-a-migration.sql', `SELECT 1;`);
-    await expect(runUp(options)).rejects.toThrow(/NNN_slug\.sql/);
+    await expect(runUp(options)).rejects.toThrow(/NNN\[a-z\]\?_slug\.sql/);
+  });
+
+  it('applies amendment migrations (NNN[a-z]_slug.sql) after their base in lexicographic order', async () => {
+    await writeMigration(
+      '001_widgets.sql',
+      `CREATE TABLE ${schemaName}.widgets (id int primary key);`,
+    );
+    await writeMigration(
+      '001a_widgets_amend.sql',
+      `ALTER TABLE ${schemaName}.widgets ADD COLUMN label text;`,
+    );
+    await writeMigration(
+      '002_gadgets.sql',
+      `CREATE TABLE ${schemaName}.gadgets (id int primary key);`,
+    );
+
+    const report = await runUp(options);
+    expect(report.applied.map((m) => m.id)).toEqual(['001', '001a', '002']);
+
+    const status = await getStatus(options);
+    expect(status.applied.map((a) => a.id)).toEqual(['001', '001a', '002']);
+
+    // The amendment actually ran against the base table.
+    const colRes = await adminPool.query<{ column_name: string }>(
+      `SELECT column_name FROM information_schema.columns
+         WHERE table_schema = $1 AND table_name = 'widgets' AND column_name = 'label'`,
+      [schemaName],
+    );
+    expect(colRes.rowCount).toBe(1);
   });
 });
 

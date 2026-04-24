@@ -9,13 +9,22 @@ The full sequence of 37 migrations is listed in `docs/06-SCHEMA-SQL-COMPLET.md` 
 Every migration file follows this pattern:
 
 ```
-NNN_slug.sql
+NNN[a-z]?_slug.sql
 ```
 
 - `NNN` — three-digit zero-padded numeric prefix, strictly increasing. Gaps are allowed in history but new migrations take the next free number.
+- Optional single lowercase letter `[a-z]` — marks an **amendment migration** that runs after its `NNN` base migration but before `NNN+1` (Flyway-style). See next subsection.
 - `slug` — short lowercase-with-underscores description. Must match the table or feature being created.
 
-Examples: `001_extensions.sql`, `008_referentials_annexes.sql`, `035_pg_cron_partitions.sql`.
+Examples: `001_extensions.sql`, `008_referentials_annexes.sql`, `035_pg_cron_partitions.sql`, `007b_platform_config.sql`.
+
+### When to use an amendment id
+
+Amendment migrations (`NNN[a-z]_slug.sql`) are for cross-table backfills, forward-FK reconciliations, or canon gaps discovered after the base migration was written and applied. They are strictly additive and run in lexicographic order (`'007' < '007a' < '007b' < '008'`).
+
+- **Use** an amendment when you need to add state after a later table becomes available (for example, a FK from an earlier table to a table defined in a later migration), or when a canon review uncovers an additive fix (new system role, new seed row) that must apply to already-deployed databases.
+- **Do not** use an amendment to modify the base migration's content. That is a checksum drift and the runner will refuse it. If the base migration needs different content, the correct response is a new additive amendment — never an in-place edit.
+- A single lowercase letter is enough in practice: 26 amendments per tier is far beyond anything the canonical §26 sequence needs. Running out is a schema-design signal, not a naming problem.
 
 ## Mandatory file header
 
@@ -49,10 +58,10 @@ The runner detects this directive and will NOT wrap the file in `BEGIN/COMMIT`. 
 
 ## Runner behaviour
 
-- Migrations are applied in strictly ascending `NNN` order.
+- Migrations are applied in strictly ascending order by lexicographic comparison of their id (`'007' < '007a' < '007b' < '008'`).
 - The runner wraps every file in `BEGIN/COMMIT` unless `-- migrator: no-transaction` is present.
-- State lives in the `schema_migrations` table (id, filename, checksum, applied_at). Created automatically on first run.
-- A checksum drift (SHA-256 of the file content differs from the stored value) is surfaced by `pnpm migrate:verify` and does NOT auto-heal — the operator decides how to reconcile (usually: do not modify an applied migration; create a new one instead).
+- State lives in the `schema_migrations` table (id text PK, filename, checksum, applied_at). Created automatically on first run.
+- A checksum drift (SHA-256 of the file content differs from the stored value) is surfaced by `pnpm migrate:verify` and does NOT auto-heal — the operator decides how to reconcile (usually: do not modify an applied migration; create an amendment instead).
 
 ## Operator commands
 
