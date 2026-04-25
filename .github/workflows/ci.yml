@@ -164,6 +164,9 @@ jobs:
         working-directory: apps/api
         env:
           DATABASE_URL: postgresql://regalica_app:ci_password@localhost:5432/regflow_migrations_smoke
+          API_CORS_ORIGIN: http://test.local
+          PG_POOL_IDLE_TIMEOUT_MS: '1000'
+          PG_POOL_CONN_TIMEOUT_MS: '500'
         run: |
           pnpm migrate:status
           pnpm migrate:up
