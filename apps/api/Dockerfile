@@ -21,7 +21,7 @@ RUN pnpm install --filter @regflow/api...
 COPY apps/api ./apps/api
 
 RUN pnpm --filter @regflow/api build && \
-    pnpm --filter @regflow/api deploy --prod /deploy
+    pnpm --filter @regflow/api deploy --legacy --prod /deploy
 
 # ---- runtime ---------------------------------------------------------------
 FROM node:${NODE_VERSION} AS runtime
