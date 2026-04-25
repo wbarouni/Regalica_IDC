@@ -9,6 +9,11 @@ RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 COPY pnpm-workspace.yaml package.json ./
 COPY tsconfig.base.json ./
 COPY apps/api/package.json ./apps/api/
+COPY packages/bct-xml-parser/package.json ./packages/bct-xml-parser/
+COPY packages/evaluator/package.json ./packages/evaluator/
+COPY packages/state-machines/package.json ./packages/state-machines/
+COPY packages/structure-validator/package.json ./packages/structure-validator/
+COPY packages/ui/package.json ./packages/ui/
 
 RUN pnpm install --filter @regflow/api...
 
