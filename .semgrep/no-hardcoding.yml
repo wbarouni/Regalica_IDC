@@ -1,0 +1,283 @@
+# Semgrep ruleset for Guard D (zero-hardcoding in applicative code).
+#
+# Scope: TypeScript / JavaScript / Python applicative source.
+# SQL migrations are NOT in scope here; Rule D-007 (DEFAULT literals)
+# is deferred to a follow-up commit (requires platform_config table
+# + amendment migrations 023a, 027a, 030a, 035a to land first).
+#
+# Per-line override: append `// nosemgrep: D-NNN-rule-id` (TS / JS),
+# `# nosemgrep: D-NNN-rule-id` (Python). Use sparingly with a justifying
+# comment.
+
+rules:
+  # --------------------------------------------------------------------
+  # D-001 — LLM model literal or provider name (string literal anywhere)
+  # --------------------------------------------------------------------
+  - id: D-001-llm-model-literal
+    languages: [typescript, javascript, python]
+    severity: ERROR
+    message: |
+      LLM model literal or provider name found in applicative code.
+      ZERO-HARDCODING VIOLATION — move to platform_config or seeds/
+    paths:
+      exclude:
+        - '**/apps/api/seeds/'
+        - '**/tests/'
+        - '**/test/'
+        - '**/*.test.ts'
+        - '**/*.test.js'
+        - '**/*.spec.ts'
+        - '**/*.spec.js'
+        - '**/test_*.py'
+        - '**/*_test.py'
+        - '**/tests/fixtures/'
+        - '**/docs/archive/'
+        - '**/docs/as-is-captured/'
+        - '**/node_modules/'
+        - '**/tools/golden-normalizer/'
+        - '**/tools/verify-golden-integrity/'
+        - '**/.env.example'
+        - '**/pnpm-lock.yaml'
+        - '**/uv.lock'
+        - '**/*.config.js'
+        - '**/*.config.cjs'
+        - '**/*.config.mjs'
+        - '**/*.config.ts'
+        - '**/*.config.cts'
+        - '**/*.config.mts'
+    patterns:
+      - pattern-either:
+          - pattern: '"$LITERAL"'
+          - pattern: "'$LITERAL'"
+      - metavariable-regex:
+          metavariable: $LITERAL
+          regex: '^.*\b(gemini-[a-z0-9][a-z0-9.\-]*|gpt-[34][a-z0-9.\-]*|claude-[a-z0-9][a-z0-9.\-]*|ollama|qwen[0-9.:a-z\-]*)\b.*$'
+
+  # --------------------------------------------------------------------
+  # D-002 — Canonical agent class name as string literal (Document 5)
+  # --------------------------------------------------------------------
+  - id: D-002-agent-class-literal
+    languages: [typescript, javascript, python]
+    severity: ERROR
+    message: |
+      Canonical agent class name found as string literal.
+      ZERO-HARDCODING VIOLATION — move to platform_config or seeds/
+    paths:
+      exclude:
+        - '**/apps/api/seeds/'
+        - '**/tests/'
+        - '**/test/'
+        - '**/*.test.ts'
+        - '**/*.test.js'
+        - '**/*.spec.ts'
+        - '**/*.spec.js'
+        - '**/test_*.py'
+        - '**/*_test.py'
+        - '**/tests/fixtures/'
+        - '**/docs/archive/'
+        - '**/docs/as-is-captured/'
+        - '**/node_modules/'
+        - '**/tools/golden-normalizer/'
+        - '**/tools/verify-golden-integrity/'
+        - '**/.env.example'
+        - '**/pnpm-lock.yaml'
+        - '**/uv.lock'
+        - '**/*.config.js'
+        - '**/*.config.cjs'
+        - '**/*.config.mjs'
+        - '**/*.config.ts'
+        - '**/*.config.cts'
+        - '**/*.config.mts'
+    patterns:
+      - pattern-either:
+          - pattern: '"$LITERAL"'
+          - pattern: "'$LITERAL'"
+      - metavariable-regex:
+          metavariable: $LITERAL
+          regex: '^(InvestigatorAgent|NotificationAgent|ReporterAgent|VisualizerAgent|CitationAgent|GedAgent|DiffAgent|HistoricalAgent|IngestorXMLAgent|DependencyAgent|TemporalAgent|RuleExcelAssistAgent|RuleFormAssistAgent|ReferentialIngestorAgent)$'
+
+  # --------------------------------------------------------------------
+  # D-003 — Tenant placeholder / anonymised identifier
+  # --------------------------------------------------------------------
+  - id: D-003-tenant-placeholder
+    languages: [typescript, javascript, python]
+    severity: ERROR
+    message: |
+      Tenant placeholder / anonymised identifier found.
+      ZERO-HARDCODING VIOLATION — move to platform_config or seeds/
+    paths:
+      exclude:
+        - '**/apps/api/seeds/'
+        - '**/tests/'
+        - '**/test/'
+        - '**/*.test.ts'
+        - '**/*.test.js'
+        - '**/*.spec.ts'
+        - '**/*.spec.js'
+        - '**/test_*.py'
+        - '**/*_test.py'
+        - '**/tests/fixtures/'
+        - '**/docs/archive/'
+        - '**/docs/as-is-captured/'
+        - '**/node_modules/'
+        - '**/tools/golden-normalizer/'
+        - '**/tools/verify-golden-integrity/'
+        - '**/.env.example'
+        - '**/pnpm-lock.yaml'
+        - '**/uv.lock'
+        - '**/*.config.js'
+        - '**/*.config.cjs'
+        - '**/*.config.mjs'
+        - '**/*.config.ts'
+        - '**/*.config.cts'
+        - '**/*.config.mts'
+    patterns:
+      - pattern-either:
+          - pattern: '"$LITERAL"'
+          - pattern: "'$LITERAL'"
+      - metavariable-regex:
+          metavariable: $LITERAL
+          regex: '^.*\b(tenant-001|BANK-CODE|BANK-ID|TENANT-NAME|TENANT-GROUP|TENANT-SUBSIDIARY)\b.*$'
+
+  # --------------------------------------------------------------------
+  # D-004 — String literal assigned to a variable whose name contains:
+  #         model | timeout | ttl | retention | tenant | agent
+  #         | provider | url | host | port (case-insensitive)
+  # --------------------------------------------------------------------
+  - id: D-004-var-name-string-literal
+    languages: [typescript, javascript, python]
+    severity: ERROR
+    message: |
+      String literal assigned to a configurable variable name
+      (model | timeout | ttl | retention | tenant | agent | provider
+      | url | host | port).
+      ZERO-HARDCODING VIOLATION — move to platform_config or seeds/
+    paths:
+      exclude:
+        - '**/apps/api/seeds/'
+        - '**/tests/'
+        - '**/test/'
+        - '**/*.test.ts'
+        - '**/*.test.js'
+        - '**/*.spec.ts'
+        - '**/*.spec.js'
+        - '**/test_*.py'
+        - '**/*_test.py'
+        - '**/tests/fixtures/'
+        - '**/docs/archive/'
+        - '**/docs/as-is-captured/'
+        - '**/node_modules/'
+        - '**/tools/golden-normalizer/'
+        - '**/tools/verify-golden-integrity/'
+        - '**/.env.example'
+        - '**/pnpm-lock.yaml'
+        - '**/uv.lock'
+        - '**/*.config.js'
+        - '**/*.config.cjs'
+        - '**/*.config.mjs'
+        - '**/*.config.ts'
+        - '**/*.config.cts'
+        - '**/*.config.mts'
+    patterns:
+      - pattern-either:
+          - pattern: '$X = "$STR"'
+          - pattern: "$X = '$STR'"
+          - pattern: '$X: "$STR"'
+          - pattern: "$X: '$STR'"
+      - metavariable-regex:
+          metavariable: $X
+          regex: '(?i).*(model|timeout|ttl|retention|tenant|agent|provider|url|host|port).*'
+
+  # --------------------------------------------------------------------
+  # D-005 — Hardcoded http:// or https:// URL literal
+  # --------------------------------------------------------------------
+  - id: D-005-url-literal
+    languages: [typescript, javascript, python]
+    severity: ERROR
+    message: |
+      Hardcoded URL literal found in applicative code.
+      ZERO-HARDCODING VIOLATION — move to platform_config or seeds/
+    paths:
+      exclude:
+        - '**/apps/api/seeds/'
+        - '**/tests/'
+        - '**/test/'
+        - '**/*.test.ts'
+        - '**/*.test.js'
+        - '**/*.spec.ts'
+        - '**/*.spec.js'
+        - '**/test_*.py'
+        - '**/*_test.py'
+        - '**/tests/fixtures/'
+        - '**/docs/archive/'
+        - '**/docs/as-is-captured/'
+        - '**/node_modules/'
+        - '**/tools/golden-normalizer/'
+        - '**/tools/verify-golden-integrity/'
+        - '**/.env.example'
+        - '**/pnpm-lock.yaml'
+        - '**/uv.lock'
+        - '**/*.config.js'
+        - '**/*.config.cjs'
+        - '**/*.config.mjs'
+        - '**/*.config.ts'
+        - '**/*.config.cts'
+        - '**/*.config.mts'
+    patterns:
+      - pattern-either:
+          - pattern: '"$URL"'
+          - pattern: "'$URL'"
+      - metavariable-regex:
+          metavariable: $URL
+          regex: '^https?://.+'
+
+  # --------------------------------------------------------------------
+  # D-006 — Numeric literal > 100 in an assignment, excluding HTTP
+  #         status codes (200/201/400/401/403/404/500) and vector
+  #         dimension (768).
+  # --------------------------------------------------------------------
+  - id: D-006-magic-number-assignment
+    languages: [typescript, javascript, python]
+    severity: ERROR
+    message: |
+      Numeric literal > 100 assigned in applicative code.
+      ZERO-HARDCODING VIOLATION — move to platform_config or seeds/
+    paths:
+      exclude:
+        - '**/apps/api/seeds/'
+        - '**/tests/'
+        - '**/test/'
+        - '**/*.test.ts'
+        - '**/*.test.js'
+        - '**/*.spec.ts'
+        - '**/*.spec.js'
+        - '**/test_*.py'
+        - '**/*_test.py'
+        - '**/tests/fixtures/'
+        - '**/docs/archive/'
+        - '**/docs/as-is-captured/'
+        - '**/node_modules/'
+        - '**/tools/golden-normalizer/'
+        - '**/tools/verify-golden-integrity/'
+        - '**/.env.example'
+        - '**/pnpm-lock.yaml'
+        - '**/uv.lock'
+        - '**/*.config.js'
+        - '**/*.config.cjs'
+        - '**/*.config.mjs'
+        - '**/*.config.ts'
+        - '**/*.config.cts'
+        - '**/*.config.mts'
+    patterns:
+      - pattern-either:
+          - pattern: '$X = $N'
+          - pattern: '$X: $N'
+      - metavariable-comparison:
+          metavariable: $N
+          base: 10
+          comparison: >-
+            $N > 100
+            and $N != 200 and $N != 201
+            and $N != 400 and $N != 401 and $N != 403 and $N != 404
+            and $N != 500
+            and $N != 768

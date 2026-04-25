@@ -1,93 +1,53 @@
 #!/usr/bin/env bash
-# Guard D — zero-hardcoding in applicative code.
+# Guard D — zero-hardcoding in applicative code (semgrep ultra-strict).
 #
-# Scope: .ts, .py, .sh files only. SQL migrations are NOT scanned — the
-# canonical schema DDL is a different concern (Document 6 §26) with its
-# own structural whitelist (CREATE POLICY role codes, VECTOR(768), FSM
-# CHECK IN (...) lists). Guard D targets the applicative layer where
-# values must live in env vars or in apps/api/seeds/*.json rather than
-# being baked into code.
+# Replaces the prior regex-based check with a semgrep ruleset
+# (.semgrep/no-hardcoding.yml) that codifies six rules:
 #
-# Rules (case-sensitive):
-#   D-001 — LLM model literals and provider names
-#   D-002 — canonical agent class names (14 agents from Document 5)
-#   D-003 — tenant placeholder / anonymised identifiers
+#   D-001  LLM model literal or provider name        (TS / JS / Py)
+#   D-002  Canonical agent class name as literal     (TS / JS / Py)
+#   D-003  Tenant placeholder / anonymised id        (TS / JS / Py)
+#   D-004  String literal assigned to a configurable
+#          variable name                             (TS / JS / Py)
+#   D-005  Hardcoded http:// or https:// URL         (TS / JS / Py)
+#   D-006  Numeric literal > 100 in assignment       (TS / JS / Py)
 #
-# Permanent exclusions (applied as path filters):
-#   - apps/api/seeds/                      — canonical values belong here
-#   - tests/fixtures/                      — golden baseline data
-#   - docs/archive/, docs/as-is-captured/  — frozen historical corpora
-#   - node_modules/, pnpm-lock.yaml        — deps
-#   - tools/golden-normalizer/             — the anonymisation tool itself
-#   - tools/verify-golden-integrity/       — verifies tenant-001 fixtures
-#   - tests/ directories + *.test.ts / *.spec.ts / test_*.py / *_test.py
-#     — test code is allowed to hardcode fixture values (FSM-adjacent,
-#       not a runtime-configurable surface). The doctrine targets
-#       applicative (non-test) code.
-#   - .env.example                         — the other canonical destination
+# Rule D-007 (SQL DEFAULT literals) is intentionally NOT in the
+# ruleset yet — it requires the platform_config table and several
+# amendment migrations to land first.
 #
-# Per-line exemption: any line containing `nosemgrep: no-hardcoding`
-# is skipped. Use sparingly and justify in an inline comment.
-#
-# Comment lines (starting with //, #, *) are skipped automatically so
-# that docstrings and inline comments can reference the literals.
+# Path exclusions and per-line `nosemgrep` overrides are declared
+# in .semgrep/no-hardcoding.yml.
 
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
-SELF="tools/$(basename "${BASH_SOURCE[0]}")"
+if ! command -v semgrep >/dev/null 2>&1; then
+  printf '[FAIL] semgrep is required for Guard D.\n' >&2
+  printf '       Install: pip install semgrep==1.161.0\n' >&2
+  exit 2
+fi
 
-# Rule patterns — extended regex (grep -E). Word boundaries (\b) prevent
-# matching identifiers that merely contain a keyword as a substring:
-# `ollama_url` (a variable name ending in `_url` which is a word char) is
-# NOT matched by `\bollama\b`, whereas `"ollama"` (quoted literal) is.
-LLM_PATTERN='\b(gemini-[a-z0-9][a-z0-9.-]*|gpt-[34][a-z0-9.-]*|claude-[a-z0-9][a-z0-9.-]*|ollama|qwen[0-9.:a-z-]*)\b'
-AGENT_PATTERN='\b(InvestigatorAgent|NotificationAgent|ReporterAgent|VisualizerAgent|CitationAgent|GedAgent|DiffAgent|HistoricalAgent|IngestorXMLAgent|DependencyAgent|TemporalAgent|RuleExcelAssistAgent|RuleFormAssistAgent|ReferentialIngestorAgent)\b'
-TENANT_PATTERN='\b(tenant-001|BANK-CODE|BANK-ID|TENANT-NAME|TENANT-GROUP|TENANT-SUBSIDIARY)\b'
+# --error          → exit 1 on any ERROR-severity finding
+# --quiet          → suppress banner / progress output
+# --metrics off    → no telemetry phone-home
+# --no-git-ignore  → respect path-exclude lists in the YAML, not .gitignore
+# --disable-version-check → no network call to semgrep registry
+output=$(semgrep \
+  --config .semgrep/no-hardcoding.yml \
+  --error \
+  --quiet \
+  --metrics off \
+  --disable-version-check \
+  . 2>&1) || semgrep_exit=$?
 
-FILES=$(git ls-files '*.ts' '*.py' '*.sh' \
-  | grep -vE '^(apps/api/seeds/|tests/fixtures/|docs/archive/|docs/as-is-captured/|node_modules/|tools/golden-normalizer/|tools/verify-golden-integrity/)' \
-  | grep -vE '(^|/)tests?/' \
-  | grep -vE '\.(test|spec)\.ts$' \
-  | grep -vE '(^|/)test_[^/]+\.py$' \
-  | grep -vE '(^|/)[^/]+_test\.py$' \
-  | grep -vxF "$SELF" \
-  || true)
+semgrep_exit="${semgrep_exit:-0}"
 
-fail=0
-report=""
-
-check_rule() {
-  local rule_id="$1"
-  local rule_label="$2"
-  local pattern="$3"
-  if [ -z "$FILES" ]; then
-    return
-  fi
-  local hits
-  hits=$(echo "$FILES" | xargs -r grep -nE "$pattern" 2>/dev/null \
-    | grep -vE '^[^:]+:[0-9]+:[[:space:]]*(//|#|\*)' \
-    | grep -vF 'nosemgrep: no-hardcoding' \
-    || true)
-  if [ -n "$hits" ]; then
-    report+="  [${rule_id}] ${rule_label}:"$'\n'
-    while IFS= read -r line; do
-      report+="    ${line}"$'\n'
-    done <<< "$hits"
-    fail=1
-  fi
-}
-
-check_rule "D-001" "LLM model literal or provider name" "$LLM_PATTERN"
-check_rule "D-002" "canonical agent class name as string literal" "$AGENT_PATTERN"
-check_rule "D-003" "tenant placeholder / anonymised identifier" "$TENANT_PATTERN"
-
-if [ "$fail" -eq 1 ]; then
-  printf '[FAIL] Hardcoding detected in applicative code:\n'
-  printf '%s' "$report"
-  printf '\nFix by moving the value to apps/api/seeds/*.json, to an env var,\nor by adding `# nosemgrep: no-hardcoding` (or `// nosemgrep: no-hardcoding`)\non the line if the literal is a compile-time structural constraint\n(e.g. pydantic Literal[...] membership).\n'
+if [ "$semgrep_exit" -ne 0 ]; then
+  printf '%s\n' "$output" >&2
+  printf '\n[FAIL] ZERO-HARDCODING VIOLATION — move to platform_config or seeds/\n' >&2
   exit 1
 fi
 

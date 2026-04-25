@@ -32,7 +32,11 @@ class Settings(BaseSettings):
     env: Literal["development", "test", "production"] = Field(
         default="development", alias="NODE_ENV"
     )
-    port: int = Field(default=8000, alias="CHATBOT_PY_PORT")
+    # protocol port; deployment-neutral default per module docstring
+    port: int = Field(
+        default=8000,  # nosemgrep: D-006-magic-number-assignment
+        alias="CHATBOT_PY_PORT",
+    )
     log_level: Literal["debug", "info", "warning", "error", "critical"] = Field(
         default="info", alias="LOG_LEVEL"
     )
@@ -43,8 +47,8 @@ class Settings(BaseSettings):
     # The `Literal[...]` provider types are compile-time type constraints;
     # pydantic only accepts string literals inside typing.Literal, so those
     # values cannot be indirected through env/platform_config. Marked with
-    # `nosemgrep: no-hardcoding` so Guard D skips the lines.
-    llm_provider: Literal["gemini", "ollama"] = Field(  # nosemgrep: no-hardcoding
+    # `nosemgrep: D-001-llm-model-literal` so Guard D skips the lines.
+    llm_provider: Literal["gemini", "ollama"] = Field(  # nosemgrep: D-001-llm-model-literal
         alias="LLM_PROVIDER"
     )
     gemini_api_key: str | None = Field(default=None, alias="GEMINI_API_KEY")
@@ -52,7 +56,7 @@ class Settings(BaseSettings):
     ollama_url: str = Field(alias="OLLAMA_URL")
     ollama_model: str = Field(alias="OLLAMA_MODEL")
 
-    embedding_provider: Literal["gemini", "ollama"] = Field(  # nosemgrep: no-hardcoding
+    embedding_provider: Literal["gemini", "ollama"] = Field(  # nosemgrep: D-001-llm-model-literal
         alias="EMBEDDING_PROVIDER"
     )
     embedding_model: str = Field(alias="EMBEDDING_MODEL")

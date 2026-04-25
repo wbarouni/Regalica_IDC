@@ -29,8 +29,8 @@ export function getPool(): Pool {
   cachedPool = new Pool({
     connectionString: config.databaseUrl,
     max: 10,
-    idleTimeoutMillis: 30_000,
-    connectionTimeoutMillis: 5_000,
+    idleTimeoutMillis: config.pool.idleTimeoutMs,
+    connectionTimeoutMillis: config.pool.connectionTimeoutMs,
   });
   return cachedPool;
 }

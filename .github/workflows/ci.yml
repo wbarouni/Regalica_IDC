@@ -104,6 +104,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install semgrep
+        run: pip install semgrep==1.161.0
       - name: Run tools/check-no-hardcoding.sh
         run: bash tools/check-no-hardcoding.sh
 
@@ -200,6 +205,9 @@ jobs:
           DATABASE_URL: postgresql://regalica_app:ci_password@localhost:5432/regalica_test
           NODE_ENV: test
           JWT_SECRET: test_secret_at_least_thirty_two_characters_long
+          API_CORS_ORIGIN: http://test.local
+          PG_POOL_IDLE_TIMEOUT_MS: '1000'
+          PG_POOL_CONN_TIMEOUT_MS: '500'
         run: pnpm test --coverage
 
   test-chatbot-py:

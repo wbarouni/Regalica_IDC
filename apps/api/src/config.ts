@@ -4,12 +4,14 @@ import { z } from 'zod';
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   API_PORT: z.coerce.number().int().positive().default(3000),
-  API_CORS_ORIGIN: z.string().default('http://localhost:4200'),
+  API_CORS_ORIGIN: z.string(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   DATABASE_URL: z.string().optional(),
   JWT_SECRET: z.string().min(32).optional(),
   JWT_ACCESS_TTL: z.string().default('15m'),
   JWT_REFRESH_TTL: z.string().default('7d'),
+  PG_POOL_IDLE_TIMEOUT_MS: z.coerce.number().int().positive(),
+  PG_POOL_CONN_TIMEOUT_MS: z.coerce.number().int().positive(),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -32,6 +34,10 @@ export const config = {
     secret: env.JWT_SECRET,
     accessTtl: env.JWT_ACCESS_TTL,
     refreshTtl: env.JWT_REFRESH_TTL,
+  },
+  pool: {
+    idleTimeoutMs: env.PG_POOL_IDLE_TIMEOUT_MS,
+    connectionTimeoutMs: env.PG_POOL_CONN_TIMEOUT_MS,
   },
 } as const;
 
