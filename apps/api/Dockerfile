@@ -7,6 +7,7 @@ WORKDIR /workspace
 RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
 COPY pnpm-workspace.yaml package.json ./
+COPY pnpm-lock.yaml ./
 COPY tsconfig.base.json ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/bct-xml-parser/package.json ./packages/bct-xml-parser/
