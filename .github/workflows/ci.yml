@@ -167,7 +167,7 @@ jobs:
           DATABASE_URL: postgresql://regalica_app:ci_password@localhost:5432/regflow_migrations_smoke
           API_CORS_ORIGIN: http://test.local
           PG_POOL_IDLE_TIMEOUT_MS: '1000'
-          PG_POOL_CONN_TIMEOUT_MS: '500'
+          PG_POOL_CONN_TIMEOUT_MS: '5000'
         run: |
           pnpm migrate:status
           pnpm migrate:up
@@ -211,7 +211,7 @@ jobs:
           JWT_SECRET: test_secret_at_least_thirty_two_characters_long
           API_CORS_ORIGIN: http://test.local
           PG_POOL_IDLE_TIMEOUT_MS: '1000'
-          PG_POOL_CONN_TIMEOUT_MS: '500'
+          PG_POOL_CONN_TIMEOUT_MS: '5000'
         run: pnpm test --coverage --runInBand
 
   test-chatbot-py:
