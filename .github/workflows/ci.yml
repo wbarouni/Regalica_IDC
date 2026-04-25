@@ -212,7 +212,7 @@ jobs:
           API_CORS_ORIGIN: http://test.local
           PG_POOL_IDLE_TIMEOUT_MS: '1000'
           PG_POOL_CONN_TIMEOUT_MS: '500'
-        run: pnpm test --coverage
+        run: pnpm test --coverage --runInBand
 
   test-chatbot-py:
     name: Test chatbot-py (pytest)
