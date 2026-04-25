@@ -59,6 +59,7 @@ jobs:
       - uses: astral-sh/setup-uv@v3
         with:
           enable-cache: true
+          cache-dependency-glob: 'apps/chatbot-py/uv.lock'
       - name: uv sync
         working-directory: apps/chatbot-py
         run: uv sync
@@ -224,6 +225,7 @@ jobs:
       - uses: astral-sh/setup-uv@v3
         with:
           enable-cache: true
+          cache-dependency-glob: 'apps/chatbot-py/uv.lock'
       - working-directory: apps/chatbot-py
         run: uv sync
       - working-directory: apps/chatbot-py
