@@ -85,4 +85,4 @@ CREATE TABLE IF NOT EXISTS sessions (
 
 CREATE INDEX IF NOT EXISTS sessions_idx_user_active
   ON sessions (user_id)
-  WHERE revoked_at IS NULL AND expires_at > NOW();
+  WHERE revoked_at IS NULL;
