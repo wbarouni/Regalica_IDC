@@ -26,6 +26,7 @@ export interface MigrationsTestContext {
 
 export async function setupMigrationsSchema(
   lastMigrationId: number,
+  options?: { sessionVars?: Record<string, string> },
 ): Promise<MigrationsTestContext> {
   const url = process.env['DATABASE_URL'];
   if (!url) {
@@ -54,6 +55,16 @@ export async function setupMigrationsSchema(
   const client = await testPool.connect();
   try {
     await client.query(`SET search_path TO ${schemaName}, public`);
+    // Session-level GUCs read by seed migrations (038-042) via
+    // current_setting(). SET (not SET LOCAL) so the values persist
+    // for the whole client session, covering every migration applied
+    // in the loop below. Backward-compatible: tests that pass no
+    // options leave the GUCs unset.
+    if (options?.sessionVars) {
+      for (const [key, value] of Object.entries(options.sessionVars)) {
+        await client.query(`SET ${key} = '${value}'`);
+      }
+    }
     // Matches both base migrations (NNN_slug.sql) and amendments
     // (NNN[a-z]_slug.sql). Sort() gives the correct apply order because
     // '007_base.sql' < '007a_amend.sql' < '008_next.sql' lexicographically.
