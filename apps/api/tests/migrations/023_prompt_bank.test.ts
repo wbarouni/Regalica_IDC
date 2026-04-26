@@ -72,6 +72,7 @@ describeIfDb('migration 023 — prompt_bank', () => {
     try {
       await client.query(`SET search_path TO ${ctx.schemaName}, public`);
       await client.query('BEGIN');
+      await client.query('SET LOCAL ROLE regflow_app');
       if (actorUserId) {
         await client.query(`SET LOCAL app.current_user_id = '${actorUserId}'`);
       }
@@ -135,7 +136,9 @@ describeIfDb('migration 023 — prompt_bank', () => {
       [ctx.schemaName],
     );
     expect(rows[0]!.indexdef).toMatch(/UNIQUE INDEX/);
-    expect(rows[0]!.indexdef).toMatch(/WHERE.*status = 'active'/);
+    // Postgres reformats partial-index predicates on VARCHAR columns as
+    // `(status)::text = 'active'::text` — tolerate the cast and parens.
+    expect(rows[0]!.indexdef).toMatch(/WHERE.*status.*=.*'active'/i);
   });
 
   it('rejects temperature outside [0, 2]', async () => {
@@ -235,6 +238,7 @@ describeIfDb('migration 023 — prompt_bank', () => {
     try {
       await client.query(`SET search_path TO ${ctx.schemaName}, public`);
       await client.query('BEGIN');
+      await client.query('SET LOCAL ROLE regflow_app');
       await client.query(`SET LOCAL app.current_user_id = '${nonOwnerUserId}'`);
       const { rows } = await client.query<{ count: string }>(
         `SELECT COUNT(*)::text AS count FROM prompt_bank
