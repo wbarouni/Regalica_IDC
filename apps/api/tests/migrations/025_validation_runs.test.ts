@@ -213,9 +213,15 @@ describeIfDb('migration 025 — validation_runs', () => {
       await client.query(`SET search_path TO ${ctx.schemaName}, public`);
       await client.query('BEGIN');
       await client.query(`SET LOCAL app.revoke_signature_authorized = 'true'`);
-      const res = await client.query(`UPDATE validation_runs SET is_signed = FALSE WHERE id = $1`, [
-        id,
-      ]);
+      const res = await client.query(
+        `UPDATE validation_runs
+            SET is_signed = FALSE,
+                signed_at = NULL,
+                signed_by_user_id = NULL,
+                signed_xml_hash = NULL
+          WHERE id = $1`,
+        [id],
+      );
       await client.query('COMMIT');
       expect(res.rowCount).toBe(1);
     } catch (err) {
