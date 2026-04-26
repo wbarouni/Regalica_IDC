@@ -128,7 +128,7 @@ describeIfDb('migrations 008-021 — referentials common skeleton', () => {
         ctx.testPool.query(
           `INSERT INTO ${table}
              (tenant_id, code, label, valid_from, author_user_id, validator_user_id, status)
-             VALUES ($1, 'T-${table}-SAME', 'Same-user attempt', NOW(), $2, $2, 'active')`,
+             VALUES ($1, 'TST-SAME', 'Same-user attempt', NOW(), $2, $2, 'active')`,
           [tenantId, authorId],
         ),
       ).rejects.toThrow(/ck_four_eyes/);
@@ -138,7 +138,7 @@ describeIfDb('migrations 008-021 — referentials common skeleton', () => {
       const { rowCount } = await ctx.testPool.query(
         `INSERT INTO ${table}
            (tenant_id, code, label, valid_from, author_user_id, validator_user_id, validated_at, status)
-           VALUES ($1, 'T-${table}-OK', 'Distinct validator', NOW(), $2, $3, NOW(), 'active')`,
+           VALUES ($1, 'TST-OK', 'Distinct validator', NOW(), $2, $3, NOW(), 'active')`,
         [tenantId, authorId, reviewerId],
       );
       expect(rowCount).toBe(1);
