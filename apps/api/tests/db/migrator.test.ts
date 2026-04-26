@@ -53,6 +53,7 @@ describeIfDb('migrator', () => {
     }
     await rm(tmpDir, { recursive: true, force: true });
     tmpDir = await mkdtemp(join(tmpdir(), 'regflow-migrator-'));
+    options.migrationsDir = tmpDir;
   });
 
   async function writeMigration(name: string, body: string): Promise<void> {
