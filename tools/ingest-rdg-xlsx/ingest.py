@@ -37,6 +37,29 @@ SENTINEL_PATTERN = re.compile(r"^[CD]\d+$")
 not BCT rubriques. Filtered out of the rubriques referential."""
 
 
+MISSING_OK_GUARD_TEMPLATE = """  -- Skip gracefully if session vars not configured (e.g. empty DB smoke test).
+  IF current_setting('app.seed_tenant_id', true) IS NULL
+    OR current_setting('app.seed_tenant_id', true) = ''
+    OR current_setting('app.seed_author_user_id', true) IS NULL
+    OR current_setting('app.seed_author_user_id', true) = ''
+    OR current_setting('app.seed_valid_from', true) IS NULL
+    OR current_setting('app.seed_valid_from', true) = '' THEN
+    RAISE NOTICE 'migration {num}: session vars not set - skipping seed insert';
+    RETURN;
+  END IF;
+"""
+"""Standard prelude inserted at the top of every loader-function DO block.
+
+current_setting(name, true) returns NULL with missing_ok semantics
+instead of raising 'unrecognized configuration parameter'. The CI
+migrations-smoke job runs `pnpm migrate:up` against an empty DB
+without operator-supplied seed context — every seed migration must
+no-op cleanly in that mode. The migration runs its INSERTs only
+when the operator (or a test harness) explicitly SET the three
+required GUCs.
+"""
+
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
         description="Ingest RDG.xlsx into canonical JSON seeds for apps/api/seeds/."
