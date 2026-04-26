@@ -25,6 +25,23 @@ DECLARE
   v_valid_from TIMESTAMPTZ;
   v_data       JSONB;
 BEGIN
+  -- Skip gracefully if session vars not configured (e.g. empty DB smoke
+  -- test, where pnpm migrate:up runs without operator-supplied seed
+  -- context). current_setting(name, true) returns NULL with missing_ok
+  -- semantics; without the second arg it would raise
+  --   ERROR: unrecognized configuration parameter "app.seed_tenant_id"
+  -- and abort the migration. We treat NULL or empty string as "not
+  -- configured" and exit the DO block silently.
+  IF current_setting('app.seed_tenant_id', true) IS NULL
+    OR current_setting('app.seed_tenant_id', true) = ''
+    OR current_setting('app.seed_author_user_id', true) IS NULL
+    OR current_setting('app.seed_author_user_id', true) = ''
+    OR current_setting('app.seed_valid_from', true) IS NULL
+    OR current_setting('app.seed_valid_from', true) = '' THEN
+    RAISE NOTICE 'migration 038: session vars not set - skipping seed insert';
+    RETURN;
+  END IF;
+
   v_tenant_id  := current_setting('app.seed_tenant_id')::UUID;
   v_author_id  := current_setting('app.seed_author_user_id')::UUID;
   v_valid_from := current_setting('app.seed_valid_from')::TIMESTAMPTZ;
