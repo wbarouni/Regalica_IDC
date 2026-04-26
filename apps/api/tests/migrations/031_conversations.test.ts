@@ -126,6 +126,7 @@ describeIfDb('migration 031 — conversations', () => {
     try {
       await client.query(`SET search_path TO ${ctx.schemaName}, public`);
       await client.query('BEGIN');
+      await client.query('SET LOCAL ROLE regflow_app');
       await client.query(`SET LOCAL app.current_tenant_id = '${tenantId}'`);
       await client.query(`SET LOCAL app.current_user_id = '${ownerUserId}'`);
       const { rows } = await client.query<{ count: string }>(
@@ -145,6 +146,7 @@ describeIfDb('migration 031 — conversations', () => {
     try {
       await client.query(`SET search_path TO ${ctx.schemaName}, public`);
       await client.query('BEGIN');
+      await client.query('SET LOCAL ROLE regflow_app');
       await client.query(`SET LOCAL app.current_tenant_id = '${tenantId}'`);
       await client.query(`SET LOCAL app.current_user_id = '${otherUserId}'`);
       const { rows } = await client.query<{ count: string }>(
@@ -164,6 +166,7 @@ describeIfDb('migration 031 — conversations', () => {
     try {
       await client.query(`SET search_path TO ${ctx.schemaName}, public`);
       await client.query('BEGIN');
+      await client.query('SET LOCAL ROLE regflow_app');
       await client.query(`SET LOCAL app.current_tenant_id = '${tenantId}'`);
       await client.query(`SET LOCAL app.current_user_id = '${directorUserId}'`);
       const { rows } = await client.query<{ count: string }>(

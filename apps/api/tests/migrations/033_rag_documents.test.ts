@@ -119,6 +119,7 @@ describeIfDb('migration 033 — rag_documents', () => {
     try {
       await client.query(`SET search_path TO ${ctx.schemaName}, public`);
       await client.query('BEGIN');
+      await client.query('SET LOCAL ROLE regflow_app');
       await client.query(`SET LOCAL app.current_tenant_id = '${otherTenantId}'`);
       const { rows } = await client.query<{ count: string }>(
         `SELECT COUNT(*)::text AS count FROM rag_documents`,
