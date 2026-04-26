@@ -35,6 +35,15 @@ export async function setupMigrationsSchema(
   const schemaName = `mig_test_${Date.now()}_${Math.floor(Math.random() * 1e6)}`;
 
   const adminPool = new Pool({ connectionString: url });
+  await adminPool.query(`
+    DO $$ BEGIN
+      IF NOT EXISTS (
+        SELECT FROM pg_roles WHERE rolname = 'regflow_app'
+      ) THEN
+        CREATE ROLE regflow_app LOGIN;
+      END IF;
+    END $$;
+  `);
   await adminPool.query(`CREATE SCHEMA ${schemaName}`);
 
   const testPool = new Pool({ connectionString: url });
