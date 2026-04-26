@@ -218,6 +218,9 @@ describeIfDb('migration 025 — validation_runs', () => {
       ]);
       await client.query('COMMIT');
       expect(res.rowCount).toBe(1);
+    } catch (err) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw err;
     } finally {
       client.release();
     }
@@ -243,6 +246,9 @@ describeIfDb('migration 025 — validation_runs', () => {
       );
       await client.query('COMMIT');
       expect(rows[0]!.count).toBe('0');
+    } catch (err) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw err;
     } finally {
       client.release();
     }
