@@ -73,6 +73,7 @@ describeIfDb('migration 023 — prompt_bank', () => {
       await client.query(`SET search_path TO ${ctx.schemaName}, public`);
       await client.query('BEGIN');
       await client.query('SET LOCAL ROLE regflow_app');
+      await client.query(`SET LOCAL app.current_tenant_id = '${tenantId}'`);
       if (actorUserId) {
         await client.query(`SET LOCAL app.current_user_id = '${actorUserId}'`);
       }
@@ -239,6 +240,7 @@ describeIfDb('migration 023 — prompt_bank', () => {
       await client.query(`SET search_path TO ${ctx.schemaName}, public`);
       await client.query('BEGIN');
       await client.query('SET LOCAL ROLE regflow_app');
+      await client.query(`SET LOCAL app.current_tenant_id = '${tenantId}'`);
       await client.query(`SET LOCAL app.current_user_id = '${nonOwnerUserId}'`);
       const { rows } = await client.query<{ count: string }>(
         `SELECT COUNT(*)::text AS count FROM prompt_bank
