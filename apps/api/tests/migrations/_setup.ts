@@ -71,6 +71,16 @@ export async function setupMigrationsSchema(
       const sql = await readFile(join(MIGRATIONS_DIR, file), 'utf8');
       await client.query(sql);
     }
+    // Mirror migration 036's grants on the test schema so that
+    // SET LOCAL ROLE regflow_app in RLS test blocks can access tables
+    // regardless of whether migration 036 ran (only when tier >= 36).
+    await client.query(`GRANT USAGE ON SCHEMA ${schemaName} TO regflow_app`);
+    await client.query(
+      `GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA ${schemaName} TO regflow_app`,
+    );
+    await client.query(
+      `GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA ${schemaName} TO regflow_app`,
+    );
   } finally {
     client.release();
   }
