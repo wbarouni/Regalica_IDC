@@ -52,7 +52,7 @@ describeIfDb('migrator', () => {
       await adminPool.query(`DROP TABLE IF EXISTS ${schemaName}.${leftover}`);
     }
     await rm(tmpDir, { recursive: true, force: true });
-    await mkdtemp(join(tmpdir(), 'regflow-migrator-'));
+    tmpDir = await mkdtemp(join(tmpdir(), 'regflow-migrator-'));
   });
 
   async function writeMigration(name: string, body: string): Promise<void> {
