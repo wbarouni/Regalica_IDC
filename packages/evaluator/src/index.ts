@@ -24,3 +24,4 @@ export { groupRulesByAnnexe } from './phase-b.js';
 export { resolveTerms, type ResolvedTerm, type SkipReason } from './resolve-terms.js';
 export { aggregateTerms, type AggregatedResult } from './phase-d.js';
 export { produceVerdict } from './phase-e.js';
+export { runEvaluation, type RunEvaluationOptions } from './engine.js';
