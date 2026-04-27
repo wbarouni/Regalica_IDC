@@ -19,3 +19,4 @@ export * from './types.js';
 export * from './expected-verdicts.js';
 export { createPool, withConnection, closePool } from './pool.js';
 export { loadRules, type LoadRulesOptions } from './rules-loader.js';
+export { parseBatch, type PhaseAResult } from './phase-a.js';
