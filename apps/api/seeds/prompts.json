@@ -1,0 +1,597 @@
+{
+  "version": 1,
+  "source": "docs/05-AGENTS-ET-PROMPTS-BANK.md §3, §7, §8, §9, §10, §11 + docs/09-CONTRATS-JSON-AGENTS.md + docs/10-ORCHESTRATION-REGALICA.md",
+  "consumers": [
+    "apps/api/migrations/043_seed_prompt_bank.sql — embeds this array verbatim in the seed DO block",
+    "apps/api/tests/migrations/043_seed_prompt_bank.test.ts — asserts row count and per-agent invariants"
+  ],
+  "note": "REGFlow has 14 logical agents (1 Regalica orchestratrice + 13 specialists). The prompt_bank table contains 22 entries because Regalica is decomposed into 12 sub-prompts (router + planner + 10 thematic aggregators), ReporterAgent has 2 prompts (docx + pdf), and 5 deterministic agents (IngestorXMLAgent, DependencyAgent, TemporalAgent, NotificationAgent, GedAgent) have no prompt_bank entry per docs/05-AGENTS-ET-PROMPTS-BANK.md §8 and §11.",
+  "ordering_convention": "Regalica sub-prompts first (router, planner, then 10 aggregators in question-type order), then governance specialists (rule_excel_assist, rule_form_assist, referential_ingestor), then post-validation specialists (investigator, historical, reporter_docx, reporter_pdf, visualizer, citation, diff).",
+  "todo_phase_3_bis_template_enrichment": "Templates are placeholders of the form [AGENT_FUNCTION_V1]. Phase 3-bis will replace each placeholder with its full prompt text (vouvoiement, no emoji, citations obligatoires, budget tokens) per docs/05 §22-25.",
+  "total": 22,
+  "prompts": [
+    {
+      "agent_type": "regalica",
+      "function_name": "router",
+      "version": 1,
+      "temperature": 0.0,
+      "max_tokens": 1024,
+      "thinking_enabled": false,
+      "target_model": "gemini-2.5-flash",
+      "template": "[REGALICA_ROUTER_V1]",
+      "input_schema": {
+        "type": "object",
+        "required": ["user_message"],
+        "properties": {
+          "user_message": { "type": "string" },
+          "current_state": { "type": "string" },
+          "validation_run_id": { "type": ["string", "null"] }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["intent_type", "confidence"],
+        "properties": {
+          "intent_type": { "type": "string" },
+          "confidence": { "type": "number" },
+          "reasoning": { "type": "string" }
+        }
+      }
+    },
+    {
+      "agent_type": "regalica",
+      "function_name": "planner",
+      "version": 1,
+      "temperature": 0.0,
+      "max_tokens": 2048,
+      "thinking_enabled": false,
+      "target_model": "gemini-2.5-flash",
+      "template": "[REGALICA_PLANNER_V1]",
+      "input_schema": {
+        "type": "object",
+        "required": ["intent_type", "context"],
+        "properties": {
+          "intent_type": { "type": "string" },
+          "context": { "type": "object" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["agents_to_invoke"],
+        "properties": {
+          "agents_to_invoke": { "type": "array", "items": { "type": "string" } },
+          "parallelism_groups": { "type": "array" }
+        }
+      }
+    },
+    {
+      "agent_type": "regalica",
+      "function_name": "aggregate_zoom_fail",
+      "version": 1,
+      "temperature": 0.7,
+      "max_tokens": 8192,
+      "thinking_enabled": true,
+      "target_model": "gemini-2.5-flash",
+      "template": "[REGALICA_AGGREGATE_ZOOM_FAIL_V1]",
+      "input_schema": {
+        "type": "object",
+        "required": ["specialist_outputs"],
+        "properties": {
+          "specialist_outputs": { "type": "array" },
+          "conversation_context": { "type": "object" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["response_markdown"],
+        "properties": {
+          "thinking_trace": { "type": "string" },
+          "response_markdown": { "type": "string" },
+          "citations": { "type": "array" },
+          "follow_up_suggestions": { "type": "array" }
+        }
+      }
+    },
+    {
+      "agent_type": "regalica",
+      "function_name": "aggregate_grappe_cause_racine",
+      "version": 1,
+      "temperature": 0.7,
+      "max_tokens": 8192,
+      "thinking_enabled": true,
+      "target_model": "gemini-2.5-flash",
+      "template": "[REGALICA_AGGREGATE_GRAPPE_CAUSE_RACINE_V1]",
+      "input_schema": {
+        "type": "object",
+        "required": ["specialist_outputs"],
+        "properties": {
+          "specialist_outputs": { "type": "array" },
+          "conversation_context": { "type": "object" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["response_markdown"],
+        "properties": {
+          "thinking_trace": { "type": "string" },
+          "response_markdown": { "type": "string" },
+          "citations": { "type": "array" },
+          "follow_up_suggestions": { "type": "array" }
+        }
+      }
+    },
+    {
+      "agent_type": "regalica",
+      "function_name": "aggregate_historique_recurrence",
+      "version": 1,
+      "temperature": 0.7,
+      "max_tokens": 8192,
+      "thinking_enabled": true,
+      "target_model": "gemini-2.5-flash",
+      "template": "[REGALICA_AGGREGATE_HISTORIQUE_RECURRENCE_V1]",
+      "input_schema": {
+        "type": "object",
+        "required": ["specialist_outputs"],
+        "properties": {
+          "specialist_outputs": { "type": "array" },
+          "conversation_context": { "type": "object" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["response_markdown"],
+        "properties": {
+          "thinking_trace": { "type": "string" },
+          "response_markdown": { "type": "string" },
+          "citations": { "type": "array" },
+          "follow_up_suggestions": { "type": "array" }
+        }
+      }
+    },
+    {
+      "agent_type": "regalica",
+      "function_name": "aggregate_citation_reglementaire",
+      "version": 1,
+      "temperature": 0.3,
+      "max_tokens": 4096,
+      "thinking_enabled": false,
+      "target_model": "gemini-2.5-flash",
+      "template": "[REGALICA_AGGREGATE_CITATION_REGLEMENTAIRE_V1]",
+      "input_schema": {
+        "type": "object",
+        "required": ["specialist_outputs"],
+        "properties": {
+          "specialist_outputs": { "type": "array" },
+          "conversation_context": { "type": "object" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["response_markdown"],
+        "properties": {
+          "response_markdown": { "type": "string" },
+          "citations": { "type": "array" }
+        }
+      }
+    },
+    {
+      "agent_type": "regalica",
+      "function_name": "aggregate_simulation_impact",
+      "version": 1,
+      "temperature": 0.5,
+      "max_tokens": 8192,
+      "thinking_enabled": true,
+      "target_model": "gemini-2.5-flash",
+      "template": "[REGALICA_AGGREGATE_SIMULATION_IMPACT_V1]",
+      "input_schema": {
+        "type": "object",
+        "required": ["specialist_outputs"],
+        "properties": {
+          "specialist_outputs": { "type": "array" },
+          "conversation_context": { "type": "object" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["response_markdown"],
+        "properties": {
+          "thinking_trace": { "type": "string" },
+          "response_markdown": { "type": "string" },
+          "scenarios": { "type": "array" }
+        }
+      }
+    },
+    {
+      "agent_type": "regalica",
+      "function_name": "aggregate_estimation_sanction",
+      "version": 1,
+      "temperature": 0.3,
+      "max_tokens": 4096,
+      "thinking_enabled": false,
+      "target_model": "gemini-2.5-flash",
+      "template": "[REGALICA_AGGREGATE_ESTIMATION_SANCTION_V1]",
+      "input_schema": {
+        "type": "object",
+        "required": ["specialist_outputs"],
+        "properties": {
+          "specialist_outputs": { "type": "array" },
+          "conversation_context": { "type": "object" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["response_markdown"],
+        "properties": {
+          "response_markdown": { "type": "string" },
+          "estimated_range": { "type": "object" },
+          "citations": { "type": "array" }
+        }
+      }
+    },
+    {
+      "agent_type": "regalica",
+      "function_name": "aggregate_plan_optimal",
+      "version": 1,
+      "temperature": 0.7,
+      "max_tokens": 8192,
+      "thinking_enabled": true,
+      "target_model": "gemini-2.5-flash",
+      "template": "[REGALICA_AGGREGATE_PLAN_OPTIMAL_V1]",
+      "input_schema": {
+        "type": "object",
+        "required": ["specialist_outputs"],
+        "properties": {
+          "specialist_outputs": { "type": "array" },
+          "conversation_context": { "type": "object" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["response_markdown"],
+        "properties": {
+          "thinking_trace": { "type": "string" },
+          "response_markdown": { "type": "string" },
+          "ordered_actions": { "type": "array" }
+        }
+      }
+    },
+    {
+      "agent_type": "regalica",
+      "function_name": "aggregate_ambiguous",
+      "version": 1,
+      "temperature": 0.5,
+      "max_tokens": 2048,
+      "thinking_enabled": false,
+      "target_model": "gemini-2.5-flash",
+      "template": "[REGALICA_AGGREGATE_AMBIGUOUS_V1]",
+      "input_schema": {
+        "type": "object",
+        "required": ["user_message"],
+        "properties": {
+          "user_message": { "type": "string" },
+          "candidate_intents": { "type": "array" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["response_markdown"],
+        "properties": {
+          "response_markdown": { "type": "string" },
+          "clarification_questions": { "type": "array" }
+        }
+      }
+    },
+    {
+      "agent_type": "regalica",
+      "function_name": "aggregate_out_of_scope",
+      "version": 1,
+      "temperature": 0.5,
+      "max_tokens": 1024,
+      "thinking_enabled": false,
+      "target_model": "gemini-2.5-flash",
+      "template": "[REGALICA_AGGREGATE_OUT_OF_SCOPE_V1]",
+      "input_schema": {
+        "type": "object",
+        "required": ["user_message"],
+        "properties": {
+          "user_message": { "type": "string" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["response_markdown"],
+        "properties": {
+          "response_markdown": { "type": "string" }
+        }
+      }
+    },
+    {
+      "agent_type": "regalica",
+      "function_name": "aggregate_general_help",
+      "version": 1,
+      "temperature": 0.5,
+      "max_tokens": 2048,
+      "thinking_enabled": false,
+      "target_model": "gemini-2.5-flash",
+      "template": "[REGALICA_AGGREGATE_GENERAL_HELP_V1]",
+      "input_schema": {
+        "type": "object",
+        "required": ["user_message"],
+        "properties": {
+          "user_message": { "type": "string" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["response_markdown"],
+        "properties": {
+          "response_markdown": { "type": "string" }
+        }
+      }
+    },
+    {
+      "agent_type": "rule_excel_assist",
+      "function_name": "extract_rule_from_xlsx",
+      "version": 1,
+      "temperature": 0.3,
+      "max_tokens": 4096,
+      "thinking_enabled": false,
+      "target_model": "gemini-2.5-flash",
+      "template": "[RULE_EXCEL_ASSIST_EXTRACT_RULE_FROM_XLSX_V1]",
+      "input_schema": {
+        "type": "object",
+        "required": ["xlsx_row"],
+        "properties": {
+          "xlsx_row": { "type": "object" },
+          "annexes_catalog": { "type": "array" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["draft_rule", "confidence"],
+        "properties": {
+          "draft_rule": { "type": "object" },
+          "confidence": { "type": "number" },
+          "warnings": { "type": "array" }
+        }
+      }
+    },
+    {
+      "agent_type": "rule_form_assist",
+      "function_name": "draft_rule_from_form",
+      "version": 1,
+      "temperature": 0.3,
+      "max_tokens": 4096,
+      "thinking_enabled": false,
+      "target_model": "gemini-2.5-flash",
+      "template": "[RULE_FORM_ASSIST_DRAFT_RULE_FROM_FORM_V1]",
+      "input_schema": {
+        "type": "object",
+        "required": ["form_fields"],
+        "properties": {
+          "form_fields": { "type": "object" },
+          "annexes_catalog": { "type": "array" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["draft_rule", "confidence"],
+        "properties": {
+          "draft_rule": { "type": "object" },
+          "confidence": { "type": "number" },
+          "warnings": { "type": "array" }
+        }
+      }
+    },
+    {
+      "agent_type": "referential_ingestor",
+      "function_name": "extract_referential_from_pdf",
+      "version": 1,
+      "temperature": 0.3,
+      "max_tokens": 4096,
+      "thinking_enabled": false,
+      "target_model": "gemini-2.5-flash",
+      "template": "[REFERENTIAL_INGESTOR_EXTRACT_REFERENTIAL_FROM_PDF_V1]",
+      "input_schema": {
+        "type": "object",
+        "required": ["pdf_text", "referential_kind"],
+        "properties": {
+          "pdf_text": { "type": "string" },
+          "referential_kind": { "type": "string" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["draft_records", "confidence"],
+        "properties": {
+          "draft_records": { "type": "array" },
+          "confidence": { "type": "number" },
+          "warnings": { "type": "array" }
+        }
+      }
+    },
+    {
+      "agent_type": "investigator",
+      "function_name": "analyze_fail",
+      "version": 1,
+      "temperature": 0.3,
+      "max_tokens": 4096,
+      "thinking_enabled": false,
+      "target_model": "gemini-2.5-flash",
+      "template": "[INVESTIGATOR_ANALYZE_FAIL_V1]",
+      "input_schema": {
+        "type": "object",
+        "required": ["verdict", "rule"],
+        "properties": {
+          "verdict": { "type": "object" },
+          "rule": { "type": "object" },
+          "involved_cells": { "type": "array" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["explanation", "suggested_action", "confidence"],
+        "properties": {
+          "explanation": { "type": "string" },
+          "suggested_action": { "type": "string" },
+          "confidence": { "type": "number" },
+          "citations": { "type": "array" }
+        }
+      }
+    },
+    {
+      "agent_type": "historical",
+      "function_name": "compare_runs_history",
+      "version": 1,
+      "temperature": 0.5,
+      "max_tokens": 4096,
+      "thinking_enabled": false,
+      "target_model": "gemini-2.5-flash",
+      "template": "[HISTORICAL_COMPARE_RUNS_HISTORY_V1]",
+      "input_schema": {
+        "type": "object",
+        "required": ["arrete_dates", "rule_id"],
+        "properties": {
+          "arrete_dates": { "type": "array", "items": { "type": "string" } },
+          "rule_id": { "type": "string" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["trend_summary"],
+        "properties": {
+          "trend_summary": { "type": "string" },
+          "data_points": { "type": "array" }
+        }
+      }
+    },
+    {
+      "agent_type": "reporter",
+      "function_name": "generate_docx",
+      "version": 1,
+      "temperature": 0.5,
+      "max_tokens": 8192,
+      "thinking_enabled": false,
+      "target_model": "gemini-2.5-flash",
+      "template": "[REPORTER_GENERATE_DOCX_V1]",
+      "input_schema": {
+        "type": "object",
+        "required": ["run_id", "verdicts_summary"],
+        "properties": {
+          "run_id": { "type": "string" },
+          "verdicts_summary": { "type": "object" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["docx_sections"],
+        "properties": {
+          "docx_sections": { "type": "array" }
+        }
+      }
+    },
+    {
+      "agent_type": "reporter",
+      "function_name": "generate_pdf",
+      "version": 1,
+      "temperature": 0.5,
+      "max_tokens": 8192,
+      "thinking_enabled": false,
+      "target_model": "gemini-2.5-flash",
+      "template": "[REPORTER_GENERATE_PDF_V1]",
+      "input_schema": {
+        "type": "object",
+        "required": ["run_id", "verdicts_summary"],
+        "properties": {
+          "run_id": { "type": "string" },
+          "verdicts_summary": { "type": "object" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["pdf_sections"],
+        "properties": {
+          "pdf_sections": { "type": "array" }
+        }
+      }
+    },
+    {
+      "agent_type": "visualizer",
+      "function_name": "produce_chart",
+      "version": 1,
+      "temperature": 0.3,
+      "max_tokens": 2048,
+      "thinking_enabled": false,
+      "target_model": "gemini-2.5-flash",
+      "template": "[VISUALIZER_PRODUCE_CHART_V1]",
+      "input_schema": {
+        "type": "object",
+        "required": ["data_series", "chart_kind"],
+        "properties": {
+          "data_series": { "type": "array" },
+          "chart_kind": { "type": "string" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["chart_spec"],
+        "properties": {
+          "chart_spec": { "type": "object" },
+          "caption": { "type": "string" }
+        }
+      }
+    },
+    {
+      "agent_type": "citation",
+      "function_name": "find_regulatory_source",
+      "version": 1,
+      "temperature": 0.3,
+      "max_tokens": 2048,
+      "thinking_enabled": false,
+      "target_model": "gemini-2.5-flash",
+      "template": "[CITATION_FIND_REGULATORY_SOURCE_V1]",
+      "input_schema": {
+        "type": "object",
+        "required": ["rule_id"],
+        "properties": {
+          "rule_id": { "type": "string" },
+          "rag_chunks": { "type": "array" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["citation"],
+        "properties": {
+          "citation": { "type": "object" },
+          "confidence": { "type": "number" }
+        }
+      }
+    },
+    {
+      "agent_type": "diff",
+      "function_name": "narrate_diff",
+      "version": 1,
+      "temperature": 0.5,
+      "max_tokens": 4096,
+      "thinking_enabled": false,
+      "target_model": "gemini-2.5-flash",
+      "template": "[DIFF_NARRATE_DIFF_V1]",
+      "input_schema": {
+        "type": "object",
+        "required": ["run_id_a", "run_id_b"],
+        "properties": {
+          "run_id_a": { "type": "string" },
+          "run_id_b": { "type": "string" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "required": ["narrative"],
+        "properties": {
+          "narrative": { "type": "string" },
+          "changes_count": { "type": "integer" }
+        }
+      }
+    }
+  ]
+}
