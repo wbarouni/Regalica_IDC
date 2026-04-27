@@ -34,10 +34,20 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readFile } from 'node:fs/promises';
 
 import { parseBctXml, parseBctBatch, type ParsedXml } from '@regflow/bct-xml-parser';
 
+import { runEvaluation } from '../src/engine.js';
+import { parseBatch } from '../src/phase-a.js';
+import { loadRules } from '../src/rules-loader.js';
+import {
+  setupEvaluatorTestSchema,
+  teardownEvaluatorTestSchema,
+  type EvaluatorTestDb,
+} from './_db-setup.js';
 import { assertExpectedVerdictsShape, type ExpectedVerdicts } from '../src/expected-verdicts.js';
+import type { EvaluationInput, EvaluationResult } from '../src/types.js';
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -255,54 +265,193 @@ describe('Golden Baseline — Structure and Metadata Validation (Phase 0)', () =
 });
 
 // ---------------------------------------------------------------------------
-// Phase 2 — Engine Evaluation (stub, skipped until moteur connecté)
+// Phase 2 — Engine Evaluation
 // ---------------------------------------------------------------------------
+//
+// This block runs the canonical engine pipeline against the golden corpus.
+// It is gated on `DATABASE_URL` because rule loading needs a live Postgres
+// to read the seeded `rules` rows. When no DB is available (CI sandbox
+// without Postgres) the whole block is skipped — the Phase 0 metadata
+// suite above keeps running and protects parsing / structural invariants.
 
-describe.skip('Golden Baseline — Engine Evaluation (Phase 2)', () => {
-  // Ce bloc est volontairement `describe.skip` en Phase 0 parce que le moteur
-  // n'est pas encore implémenté. Il sera activé en Phase 2 du plan brute en
-  // retirant le `.skip` et en branchant le moteur canonique.
+const SEED_MIGRATION_PATH = path.resolve(
+  __dirname,
+  '../../../apps/api/migrations/042_seed_rules.sql',
+);
 
+const hasDb = Boolean(process.env['DATABASE_URL']);
+const describeIfDb = hasDb ? describe : describe.skip;
+
+describeIfDb('Golden Baseline — Engine Evaluation (Phase 2)', () => {
   const batches = discoverBatches(FIXTURES_ROOT, TENANT_SLUG);
+
+  let ctx: EvaluatorTestDb;
+  let tenantId: string;
+
+  beforeAll(async () => {
+    // Schema is built up to migration 042. The seed migrations 038-042
+    // see no GUC at apply time and skip cleanly via their missing-ok
+    // guard, leaving the tables empty. We then insert the tenant + author
+    // rows the seed needs and re-execute 042 with the GUCs set, which
+    // populates the `rules` table without the FK violations a pre-set
+    // GUC would have caused.
+    ctx = await setupEvaluatorTestSchema(42);
+
+    const t = await ctx.testPool.query<{ id: string }>(
+      `INSERT INTO tenants (slug, legal_name)
+         VALUES ('tenant-001', 'Tenant Pilot Golden') RETURNING id`,
+    );
+    tenantId = t.rows[0]!.id;
+
+    const u = await ctx.testPool.query<{ id: string }>(
+      `INSERT INTO users (tenant_id, external_sso_id, email, full_name)
+         VALUES ($1, 'sso-golden-author', 'author@golden.example', 'Golden Author')
+         RETURNING id`,
+      [tenantId],
+    );
+    const authorId = u.rows[0]!.id;
+
+    const seedSql = await readFile(SEED_MIGRATION_PATH, 'utf8');
+    const client = await ctx.testPool.connect();
+    try {
+      await client.query(`SET search_path TO ${ctx.schemaName}, public`);
+      await client.query(`SET app.seed_tenant_id = '${tenantId}'`);
+      await client.query(`SET app.seed_author_user_id = '${authorId}'`);
+      await client.query(`SET app.seed_valid_from = '2020-01-01'`);
+      await client.query(seedSql);
+    } finally {
+      client.release();
+    }
+  }, 600000);
+
+  afterAll(async () => {
+    if (ctx) {
+      await teardownEvaluatorTestSchema(ctx);
+    }
+  });
 
   describe.each(batches.map((b) => [b.batchId, b]))(
     'Batch %s engine run',
     (_batchId: unknown, batch: DiscoveredBatch) => {
-      const expected = loadExpectedVerdicts(batch.expectedVerdictsPath);
+      let expected: ExpectedVerdicts;
+      let result: EvaluationResult;
 
-      it('engine produces expected totals (or captures them on first run)', async () => {
-        // 1. Charger règles depuis DB (migration 008 seed_rdg_rules).
-        // 2. Filtrer règles dont validFrom <= arreteDate < validTo.
-        // 3. Parser le batch via parseBctBatch.
-        // 4. Exécuter le moteur : engine.evaluate({ tenantId, arreteDate, parsedXmls, mergedCells, rules }).
-        // 5. Comparer result.totals avec expected.expected_totals.
-        //
-        // Mode capture : si expected_totals.capture_mode === true, capturer les
-        // valeurs observées et réécrire le JSON.
-        //
-        // Mode assert : comparer strictement chaque champ.
-        expect(true).toBe(true); // placeholder
+      beforeAll(async () => {
+        expected = loadExpectedVerdicts(batch.expectedVerdictsPath);
+
+        const rules = await loadRules({
+          pool: ctx.testPool,
+          tenantId,
+          arreteDate: new Date(batch.arreteDate),
+          statuses: ['draft'],
+        });
+
+        const xmlContents = batch.filledFiles.map((f) => fs.readFileSync(f, 'utf-8'));
+        const { parsedXmls, mergedCells } = parseBatch(xmlContents);
+
+        const input: EvaluationInput = {
+          tenantId,
+          arreteDate: batch.arreteDate,
+          parsedXmls: new Map(
+            parsedXmls.map((p, i) => [path.basename(batch.filledFiles[i] ?? `xml-${i}`), p]),
+          ),
+          mergedCells,
+          rules,
+        };
+        result = await runEvaluation(input);
+      }, 600000);
+
+      it('engine produces expected totals (or captures them on first run)', () => {
+        const observedTotals: ExpectedVerdicts['expected_totals'] = {
+          rules_applicable_total: result.totals.rulesApplicableTotal,
+          pass: result.totals.pass,
+          fail_severe: result.totals.failSevere,
+          fail_rounding: result.totals.failRounding,
+          skipped_missing_annexe: result.totals.skippedMissingAnnexe,
+          skipped_missing_rubrique: result.totals.skippedMissingRubrique,
+          skipped_missing_colonne: result.totals.skippedMissingColonne,
+          skipped_missing_data: result.totals.skippedMissingData,
+          skipped_conditional: result.totals.skippedConditional,
+          skipped_unsupported_op: result.totals.skippedUnsupportedOp,
+          skipped_literal_text: result.totals.skippedLiteralText,
+          capture_mode: false,
+        };
+
+        if (MODE === 'capture' && expected.expected_totals.capture_mode) {
+          maybeCapture(expected, observedTotals, batch.expectedVerdictsPath);
+          return;
+        }
+
+        const exp = expected.expected_totals;
+        expect(result.totals.rulesApplicableTotal).toBe(exp.rules_applicable_total);
+        expect(result.totals.pass).toBe(exp.pass);
+        expect(result.totals.failSevere).toBe(exp.fail_severe);
+        expect(result.totals.failRounding).toBe(exp.fail_rounding);
+        expect(result.totals.skippedMissingAnnexe).toBe(exp.skipped_missing_annexe);
+        expect(result.totals.skippedMissingRubrique).toBe(exp.skipped_missing_rubrique);
+        expect(result.totals.skippedMissingColonne).toBe(exp.skipped_missing_colonne);
+        expect(result.totals.skippedMissingData).toBe(exp.skipped_missing_data);
+        expect(result.totals.skippedConditional).toBe(exp.skipped_conditional);
+        expect(result.totals.skippedUnsupportedOp).toBe(exp.skipped_unsupported_op);
+        expect(result.totals.skippedLiteralText).toBe(exp.skipped_literal_text);
       });
 
-      it('every expected_fail is actually produced by the engine', async () => {
-        // Pour chaque entrée dans expected.expected_fails :
-        //   - Vérifier qu'un verdict FAIL existe pour (annexe, num_regle).
-        //   - Vérifier que sa rubrique et colonne correspondent.
-        //   - Vérifier que son gap est à la précision Decimal près
-        //     (tolérance 0 pour severe, tolérance 1 TND pour rounding).
-        expect(true).toBe(true); // placeholder
+      it('every expected_fail is actually produced by the engine', () => {
+        for (const ef of expected.expected_fails) {
+          const match = result.verdicts.find(
+            (v) => v.annexeCode === ef.annexe && v.numRegle === ef.num_regle && v.status === 'FAIL',
+          );
+          expect(match).toBeDefined();
+          if (match) {
+            expect(match.severity).toBe(ef.severity);
+          }
+        }
       });
 
-      it('no unexpected FAIL severe is produced', async () => {
-        // Vérifier que result.totals.fail_severe === expected.expected_totals.fail_severe
-        // et que chaque FAIL sévère du résultat est dans expected.expected_fails.
-        expect(true).toBe(true); // placeholder
+      it('no unexpected FAIL severe is produced', () => {
+        const observedSevereFails = result.verdicts.filter(
+          (v) => v.status === 'FAIL' && v.severity === 'severe',
+        );
+
+        // Count must match the captured / declared fail_severe. The
+        // assertion is skipped during the capture run because the
+        // captured value has not been written back yet.
+        if (MODE !== 'capture' || !expected.expected_totals.capture_mode) {
+          expect(observedSevereFails.length).toBe(expected.expected_totals.fail_severe);
+        }
+
+        // Membership check: only enforced when the operator has
+        // populated expected_fails with a curated list. The Phase 0
+        // golden corpus ships with `expected_fails: []` for every
+        // batch — the Phase 2 capture pass populates expected_totals
+        // only, so the membership of each FAIL severe in
+        // expected_fails is asserted lazily once that list is filled
+        // in (Phase 2-bis sentinel work).
+        if (expected.expected_fails.length > 0) {
+          const expectedFailKeys = new Set(
+            expected.expected_fails
+              .filter((f) => f.severity === 'severe')
+              .map((f) => `${f.annexe}/${f.num_regle}`),
+          );
+          for (const v of observedSevereFails) {
+            expect(expectedFailKeys.has(`${v.annexeCode}/${v.numRegle}`)).toBe(true);
+          }
+        }
       });
 
-      it('companion_annexes_missing produces corresponding SKIPPED_MISSING_ANNEXE', async () => {
-        // Vérifier que chaque annexe de expected.companion_annexes_missing_in_batch
-        // génère les SKIPPED attendus sur ses règles dépendantes.
-        expect(true).toBe(true); // placeholder
+      it('companion_annexes_missing produces corresponding SKIPPED_MISSING_ANNEXE', () => {
+        for (const cm of expected.companion_annexes_missing_in_batch) {
+          // For every rule that depends on the missing companion annexe,
+          // expect a SKIPPED_MISSING_ANNEXE verdict on at least one rule
+          // whose bearer annexe is in `required_by`. Empty `required_by`
+          // means there is no dependent rule to assert on; in that case
+          // the assertion reduces to a no-op for that companion entry.
+          if (cm.required_by.length === 0) continue;
+          const hasSkippedDependent = result.verdicts.some(
+            (v) => v.status === 'SKIPPED_MISSING_ANNEXE' && cm.required_by.includes(v.annexeCode),
+          );
+          expect(hasSkippedDependent).toBe(true);
+        }
       });
     },
   );
@@ -340,6 +489,5 @@ export function maybeCapture(
   );
 }
 
-// Avoid unused var warnings in Phase 0 build
+// Avoid unused var warnings (fileURLToPath kept for future ESM support)
 void fileURLToPath;
-void MODE;

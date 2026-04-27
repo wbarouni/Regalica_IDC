@@ -37,9 +37,11 @@ function normalizeTermOp(raw: string | null): ValidTermOp | null {
   return null;
 }
 
-function normalizeRang(raw: number): 1 | 2 | 3 {
-  if (raw === 1 || raw === 2 || raw === 3) return raw;
-  throw new Error(`[rules-loader] invalid term rang: ${raw}`);
+function normalizeRang(raw: number): number {
+  if (!Number.isInteger(raw) || raw < 1) {
+    throw new Error(`[rules-loader] invalid term rang: ${raw}`);
+  }
+  return raw;
 }
 
 interface JsonbTerm {

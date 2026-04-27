@@ -42,7 +42,7 @@ export type FailSeverity = 'severe' | 'rounding';
  */
 export interface RuleTerm {
   readonly id: string;
-  readonly rang: 1 | 2 | 3;
+  readonly rang: number;
   readonly numSeq: number;
   readonly termOp: '+' | '-' | '*' | '/' | null;
   readonly kind: 'cell_ref' | 'literal' | 'literal_text';
