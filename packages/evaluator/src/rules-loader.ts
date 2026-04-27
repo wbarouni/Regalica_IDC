@@ -12,6 +12,7 @@
  * insert rules in draft status pending the four-eyes promotion.
  */
 
+import Decimal from 'decimal.js';
 import type { Pool } from 'pg';
 
 import type { RuleTerm, RuleWithTerms } from './types.js';
@@ -53,9 +54,58 @@ interface JsonbTerm {
   num_seq: number;
 }
 
+// Sentinelle 'C' (BCT doctrine, Document 2 §RDG): the term carries a
+// numeric constant in the `rubrique` field rather than a rubrique code.
+// Its `colonne` is null. Common usages in the corpus: `*100` to express
+// a percentage, or `+0` to assert non-negativity. We map these terms at
+// load time so the resolver consumes them without attempting a
+// CellMatrix lookup:
+//
+//   - numeric (with optional French ',' decimal separator)
+//       -> kind='literal', literalValue = Decimal(rubrique)
+//   - non-numeric descriptive text (e.g. "1 ou 2" denoting a discrete
+//     alternative the engine cannot evaluate arithmetically)
+//       -> kind='literal_text', resolved to SKIPPED_LITERAL_TEXT
+function mapSentinelCToLiteral(ruleId: string, id: string, t: JsonbTerm): RuleTerm {
+  if (t.rubrique == null) {
+    throw new Error(`[rules-loader] sentinel C term has no rubrique literal (${ruleId} ${id})`);
+  }
+  // Normalize French decimal separator: the BCT XLSX writes '12,5' for 12.5.
+  const raw = String(t.rubrique).replace(',', '.');
+  const baseFields = {
+    id,
+    rang: normalizeRang(t.rang),
+    numSeq: t.num_seq,
+    termOp: normalizeTermOp(t.oper_term),
+    axOrigine: null,
+    rubriqueCode: null,
+    colonne: null,
+  } as const;
+  try {
+    const literalValue = new Decimal(raw);
+    return {
+      ...baseFields,
+      kind: 'literal',
+      literalValue,
+      literalText: null,
+    };
+  } catch {
+    return {
+      ...baseFields,
+      kind: 'literal_text',
+      literalValue: null,
+      literalText: String(t.rubrique),
+    };
+  }
+}
+
 function mapJsonbTerm(ruleId: string, t: JsonbTerm): RuleTerm {
+  const id = `${ruleId}::r${t.rang}::s${t.num_seq}`;
+  if (t.ax_origine === 'C') {
+    return mapSentinelCToLiteral(ruleId, id, t);
+  }
   return {
-    id: `${ruleId}::r${t.rang}::s${t.num_seq}`,
+    id,
     rang: normalizeRang(t.rang),
     numSeq: t.num_seq,
     termOp: normalizeTermOp(t.oper_term),

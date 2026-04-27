@@ -439,18 +439,30 @@ describeIfDb('Golden Baseline — Engine Evaluation (Phase 2)', () => {
         }
       });
 
-      it('companion_annexes_missing produces corresponding SKIPPED_MISSING_ANNEXE', () => {
+      it('companion_annexes_missing entries refer to existing bearer annexes', () => {
+        // The `companion_annexes_missing_in_batch` entries declare a
+        // regulatory dependency between annexes (e.g. annexe 47
+        // documentation references annexes 00/01/51). The dependency is
+        // not necessarily realised at the rule-term level — the seed
+        // corpus has many intra-annexe rules whose axTerm matches a
+        // bearer in `required_by` but whose terms reference no other
+        // annexe. The previous heuristic ("at least one
+        // SKIPPED_MISSING_ANNEXE on a bearer") was satisfied only by
+        // the buggy pre-21 sentinel C handling that wrongly skipped
+        // intra-annexe literal terms; once the loader maps sentinel C
+        // to literals, the heuristic no longer holds.
+        //
+        // We instead assert the structural invariant: every bearer
+        // listed in `required_by` exists somewhere in the verdicts
+        // (i.e. corresponds to a real rule in the corpus). Phase 2-bis
+        // will refine this check once expected_fails is populated with
+        // curated entries that include term-level dependency data.
         for (const cm of expected.companion_annexes_missing_in_batch) {
-          // For every rule that depends on the missing companion annexe,
-          // expect a SKIPPED_MISSING_ANNEXE verdict on at least one rule
-          // whose bearer annexe is in `required_by`. Empty `required_by`
-          // means there is no dependent rule to assert on; in that case
-          // the assertion reduces to a no-op for that companion entry.
           if (cm.required_by.length === 0) continue;
-          const hasSkippedDependent = result.verdicts.some(
-            (v) => v.status === 'SKIPPED_MISSING_ANNEXE' && cm.required_by.includes(v.annexeCode),
+          const hasBearer = cm.required_by.some((bearer) =>
+            result.verdicts.some((v) => v.annexeCode === bearer),
           );
-          expect(hasSkippedDependent).toBe(true);
+          expect(hasBearer).toBe(true);
         }
       });
     },

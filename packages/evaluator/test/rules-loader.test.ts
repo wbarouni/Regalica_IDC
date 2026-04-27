@@ -179,3 +179,167 @@ describe('rules-loader — operator validation (unit)', () => {
     ).rejects.toThrow(/unsupported operator/);
   });
 });
+
+describe('rules-loader — sentinel C mapping (unit)', () => {
+  function fakePoolWithRow(row: Record<string, unknown>): Parameters<typeof loadRules>[0]['pool'] {
+    return {
+      query: () => Promise.resolve({ rows: [row] }),
+    } as unknown as Parameters<typeof loadRules>[0]['pool'];
+  }
+
+  const baseRow = {
+    id: '00000000-0000-0000-0000-000000000010',
+    ax_term: '480',
+    num_regle: 12,
+    operator: '=',
+    type_ctrl_computed: 'intra_ax',
+    zone_texte: null,
+    terms_count: 4,
+    version: 1,
+    valid_from: new Date('2025-01-01'),
+    valid_to: null,
+  };
+
+  it("maps a sentinel C term (ax_origine='C') to kind='literal' with literalValue from rubrique", async () => {
+    const row = {
+      ...baseRow,
+      terms: [
+        {
+          rang: 1,
+          ax_origine: '480',
+          rubrique: '48001000000000',
+          colonne: 44,
+          oper_term: '+',
+          num_seq: 1,
+        },
+        {
+          rang: 2,
+          ax_origine: '480',
+          rubrique: '48001000000000',
+          colonne: 42,
+          oper_term: '+',
+          num_seq: 1,
+        },
+        {
+          rang: 2,
+          ax_origine: '480',
+          rubrique: '48001000000000',
+          colonne: 43,
+          oper_term: '/',
+          num_seq: 2,
+        },
+        { rang: 2, ax_origine: 'C', rubrique: '100', colonne: null, oper_term: '*', num_seq: 3 },
+      ],
+    };
+
+    const rules = await loadRules({
+      pool: fakePoolWithRow(row),
+      tenantId: '00000000-0000-0000-0000-000000000000',
+      arreteDate: new Date('2025-06-01'),
+      statuses: ['draft'],
+    });
+
+    expect(rules).toHaveLength(1);
+    const sentinelTerm = rules[0]!.terms.find((t) => t.numSeq === 3 && t.rang === 2)!;
+    expect(sentinelTerm.kind).toBe('literal');
+    expect(sentinelTerm.literalValue).not.toBeNull();
+    expect(sentinelTerm.literalValue!.toString()).toBe('100');
+    expect(sentinelTerm.axOrigine).toBeNull();
+    expect(sentinelTerm.rubriqueCode).toBeNull();
+    expect(sentinelTerm.colonne).toBeNull();
+    expect(sentinelTerm.termOp).toBe('*');
+  });
+
+  it("maps sentinel C with rubrique='0' (non-negativity constraint) to literal 0", async () => {
+    const row = {
+      ...baseRow,
+      num_regle: 65,
+      operator: '>=',
+      terms_count: 2,
+      terms: [
+        {
+          rang: 1,
+          ax_origine: '480',
+          rubrique: '48001000000000',
+          colonne: 3,
+          oper_term: '+',
+          num_seq: 1,
+        },
+        { rang: 2, ax_origine: 'C', rubrique: '0', colonne: null, oper_term: '+', num_seq: 1 },
+      ],
+    };
+
+    const rules = await loadRules({
+      pool: fakePoolWithRow(row),
+      tenantId: '00000000-0000-0000-0000-000000000000',
+      arreteDate: new Date('2025-06-01'),
+      statuses: ['draft'],
+    });
+
+    const sentinelTerm = rules[0]!.terms.find((t) => t.rang === 2)!;
+    expect(sentinelTerm.kind).toBe('literal');
+    expect(sentinelTerm.literalValue!.toString()).toBe('0');
+  });
+
+  it("normalizes a French decimal separator ('12,5' -> 12.5) on sentinel C", async () => {
+    const row = {
+      ...baseRow,
+      terms_count: 1,
+      terms: [
+        { rang: 2, ax_origine: 'C', rubrique: '12,5', colonne: null, oper_term: '*', num_seq: 1 },
+      ],
+    };
+
+    const rules = await loadRules({
+      pool: fakePoolWithRow(row),
+      tenantId: '00000000-0000-0000-0000-000000000000',
+      arreteDate: new Date('2025-06-01'),
+      statuses: ['draft'],
+    });
+
+    const sentinelTerm = rules[0]!.terms[0]!;
+    expect(sentinelTerm.kind).toBe('literal');
+    expect(sentinelTerm.literalValue!.toString()).toBe('12.5');
+  });
+
+  it("maps a non-numeric sentinel C ('1 ou 2') to kind='literal_text' (resolver will SKIP)", async () => {
+    const row = {
+      ...baseRow,
+      terms_count: 1,
+      terms: [
+        { rang: 2, ax_origine: 'C', rubrique: '1 ou 2', colonne: null, oper_term: '+', num_seq: 1 },
+      ],
+    };
+
+    const rules = await loadRules({
+      pool: fakePoolWithRow(row),
+      tenantId: '00000000-0000-0000-0000-000000000000',
+      arreteDate: new Date('2025-06-01'),
+      statuses: ['draft'],
+    });
+
+    const sentinelTerm = rules[0]!.terms[0]!;
+    expect(sentinelTerm.kind).toBe('literal_text');
+    expect(sentinelTerm.literalText).toBe('1 ou 2');
+    expect(sentinelTerm.literalValue).toBeNull();
+  });
+
+  it('throws when a sentinel C term has no rubrique literal at all', async () => {
+    const row = {
+      ...baseRow,
+      terms_count: 1,
+      terms: [
+        { rang: 2, ax_origine: 'C', rubrique: null, colonne: null, oper_term: '+', num_seq: 1 },
+      ],
+    };
+
+    await expect(
+      loadRules({
+        pool: fakePoolWithRow(row),
+        tenantId: '00000000-0000-0000-0000-000000000000',
+        arreteDate: new Date('2025-06-01'),
+        statuses: ['draft'],
+      }),
+    ).rejects.toThrow(/no rubrique literal/);
+  });
+});
