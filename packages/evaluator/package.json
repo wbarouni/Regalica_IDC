@@ -15,11 +15,13 @@
   },
   "dependencies": {
     "@regflow/bct-xml-parser": "workspace:*",
-    "decimal.js": "^10.4.3"
+    "decimal.js": "^10.4.3",
+    "pg": "^8.13.1"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
     "@types/node": "^20.17.6",
+    "@types/pg": "^8.11.10",
     "jest": "^29.7.0",
     "ts-jest": "^29.2.5",
     "typescript": "^5.6.3"
