@@ -46,8 +46,12 @@ import {
   teardownEvaluatorTestSchema,
   type EvaluatorTestDb,
 } from './_db-setup.js';
-import { assertExpectedVerdictsShape, type ExpectedVerdicts } from '../src/expected-verdicts.js';
-import type { EvaluationInput, EvaluationResult } from '../src/types.js';
+import {
+  assertExpectedVerdictsShape,
+  type ExpectedFail,
+  type ExpectedVerdicts,
+} from '../src/expected-verdicts.js';
+import type { EvaluationInput, EvaluationResult, Verdict } from '../src/types.js';
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -378,7 +382,10 @@ describeIfDb('Golden Baseline — Engine Evaluation (Phase 2)', () => {
         };
 
         if (MODE === 'capture' && expected.expected_totals.capture_mode) {
-          maybeCapture(expected, observedTotals, batch.expectedVerdictsPath);
+          const observedSevereFails = result.verdicts.filter(
+            (v) => v.status === 'FAIL' && v.severity === 'severe',
+          );
+          maybeCapture(expected, observedTotals, observedSevereFails, batch.expectedVerdictsPath);
           return;
         }
 
@@ -399,11 +406,19 @@ describeIfDb('Golden Baseline — Engine Evaluation (Phase 2)', () => {
       it('every expected_fail is actually produced by the engine', () => {
         for (const ef of expected.expected_fails) {
           const match = result.verdicts.find(
-            (v) => v.annexeCode === ef.annexe && v.numRegle === ef.num_regle && v.status === 'FAIL',
+            (v) =>
+              v.annexeCode === ef.annexeCode && v.numRegle === ef.numRegle && v.status === 'FAIL',
           );
           expect(match).toBeDefined();
           if (match) {
             expect(match.severity).toBe(ef.severity);
+            expect(match.lhs).not.toBeNull();
+            expect(match.rhs).not.toBeNull();
+            expect(match.gap).not.toBeNull();
+            expect(match.lhs!.toString()).toBe(ef.lhs);
+            expect(match.rhs!.toString()).toBe(ef.rhs);
+            expect(match.gap!.toString()).toBe(ef.gap);
+            expect(match.operRegle).toBe(ef.operRegle);
           }
         }
       });
@@ -420,18 +435,15 @@ describeIfDb('Golden Baseline — Engine Evaluation (Phase 2)', () => {
           expect(observedSevereFails.length).toBe(expected.expected_totals.fail_severe);
         }
 
-        // Membership check: only enforced when the operator has
-        // populated expected_fails with a curated list. The Phase 0
-        // golden corpus ships with `expected_fails: []` for every
-        // batch — the Phase 2 capture pass populates expected_totals
-        // only, so the membership of each FAIL severe in
-        // expected_fails is asserted lazily once that list is filled
-        // in (Phase 2-bis sentinel work).
+        // Membership check: each observed FAIL severe must appear in
+        // the captured expected_fails list. Phase 2-bis populates this
+        // list automatically during the capture run, so assert mode
+        // verifies the engine reproduces exactly the same set.
         if (expected.expected_fails.length > 0) {
           const expectedFailKeys = new Set(
             expected.expected_fails
               .filter((f) => f.severity === 'severe')
-              .map((f) => `${f.annexe}/${f.num_regle}`),
+              .map((f) => `${f.annexeCode}/${f.numRegle}`),
           );
           for (const v of observedSevereFails) {
             expect(expectedFailKeys.has(`${v.annexeCode}/${v.numRegle}`)).toBe(true);
@@ -474,18 +486,56 @@ describeIfDb('Golden Baseline — Engine Evaluation (Phase 2)', () => {
 // ---------------------------------------------------------------------------
 
 /**
- * Utilitaire à invoquer depuis les tests d'évaluation en Phase 2 pour écrire
- * les valeurs capturées dans expected_verdicts.json lors du premier passage.
+ * Serialise an engine FAIL-severe verdict into the canonical
+ * ExpectedFail shape. Decimal fields are emitted as strings to
+ * preserve full precision in JSON. Field names mirror the Verdict
+ * type so the mapping is purely structural — no manual translation,
+ * no hardcoded labels.
+ */
+function verdictToExpectedFail(v: Verdict): ExpectedFail {
+  if (v.severity === null) {
+    throw new Error(`[golden capture] FAIL verdict missing severity: ${v.ruleId}`);
+  }
+  if (v.lhs === null || v.rhs === null || v.gap === null) {
+    throw new Error(`[golden capture] FAIL verdict missing lhs/rhs/gap: ${v.ruleId}`);
+  }
+  return {
+    annexeCode: v.annexeCode,
+    numRegle: v.numRegle,
+    operRegle: v.operRegle,
+    lhs: v.lhs.toString(),
+    rhs: v.rhs.toString(),
+    gap: v.gap.toString(),
+    severity: v.severity,
+  };
+}
+
+/**
+ * Utilitaire à invoquer depuis les tests d'évaluation pour écrire les
+ * valeurs capturées dans expected_verdicts.json lors du premier
+ * passage. Peuple à la fois les totaux et la liste des FAIL severe
+ * (sérialisée depuis les Verdict du moteur). Aucun champ curated
+ * n'est inventé — Phase 3 enrichira chaque entry avec
+ * business_reason / cluster_hint quand l'opérateur triera.
  *
  * @internal Exporté pour réutilisation dans des tests futurs.
  */
 export function maybeCapture(
   expected: ExpectedVerdicts,
   observed: ExpectedVerdicts['expected_totals'],
+  observedSevereFails: readonly Verdict[],
   expectedPath: string,
 ): void {
   if (MODE !== 'capture') return;
   if (!expected.expected_totals.capture_mode) return;
+
+  // Stable ordering: (annexeCode asc, numRegle asc). The engine
+  // already sorts verdicts this way, but we re-sort defensively to
+  // guarantee bit-stable JSON output across runs.
+  const sortedFails = [...observedSevereFails].sort((a, b) => {
+    if (a.annexeCode !== b.annexeCode) return a.annexeCode < b.annexeCode ? -1 : 1;
+    return a.numRegle - b.numRegle;
+  });
 
   const updated: ExpectedVerdicts = {
     ...expected,
@@ -494,10 +544,11 @@ export function maybeCapture(
       ...observed,
       capture_mode: false,
     },
+    expected_fails: sortedFails.map(verdictToExpectedFail),
   };
   saveExpectedVerdicts(expectedPath, updated);
   console.log(
-    `  [capture] Updated ${path.relative(process.cwd(), expectedPath)} with observed values`,
+    `  [capture] Updated ${path.relative(process.cwd(), expectedPath)} (${sortedFails.length} FAIL severe entries)`,
   );
 }
 

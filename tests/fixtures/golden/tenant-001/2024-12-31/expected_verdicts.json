@@ -39,7 +39,521 @@
     "skipped_literal_text": 7,
     "capture_mode": false
   },
-  "expected_fails": [],
+  "expected_fails": [
+    {
+      "annexeCode": "130",
+      "numRegle": 19,
+      "operRegle": "<=",
+      "lhs": "282947.344",
+      "rhs": "13041",
+      "gap": "269906.344",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "134",
+      "numRegle": 1,
+      "operRegle": "=",
+      "lhs": "70316",
+      "rhs": "54583",
+      "gap": "15733",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "134",
+      "numRegle": 2,
+      "operRegle": "=",
+      "lhs": "93433",
+      "rhs": "54583",
+      "gap": "38850",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "134",
+      "numRegle": 3,
+      "operRegle": "=",
+      "lhs": "63123",
+      "rhs": "54583",
+      "gap": "8540",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "134",
+      "numRegle": 5,
+      "operRegle": "=",
+      "lhs": "107819",
+      "rhs": "54583",
+      "gap": "53236",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "134",
+      "numRegle": 7,
+      "operRegle": "=",
+      "lhs": "55930",
+      "rhs": "54583",
+      "gap": "1347",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "134",
+      "numRegle": 8,
+      "operRegle": "=",
+      "lhs": "37503",
+      "rhs": "54583",
+      "gap": "17080",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "134",
+      "numRegle": 11,
+      "operRegle": "=",
+      "lhs": "981301.625",
+      "rhs": "158273.125",
+      "gap": "823028.5",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "134",
+      "numRegle": 12,
+      "operRegle": "=",
+      "lhs": "70316.68",
+      "rhs": "37503",
+      "gap": "32813.68",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "139",
+      "numRegle": 7,
+      "operRegle": "=",
+      "lhs": "21845",
+      "rhs": "11578",
+      "gap": "10267",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "51",
+      "numRegle": 415,
+      "operRegle": "=",
+      "lhs": "2239.544",
+      "rhs": "0",
+      "gap": "2239.544",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "51",
+      "numRegle": 425,
+      "operRegle": "=",
+      "lhs": "2328.114",
+      "rhs": "0",
+      "gap": "2328.114",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "510",
+      "numRegle": 57,
+      "operRegle": "=",
+      "lhs": "44291.939",
+      "rhs": "0",
+      "gap": "44291.939",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "510",
+      "numRegle": 58,
+      "operRegle": "=",
+      "lhs": "44291.939",
+      "rhs": "0",
+      "gap": "44291.939",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "510",
+      "numRegle": 59,
+      "operRegle": "=",
+      "lhs": "27749.54",
+      "rhs": "70225.033",
+      "gap": "42475.493",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "510",
+      "numRegle": 62,
+      "operRegle": "=",
+      "lhs": "178181.03",
+      "rhs": "176589.113",
+      "gap": "1591.917",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "510",
+      "numRegle": 65,
+      "operRegle": "=",
+      "lhs": "145401.22",
+      "rhs": "134673.539",
+      "gap": "10727.681",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "510",
+      "numRegle": 66,
+      "operRegle": "=",
+      "lhs": "88.808",
+      "rhs": "182.123",
+      "gap": "93.315",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "510",
+      "numRegle": 67,
+      "operRegle": "=",
+      "lhs": "305.735",
+      "rhs": "10880.926",
+      "gap": "10575.191",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "510",
+      "numRegle": 68,
+      "operRegle": "=",
+      "lhs": "594501.075",
+      "rhs": "585453.555",
+      "gap": "9047.52",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "510",
+      "numRegle": 70,
+      "operRegle": "=",
+      "lhs": "0",
+      "rhs": "1224.756",
+      "gap": "1224.756",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "510",
+      "numRegle": 74,
+      "operRegle": "=",
+      "lhs": "275083.099",
+      "rhs": "282164.799",
+      "gap": "7081.7",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "510",
+      "numRegle": 501,
+      "operRegle": "=",
+      "lhs": "0",
+      "rhs": "10698.5",
+      "gap": "10698.5",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "510",
+      "numRegle": 505,
+      "operRegle": "=",
+      "lhs": "282359.236",
+      "rhs": "282096.361",
+      "gap": "262.875",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "510",
+      "numRegle": 507,
+      "operRegle": "=",
+      "lhs": "55323.496",
+      "rhs": "34109.844",
+      "gap": "21213.652",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "510",
+      "numRegle": 518,
+      "operRegle": "=",
+      "lhs": "1930048.088",
+      "rhs": "1915061.458",
+      "gap": "14986.63",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "520",
+      "numRegle": 41,
+      "operRegle": "=",
+      "lhs": "120257",
+      "rhs": "120258",
+      "gap": "1",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "520",
+      "numRegle": 372,
+      "operRegle": "=",
+      "lhs": "8931",
+      "rhs": "8930",
+      "gap": "1",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "520",
+      "numRegle": 381,
+      "operRegle": "=",
+      "lhs": "70598",
+      "rhs": "70597",
+      "gap": "1",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "520",
+      "numRegle": 382,
+      "operRegle": "=",
+      "lhs": "120259",
+      "rhs": "120258",
+      "gap": "1",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "530",
+      "numRegle": 66,
+      "operRegle": "=",
+      "lhs": "27357",
+      "rhs": "27356",
+      "gap": "1",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "530",
+      "numRegle": 67,
+      "operRegle": "=",
+      "lhs": "20309",
+      "rhs": "20308",
+      "gap": "1",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "530",
+      "numRegle": 73,
+      "operRegle": "=",
+      "lhs": "2591",
+      "rhs": "2592",
+      "gap": "1",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "530",
+      "numRegle": 74,
+      "operRegle": "=",
+      "lhs": "131918",
+      "rhs": "131917",
+      "gap": "1",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "530",
+      "numRegle": 96,
+      "operRegle": "=",
+      "lhs": "150495",
+      "rhs": "150496",
+      "gap": "1",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "530",
+      "numRegle": 97,
+      "operRegle": "=",
+      "lhs": "150495",
+      "rhs": "150496",
+      "gap": "1",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "560",
+      "numRegle": 1,
+      "operRegle": "=",
+      "lhs": "950647.114",
+      "rhs": "1176979.962",
+      "gap": "226332.848",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "560",
+      "numRegle": 13,
+      "operRegle": "=",
+      "lhs": "0",
+      "rhs": "1224.756",
+      "gap": "1224.756",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "560",
+      "numRegle": 30,
+      "operRegle": "=",
+      "lhs": "1288566.899",
+      "rhs": "1218309.152",
+      "gap": "70257.747",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "560",
+      "numRegle": 37,
+      "operRegle": "=",
+      "lhs": "32169.246",
+      "rhs": "41923.689",
+      "gap": "9754.443",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "560",
+      "numRegle": 41,
+      "operRegle": "=",
+      "lhs": "294593.664",
+      "rhs": "1534.5",
+      "gap": "293059.164",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "560",
+      "numRegle": 43,
+      "operRegle": "=",
+      "lhs": "-184318.01655504",
+      "rhs": "0",
+      "gap": "184318.01655504",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "560",
+      "numRegle": 51,
+      "operRegle": "=",
+      "lhs": "0",
+      "rhs": "1224.756",
+      "gap": "1224.756",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "820",
+      "numRegle": 30,
+      "operRegle": "=",
+      "lhs": "-359885",
+      "rhs": "0",
+      "gap": "359885",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "820",
+      "numRegle": 35,
+      "operRegle": ">=",
+      "lhs": "0",
+      "rhs": "222818",
+      "gap": "222818",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "820",
+      "numRegle": 40,
+      "operRegle": "=",
+      "lhs": "-74.720851112710269638398724276915696191",
+      "rhs": "0",
+      "gap": "74.720851112710269638398724276915696191",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "820",
+      "numRegle": 42,
+      "operRegle": "=",
+      "lhs": "666801.5",
+      "rhs": "0",
+      "gap": "666801.5",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "820",
+      "numRegle": 46,
+      "operRegle": "=",
+      "lhs": "-88.109355415235025625952315795519428087",
+      "rhs": "0",
+      "gap": "88.109355415235025625952315795519428087",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "820",
+      "numRegle": 48,
+      "operRegle": "=",
+      "lhs": "-63.109355415235025625952315795519428087",
+      "rhs": "0",
+      "gap": "63.109355415235025625952315795519428087",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "820",
+      "numRegle": 50,
+      "operRegle": "=",
+      "lhs": "-13.109355415235025625952315795519428087",
+      "rhs": "0",
+      "gap": "13.109355415235025625952315795519428087",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "820",
+      "numRegle": 52,
+      "operRegle": "=",
+      "lhs": "-260794",
+      "rhs": "0",
+      "gap": "260794",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "820",
+      "numRegle": 54,
+      "operRegle": "=",
+      "lhs": "-186796.75",
+      "rhs": "0",
+      "gap": "186796.75",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "820",
+      "numRegle": 56,
+      "operRegle": "=",
+      "lhs": "-38802.25",
+      "rhs": "0",
+      "gap": "38802.25",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "820",
+      "numRegle": 62,
+      "operRegle": ">=",
+      "lhs": "0",
+      "rhs": "528082",
+      "gap": "528082",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "820",
+      "numRegle": 70,
+      "operRegle": ">=",
+      "lhs": "0",
+      "rhs": "35195",
+      "gap": "35195",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "820",
+      "numRegle": 71,
+      "operRegle": "=",
+      "lhs": "-121.58728871681042200892600738540959292",
+      "rhs": "0",
+      "gap": "121.58728871681042200892600738540959292",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "910",
+      "numRegle": 30,
+      "operRegle": "=",
+      "lhs": "44291.939",
+      "rhs": "0",
+      "gap": "44291.939",
+      "severity": "severe"
+    }
+  ],
   "expected_skips_by_annexe": {
     "133": "bct_accepted_empty",
     "136": "bct_accepted_empty",

@@ -61,17 +61,24 @@ export interface ExpectedTotals {
   capture_mode: boolean;
 }
 
+/**
+ * One captured FAIL-severe verdict, derived directly from the engine's
+ * `Verdict` type (canonical engine output). Decimal fields are
+ * serialized as strings to preserve full precision in JSON.
+ *
+ * Phase 2-bis schema: minimal verdict-derived shape. Phase 3 may
+ * extend this with curated metadata (business_reason,
+ * confirmed_by_bct_return, cluster_hint, etc.) once the operator
+ * triages each entry.
+ */
 export interface ExpectedFail {
-  readonly annexe: string;
-  readonly num_regle: number;
+  readonly annexeCode: string;
+  readonly numRegle: number;
+  readonly operRegle: string;
+  readonly lhs: string;
+  readonly rhs: string;
+  readonly gap: string;
   readonly severity: 'severe' | 'rounding';
-  readonly expected_gap_absolute: string;
-  readonly expected_gap_relative: string | null;
-  readonly rubrique: string;
-  readonly colonne: string | null;
-  readonly business_reason: string;
-  readonly confirmed_by_bct_return: boolean;
-  readonly cluster_hint: string | null;
 }
 
 export interface CompanionMissing {

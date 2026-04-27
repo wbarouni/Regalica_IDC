@@ -39,7 +39,44 @@
     "skipped_literal_text": 7,
     "capture_mode": false
   },
-  "expected_fails": [],
+  "expected_fails": [
+    {
+      "annexeCode": "139",
+      "numRegle": 3,
+      "operRegle": "=",
+      "lhs": "1966",
+      "rhs": "8232",
+      "gap": "6266",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "139",
+      "numRegle": 4,
+      "operRegle": "=",
+      "lhs": "8232",
+      "rhs": "9674",
+      "gap": "1442",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "139",
+      "numRegle": 5,
+      "operRegle": "=",
+      "lhs": "523",
+      "rhs": "1388",
+      "gap": "865",
+      "severity": "severe"
+    },
+    {
+      "annexeCode": "139",
+      "numRegle": 7,
+      "operRegle": "=",
+      "lhs": "21845",
+      "rhs": "11578",
+      "gap": "10267",
+      "severity": "severe"
+    }
+  ],
   "expected_skips_by_annexe": {},
   "companion_annexes_missing_in_batch": [],
   "annexes_in_scope": [
