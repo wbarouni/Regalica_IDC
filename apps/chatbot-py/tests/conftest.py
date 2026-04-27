@@ -27,8 +27,8 @@ _TEST_ENV_DEFAULTS: dict[str, str] = {
     "OLLAMA_MODEL": "qwen2.5:3b",
     "EMBEDDING_PROVIDER": "gemini",
     "EMBEDDING_MODEL": "text-embedding-004",
-    "CHATBOT_DEFAULT_AGENT_TYPE": "regalica",
-    "CHATBOT_DEFAULT_FUNCTION_NAME": "aggregate_zoom_fail",
+    "CHATBOT_ROUTER_AGENT_TYPE": "regalica",
+    "CHATBOT_ROUTER_FUNCTION_NAME": "router",
 }
 
 for _name, _value in _TEST_ENV_DEFAULTS.items():

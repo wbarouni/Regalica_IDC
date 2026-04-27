@@ -1,39 +1,36 @@
-"""POST /chat/message — Regalica orchestration entry point (Phase 3 minimal).
+"""POST /chat/message — Regalica orchestration entry point.
 
-This route is the single conversational boundary between the user
-and REGFlow. The flow is:
+The route is the single conversational boundary between the user
+and REGFlow. The flow delegates the cognitive work to
+`app.services.orchestrator.orchestrate()`:
 
-  1. Read the active prompt from `prompt_bank` for the bearer
-     `(tenant_id, agent_type, function_name)`. Phase 3 minimal
-     defaults to `regalica/aggregate_zoom_fail` (the "Q-type 1"
-     aggregator from doc 10 §5). Phase 3-bis will replace the
-     hard-defaulted bearer with a real router/planner pipeline.
-  2. If no active prompt exists, return an explicit fallback
-     message — the operator must promote a draft prompt via
-     4-yeux to enable LLM responses.
-  3. Build an `LLMRequest` using the prompt parameters and
-     delegate to `LLMClient.complete()`.
-  4. Persist the conversation (creating a new one if absent) and
-     the message with full traceability (tokens, latency, agent
-     identifier).
-  5. Return the canonical `ChatResponse` consumed by the frontend.
+  1. Orchestrator runs the Phase 3 pipeline: T0 stage (Phase 3-bis
+     when XML uploads are wired), router LLM call to detect the
+     intent from `prompt_bank`, dispatch to the matching T2
+     specialist (Investigator / Citation / Historical) or fall
+     back to a direct LLM call when the intent is `direct`.
+  2. The route persists the conversation (creating a new row if
+     absent) and the assistant message with full traceability
+     (tokens, latency, agent identifier).
+  3. Returns the canonical `ChatResponse` consumed by the
+     frontend.
 
-Zero hardcoding: every parameter (template, temperature, max
-tokens, thinking flag, model) flows from `prompt_bank`. The route
-contains only the orchestration glue.
+Zero hardcoding: every prompt template, temperature, max_tokens,
+thinking flag and model identifier comes from `prompt_bank`. The
+intent → specialist mapping lives in the orchestrator (protocol
+grammar, not user-facing dispatch). No keyword matching anywhere.
 """
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Any
 
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
-from app.config import settings
-from app.llm.base import LLMClient, LLMRequest
-from app.services.prompt_loader import load_active_prompt
+from app.llm.base import LLMClient
+from app.services.orchestrator import OrchestratorResult, orchestrate
 
 router = APIRouter()
 
@@ -45,11 +42,6 @@ _REGALICA_RESPONSE_ROLE = "regalica_response"
 # Phase 3-bis surfaces this on the request body.
 _DEFAULT_LANGUAGE = "fr"
 
-_NO_ACTIVE_PROMPT_MESSAGE = (
-    "Aucun prompt actif pour cet agent — "
-    "une promotion 4-yeux est requise pour passer un prompt de draft à active."
-)
-
 
 class ChatContext(BaseModel):
     """Optional contextual hints attached to a chat turn."""
@@ -57,6 +49,8 @@ class ChatContext(BaseModel):
     validation_run_id: str | None = None
     arrete_date: str | None = None
     annexes_in_scope: list[str] | None = None
+    fail: dict[str, Any] | None = None
+    rule: dict[str, Any] | None = None
 
 
 class ChatRequest(BaseModel):
@@ -106,62 +100,23 @@ async def post_chat_message(
     pool: Annotated[asyncpg.Pool, Depends(get_pool)],
     llm_client: Annotated[LLMClient, Depends(get_llm_client)],
 ) -> ChatResponse:
-    """Handle a single chat turn: load prompt, call LLM, persist, respond."""
-    bearer_agent_type = settings.chatbot_default_agent_type
-    bearer_function_name = settings.chatbot_default_function_name
-    bearer_key = f"{bearer_agent_type}/{bearer_function_name}"
-
-    prompt_meta = await load_active_prompt(
-        pool=pool,
-        tenant_id=chat_request.tenant_id,
-        agent_type=bearer_agent_type,
-        function_name=bearer_function_name,
-    )
-
-    if prompt_meta is None:
-        conversation_id = chat_request.conversation_id or await _ensure_conversation(
-            pool=pool,
-            existing_id=None,
-            tenant_id=chat_request.tenant_id,
-            user_id=chat_request.user_id,
-        )
-        message_id = await _persist_message(
-            pool=pool,
-            tenant_id=chat_request.tenant_id,
-            conversation_id=conversation_id,
-            content=_NO_ACTIVE_PROMPT_MESSAGE,
-            agent_id=bearer_key,
-            tokens_input=0,
-            tokens_output=0,
-            tokens_thinking=0,
-            latency_ms=0,
-        )
-        return ChatResponse(
-            conversation_id=conversation_id,
-            message_id=message_id,
-            thinking_trace=None,
-            response_markdown=_NO_ACTIVE_PROMPT_MESSAGE,
-            agents_called=[],
-            tokens_input=0,
-            tokens_output=0,
-            tokens_thinking=0,
-            latency_ms=0,
-        )
-
-    llm_request = LLMRequest(
-        prompt=chat_request.message,
-        temperature=prompt_meta["temperature"],
-        max_tokens=prompt_meta["max_tokens"],
-        thinking_enabled=prompt_meta["thinking_enabled"],
-        system_prompt=prompt_meta["template"],
-    )
+    """Handle a single chat turn: orchestrate, persist, respond."""
+    context = chat_request.context
 
     try:
-        llm_response = await llm_client.complete(llm_request)
+        result: OrchestratorResult = await orchestrate(
+            message=chat_request.message,
+            tenant_id=chat_request.tenant_id,
+            pool=pool,
+            llm_client=llm_client,
+            fail_context=context.fail if context is not None else None,
+            rule_context=context.rule if context is not None else None,
+            current_run_id=context.validation_run_id if context is not None else None,
+        )
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"LLM completion failed: {exc}",
+            detail=f"Orchestration failed: {exc}",
         ) from exc
 
     conversation_id = await _ensure_conversation(
@@ -170,28 +125,31 @@ async def post_chat_message(
         tenant_id=chat_request.tenant_id,
         user_id=chat_request.user_id,
     )
+    persisted_agent_label = (
+        result.agents_called[0] if result.agents_called else "regalica/orchestrator"
+    )
     message_id = await _persist_message(
         pool=pool,
         tenant_id=chat_request.tenant_id,
         conversation_id=conversation_id,
-        content=llm_response.content,
-        agent_id=bearer_key,
-        tokens_input=llm_response.tokens_input,
-        tokens_output=llm_response.tokens_output,
-        tokens_thinking=llm_response.tokens_thinking,
-        latency_ms=llm_response.latency_ms,
+        content=result.response_markdown,
+        agent_id=persisted_agent_label,
+        tokens_input=result.tokens_input,
+        tokens_output=result.tokens_output,
+        tokens_thinking=result.tokens_thinking,
+        latency_ms=result.latency_ms,
     )
 
     return ChatResponse(
         conversation_id=conversation_id,
         message_id=message_id,
-        thinking_trace=llm_response.thinking_trace,
-        response_markdown=llm_response.content,
-        agents_called=[bearer_key],
-        tokens_input=llm_response.tokens_input,
-        tokens_output=llm_response.tokens_output,
-        tokens_thinking=llm_response.tokens_thinking,
-        latency_ms=llm_response.latency_ms,
+        thinking_trace=result.thinking_trace,
+        response_markdown=result.response_markdown,
+        agents_called=list(result.agents_called),
+        tokens_input=result.tokens_input,
+        tokens_output=result.tokens_output,
+        tokens_thinking=result.tokens_thinking,
+        latency_ms=result.latency_ms,
     )
 
 
