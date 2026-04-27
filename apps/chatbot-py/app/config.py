@@ -65,5 +65,15 @@ class Settings(BaseSettings):
     )
     embedding_model: str = Field(alias="EMBEDDING_MODEL")
 
+    # Phase 3 minimal Regalica routing target — the (agent_type,
+    # function_name) combo to look up in prompt_bank when handling a
+    # /chat/message request. Phase 3-bis replaces this with a real
+    # router/planner pipeline (doc 10 §15) reading the bearer
+    # dynamically from the detected intent. Until then, the operator
+    # picks the default thematic aggregator via env so no agent key
+    # is baked into source.
+    chatbot_default_agent_type: str = Field(alias="CHATBOT_DEFAULT_AGENT_TYPE")
+    chatbot_default_function_name: str = Field(alias="CHATBOT_DEFAULT_FUNCTION_NAME")
+
 
 settings = Settings()

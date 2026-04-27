@@ -20,12 +20,15 @@ import os
 
 _TEST_ENV_DEFAULTS: dict[str, str] = {
     "LLM_PROVIDER": "gemini",
+    "GEMINI_API_KEY": "test-key-not-used",
     "GEMINI_MODEL": "gemini-2.5-flash",
     "GEMINI_THINKING_BUDGET": "8192",
     "OLLAMA_URL": "http://ollama:11434",
     "OLLAMA_MODEL": "qwen2.5:3b",
     "EMBEDDING_PROVIDER": "gemini",
     "EMBEDDING_MODEL": "text-embedding-004",
+    "CHATBOT_DEFAULT_AGENT_TYPE": "regalica",
+    "CHATBOT_DEFAULT_FUNCTION_NAME": "aggregate_zoom_fail",
 }
 
 for _name, _value in _TEST_ENV_DEFAULTS.items():

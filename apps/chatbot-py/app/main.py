@@ -9,6 +9,7 @@ from app.config import settings
 from app.db.pool import close_pool, get_pool
 from app.llm.factory import create_llm_client
 from app.logger import configure_logger, get_logger
+from app.routes.chat import router as chat_router
 from app.routes.health import router as health_router
 
 configure_logger(settings.log_level)
@@ -47,3 +48,4 @@ app = FastAPI(
 )
 
 app.include_router(health_router, prefix="/health", tags=["health"])
+app.include_router(chat_router, prefix="/chat", tags=["chat"])
