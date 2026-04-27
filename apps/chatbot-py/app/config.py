@@ -53,6 +53,10 @@ class Settings(BaseSettings):
     )
     gemini_api_key: str | None = Field(default=None, alias="GEMINI_API_KEY")
     gemini_model: str = Field(alias="GEMINI_MODEL")
+    # Thinking budget (token cap) when LLMRequest.thinking_enabled is True.
+    # Owned by the operator via env so the cost / quality trade-off is not
+    # baked into source — same doctrine as the model name.
+    gemini_thinking_budget: int = Field(alias="GEMINI_THINKING_BUDGET")
     ollama_url: str = Field(alias="OLLAMA_URL")
     ollama_model: str = Field(alias="OLLAMA_MODEL")
 

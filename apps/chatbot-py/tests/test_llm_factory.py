@@ -45,6 +45,7 @@ def test_gemini_client_refuses_init_without_api_key() -> None:
         llm_provider="gemini",
         gemini_api_key=None,
         gemini_model=settings.gemini_model,
+        gemini_thinking_budget=settings.gemini_thinking_budget,
         ollama_url=settings.ollama_url,
         ollama_model=settings.ollama_model,
         embedding_provider=settings.embedding_provider,
