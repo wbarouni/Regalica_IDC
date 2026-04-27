@@ -22,3 +22,4 @@ export { loadRules, type LoadRulesOptions } from './rules-loader.js';
 export { parseBatch, type PhaseAResult } from './phase-a.js';
 export { groupRulesByAnnexe } from './phase-b.js';
 export { resolveTerms, type ResolvedTerm, type SkipReason } from './resolve-terms.js';
+export { aggregateTerms, type AggregatedResult } from './phase-d.js';
