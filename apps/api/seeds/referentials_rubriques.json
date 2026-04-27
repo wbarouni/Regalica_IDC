@@ -1,7 +1,7 @@
 {
   "generated_by": "tools/ingest-rdg-xlsx/ingest.py",
   "source": "tests/fixtures/rdg.xlsx",
-  "total": 1141,
+  "total": 1103,
   "records": [
     {
       "code": "AC010000000000",
@@ -832,15 +832,6 @@
       "level": null
     },
     {
-      "code": "AC990000000000",
-      "label": null,
-      "annexe_code": "00",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
       "code": "CP010000000000",
       "label": null,
       "annexe_code": "00",
@@ -1462,24 +1453,6 @@
       "level": null
     },
     {
-      "code": "PA040103000000",
-      "label": null,
-      "annexe_code": "00",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
-      "code": "PA040109000000",
-      "label": null,
-      "annexe_code": "00",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
       "code": "PA040109000000",
       "label": null,
       "annexe_code": "00",
@@ -1687,15 +1660,6 @@
       "level": null
     },
     {
-      "code": "PACP9900000000",
-      "label": null,
-      "annexe_code": "00",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
       "code": "HB010000000000",
       "label": null,
       "annexe_code": "01",
@@ -1733,15 +1697,6 @@
     },
     {
       "code": "HB010101020000",
-      "label": null,
-      "annexe_code": "01",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
-      "code": "HB010101020100",
       "label": null,
       "annexe_code": "01",
       "parent_rubrique_code": null,
@@ -1966,15 +1921,6 @@
       "level": null
     },
     {
-      "code": "HB040101010000",
-      "label": null,
-      "annexe_code": "01",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
       "code": "HB040101020000",
       "label": null,
       "annexe_code": "01",
@@ -2102,15 +2048,6 @@
     },
     {
       "code": "HB060102000000",
-      "label": null,
-      "annexe_code": "01",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
-      "code": "HB060102010000",
       "label": null,
       "annexe_code": "01",
       "parent_rubrique_code": null,
@@ -3343,34 +3280,7 @@
       "level": null
     },
     {
-      "code": "13003020000000",
-      "label": null,
-      "annexe_code": "132",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
       "code": "13003030000000",
-      "label": null,
-      "annexe_code": "132",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
-      "code": "13003030000000",
-      "label": null,
-      "annexe_code": "132",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
-      "code": "13003040000000",
       "label": null,
       "annexe_code": "132",
       "parent_rubrique_code": null,
@@ -3442,25 +3352,7 @@
       "level": null
     },
     {
-      "code": "13003050101021",
-      "label": null,
-      "annexe_code": "132",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
       "code": "13003050101022",
-      "label": null,
-      "annexe_code": "132",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
-      "code": "13003050101030",
       "label": null,
       "annexe_code": "132",
       "parent_rubrique_code": null,
@@ -3649,24 +3541,6 @@
       "level": null
     },
     {
-      "code": "13003050202020",
-      "label": null,
-      "annexe_code": "132",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
-      "code": "13003050202030",
-      "label": null,
-      "annexe_code": "132",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
       "code": "13003050202030",
       "label": null,
       "annexe_code": "132",
@@ -3767,15 +3641,6 @@
     },
     {
       "code": "13003060102000",
-      "label": null,
-      "annexe_code": "132",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
-      "code": "13003060200000",
       "label": null,
       "annexe_code": "132",
       "parent_rubrique_code": null,
@@ -4351,15 +4216,6 @@
       "level": null
     },
     {
-      "code": "13006211000000",
-      "label": null,
-      "annexe_code": "137",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
       "code": "13006212000000",
       "label": null,
       "annexe_code": "137",
@@ -4586,24 +4442,6 @@
     },
     {
       "code": "13006280000000",
-      "label": null,
-      "annexe_code": "137",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
-      "code": "13006280000000",
-      "label": null,
-      "annexe_code": "137",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
-      "code": "13006290000000",
       "label": null,
       "annexe_code": "137",
       "parent_rubrique_code": null,
@@ -4882,25 +4720,7 @@
       "level": null
     },
     {
-      "code": "21001010102000",
-      "label": null,
-      "annexe_code": "210",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
       "code": "21001010200000",
-      "label": null,
-      "annexe_code": "210",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
-      "code": "21001010201000",
       "label": null,
       "annexe_code": "210",
       "parent_rubrique_code": null,
@@ -4963,15 +4783,6 @@
       "level": null
     },
     {
-      "code": "21002020000000",
-      "label": null,
-      "annexe_code": "210",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
       "code": "21003000000000",
       "label": null,
       "annexe_code": "210",
@@ -4982,15 +4793,6 @@
     },
     {
       "code": "21004000000000",
-      "label": null,
-      "annexe_code": "210",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
-      "code": "21010010000000",
       "label": null,
       "annexe_code": "210",
       "parent_rubrique_code": null,
@@ -6673,15 +6475,6 @@
       "level": null
     },
     {
-      "code": "PA050400000000",
-      "label": null,
-      "annexe_code": "510",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
       "code": "PACP9900000000",
       "label": null,
       "annexe_code": "510",
@@ -7645,15 +7438,6 @@
       "level": null
     },
     {
-      "code": "PA020102020900",
-      "label": null,
-      "annexe_code": "560",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
       "code": "PA030000000000",
       "label": null,
       "annexe_code": "560",
@@ -7672,25 +7456,7 @@
       "level": null
     },
     {
-      "code": "PA030900000000",
-      "label": null,
-      "annexe_code": "560",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
       "code": "PA040101000000",
-      "label": null,
-      "annexe_code": "560",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
-      "code": "PA040209000000",
       "label": null,
       "annexe_code": "560",
       "parent_rubrique_code": null,
@@ -8140,15 +7906,6 @@
       "level": null
     },
     {
-      "code": "PA030202000000",
-      "label": null,
-      "annexe_code": "630",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
       "code": "PA030202000001",
       "label": null,
       "annexe_code": "630",
@@ -8231,15 +7988,6 @@
     },
     {
       "code": "PA030300000000",
-      "label": null,
-      "annexe_code": "630",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
-      "code": "PA030301000000",
       "label": null,
       "annexe_code": "630",
       "parent_rubrique_code": null,
@@ -8384,15 +8132,6 @@
     },
     {
       "code": "PA040102000002",
-      "label": null,
-      "annexe_code": "630",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
-      "code": "PA040103000000",
       "label": null,
       "annexe_code": "630",
       "parent_rubrique_code": null,
@@ -9238,15 +8977,6 @@
       "level": null
     },
     {
-      "code": "76021000000000",
-      "label": null,
-      "annexe_code": "760",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
       "code": "76022000000000",
       "label": null,
       "annexe_code": "760",
@@ -9373,24 +9103,6 @@
       "level": null
     },
     {
-      "code": "82006000000000",
-      "label": null,
-      "annexe_code": "820",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
-      "code": "82007000000000",
-      "label": null,
-      "annexe_code": "820",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
       "code": "82007000000000",
       "label": null,
       "annexe_code": "820",
@@ -9437,15 +9149,6 @@
     },
     {
       "code": "82009010000000",
-      "label": null,
-      "annexe_code": "820",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
-      "code": "82009020000000",
       "label": null,
       "annexe_code": "820",
       "parent_rubrique_code": null,
@@ -9634,24 +9337,6 @@
       "level": null
     },
     {
-      "code": "87001000000000",
-      "label": null,
-      "annexe_code": "870",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
-      "code": "87002000000000",
-      "label": null,
-      "annexe_code": "870",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
       "code": "87002000000000",
       "label": null,
       "annexe_code": "870",
@@ -9671,15 +9356,6 @@
     },
     {
       "code": "87002020000000",
-      "label": null,
-      "annexe_code": "870",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
-      "code": "87002030000000",
       "label": null,
       "annexe_code": "870",
       "parent_rubrique_code": null,
@@ -9733,25 +9409,7 @@
       "level": null
     },
     {
-      "code": "87003000000000",
-      "label": null,
-      "annexe_code": "870",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
       "code": "87003010000000",
-      "label": null,
-      "annexe_code": "870",
-      "parent_rubrique_code": null,
-      "is_aggregate": null,
-      "is_detail": null,
-      "level": null
-    },
-    {
-      "code": "87003020000000",
       "label": null,
       "annexe_code": "870",
       "parent_rubrique_code": null,

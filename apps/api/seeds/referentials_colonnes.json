@@ -1,7 +1,7 @@
 {
   "generated_by": "tools/ingest-rdg-xlsx/ingest.py",
   "source": "tests/fixtures/rdg.xlsx",
-  "total": 415,
+  "total": 408,
   "records": [
     {
       "code": "C001",
@@ -884,22 +884,6 @@
       "semantic_label": null
     },
     {
-      "code": "C005",
-      "label": null,
-      "annexe_code": "480",
-      "column_number": 5,
-      "data_type": null,
-      "semantic_label": null
-    },
-    {
-      "code": "C006",
-      "label": null,
-      "annexe_code": "480",
-      "column_number": 6,
-      "data_type": null,
-      "semantic_label": null
-    },
-    {
       "code": "C006",
       "label": null,
       "annexe_code": "480",
@@ -916,34 +900,10 @@
       "semantic_label": null
     },
     {
-      "code": "C007",
-      "label": null,
-      "annexe_code": "480",
-      "column_number": 7,
-      "data_type": null,
-      "semantic_label": null
-    },
-    {
       "code": "C008",
       "label": null,
       "annexe_code": "480",
       "column_number": 8,
-      "data_type": null,
-      "semantic_label": null
-    },
-    {
-      "code": "C008",
-      "label": null,
-      "annexe_code": "480",
-      "column_number": 8,
-      "data_type": null,
-      "semantic_label": null
-    },
-    {
-      "code": "C009",
-      "label": null,
-      "annexe_code": "480",
-      "column_number": 9,
       "data_type": null,
       "semantic_label": null
     },
@@ -1564,14 +1524,6 @@
       "semantic_label": null
     },
     {
-      "code": "C008",
-      "label": null,
-      "annexe_code": "483",
-      "column_number": 8,
-      "data_type": null,
-      "semantic_label": null
-    },
-    {
       "code": "C009",
       "label": null,
       "annexe_code": "483",
@@ -1824,14 +1776,6 @@
       "label": null,
       "annexe_code": "485",
       "column_number": 24,
-      "data_type": null,
-      "semantic_label": null
-    },
-    {
-      "code": "C001",
-      "label": null,
-      "annexe_code": "51",
-      "column_number": 1,
       "data_type": null,
       "semantic_label": null
     },

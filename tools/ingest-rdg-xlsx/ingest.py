@@ -135,15 +135,21 @@ def emit_rubriques(df: pd.DataFrame) -> list[dict[str, Any]]:
         SENTINEL_PATTERN, na=False
     )
     pairs = df[mask][["AX_TERM", "RUBRIQUE"]].drop_duplicates()
+    seen: set[tuple[str, str]] = set()
     result: list[dict[str, Any]] = []
     for _, row in pairs.iterrows():
         rubrique = _str_or_none(row["RUBRIQUE"])
+        annexe_code = _str_or_none(row["AX_TERM"])
         if rubrique is None or len(rubrique) != 14 or not rubrique.isalnum():
             continue
+        key = (annexe_code or "", rubrique)
+        if key in seen:
+            continue
+        seen.add(key)
         result.append({
             "code": rubrique,
             "label": None,
-            "annexe_code": _str_or_none(row["AX_TERM"]),
+            "annexe_code": annexe_code,
             "parent_rubrique_code": None,
             "is_aggregate": None,
             "is_detail": None,
@@ -163,15 +169,21 @@ def emit_colonnes(df: pd.DataFrame) -> list[dict[str, Any]]:
     within an annexe.
     """
     sub = df[df["COLONNE"].notna()][["AX_TERM", "COLONNE"]].drop_duplicates()
+    seen: set[tuple[str, int]] = set()
     result: list[dict[str, Any]] = []
     for _, row in sub.iterrows():
         column_number = _int_or_none(row["COLONNE"])
+        annexe_code = _str_or_none(row["AX_TERM"])
         if column_number is None:
             continue
+        key = (annexe_code or "", column_number)
+        if key in seen:
+            continue
+        seen.add(key)
         result.append({
             "code": f"C{column_number:03d}",
             "label": None,
-            "annexe_code": _str_or_none(row["AX_TERM"]),
+            "annexe_code": annexe_code,
             "column_number": column_number,
             "data_type": None,
             "semantic_label": None,
