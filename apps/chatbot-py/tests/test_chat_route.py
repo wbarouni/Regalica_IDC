@@ -81,7 +81,7 @@ def _valid_request_payload() -> dict[str, object]:
 def test_post_chat_message_dispatches_through_orchestrator_and_returns_200(
     client: TestClient, mock_pool: MagicMock, mock_llm: MagicMock
 ) -> None:
-    """Router → direct → general_help → 200 with canonical ChatResponse."""
+    """Router -> general_help -> 200 with canonical ChatResponse."""
     mock_pool.fetchrow.side_effect = [
         _prompt_row("[REGALICA_ROUTER_V1]"),  # router prompt
         _prompt_row("[REGALICA_AGGREGATE_GENERAL_HELP_V1]"),  # specialist prompt
@@ -90,8 +90,8 @@ def test_post_chat_message_dispatches_through_orchestrator_and_returns_200(
         {"id": "00000000-0000-0000-0000-0000000000bb"},  # _persist_message INSERT
     ]
     mock_llm.complete.side_effect = [
-        _llm_response(json.dumps({"intent": "direct"})),  # router
-        _llm_response("Bonjour, je suis Regalica."),  # specialist (direct path)
+        _llm_response(json.dumps({"intent_type": "general_help", "confidence": 0.7})),  # router
+        _llm_response("Bonjour, je suis Regalica."),  # specialist (general_help path)
     ]
 
     response = client.post("/chat/message", json=_valid_request_payload())
@@ -103,8 +103,8 @@ def test_post_chat_message_dispatches_through_orchestrator_and_returns_200(
     assert body["response_markdown"] == "Bonjour, je suis Regalica."
     assert body["agents_called"] == ["regalica/aggregate_general_help"]
     assert body["thinking_trace"].startswith("L'utilisateur demande")
-    assert "direct" in body["thinking_trace"]
-    # Tokens come from the specialist (direct) LLM response, not the router.
+    assert "general_help" in body["thinking_trace"]
+    # Tokens come from the specialist (general_help) LLM response, not the router.
     assert body["tokens_input"] == 42
     assert body["tokens_output"] == 18
     assert body["tokens_thinking"] == 7
@@ -141,13 +141,13 @@ def test_post_chat_message_returns_fallback_when_router_prompt_missing(
     mock_llm.complete.assert_not_awaited()
 
 
-def test_post_chat_message_absorbs_llm_failure_in_direct_path(
+def test_post_chat_message_absorbs_llm_failure_in_general_help_path(
     client: TestClient, mock_pool: MagicMock, mock_llm: MagicMock
 ) -> None:
     """LLM raising on every call still returns 200 with an error markdown.
 
-    The router LLM call fails → detect_intent falls back to 'direct'.
-    The specialist (direct) LLM call also fails → _direct_response
+    The router LLM call fails -> detect_intent falls back to 'general_help'.
+    The specialist (general_help) LLM call also fails -> _direct_response
     surfaces the error inside response_markdown so the user gets a
     coherent answer instead of a 5xx.
     """

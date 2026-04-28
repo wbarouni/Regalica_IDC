@@ -13,8 +13,8 @@ End-to-end flow per docs/10 §2:
      and load that prompt from `prompt_bank`.
   4. Invoke the matching T2 specialist (Investigator / Citation /
      Historical) or fall back to a direct LLM call when the
-     intent is `direct` (general help) or the router returned an
-     unknown label.
+     intent is `general_help` or the router returned a value
+     outside the Doc 10 §3 10-value enum.
   5. Build the canonical `OrchestratorResult` with a thinking
      trace consistent with the Regalica persona contract:
        « L'utilisateur demande ... mais je pense ... donc je vais ... »
@@ -38,18 +38,20 @@ import asyncpg
 from app.agents.t2 import CitationAgent, HistoricalAgent, InvestigatorAgent
 from app.config import settings
 from app.llm.base import LLMClient, LLMRequest
-from app.services.intent_router import DIRECT_INTENT, detect_intent
+from app.services.intent_router import FALLBACK_INTENT, detect_intent
 from app.services.prompt_loader import PromptMeta, load_active_prompt
 
-# Intent -> (agent_type, function_name) mapping for the four
-# Phase 3 intents. Phase 3-bis may extend this when the
-# RegalicaPlanner replaces the simple router (docs/10 §16) and
-# the seven Q-types become individually routable.
+# Intent -> (agent_type, function_name) mapping. Keys are the
+# Doc 10 §3 enum values emitted by the router LLM. Values absent
+# from this table fall through to the FALLBACK_INTENT entry
+# (general_help). Phase 3-bis (commit 30b) introduces the
+# aggregator layer and parallel specialist dispatch; this table
+# stays 1:1 in 30a and is the temporary bridge until then.
 _INTENT_DISPATCH: dict[str, tuple[str, str]] = {
-    "investigator": ("investigator", "analyze_fail"),
-    "citation": ("citation", "find_regulatory_source"),
-    "historical": ("historical", "compare_runs_history"),
-    DIRECT_INTENT: ("regalica", "aggregate_general_help"),
+    "zoom_fail": ("investigator", "analyze_fail"),
+    "citation_reglementaire": ("citation", "find_regulatory_source"),
+    "historique_recurrence": ("historical", "compare_runs_history"),
+    FALLBACK_INTENT: ("regalica", "aggregate_general_help"),
 }
 
 # Persona-aligned thinking trace template. Phase 3-bis can move
@@ -119,13 +121,14 @@ async def orchestrate(
             start=start,
         )
 
-    intent = await detect_intent(
+    intent_result = await detect_intent(
         message=message,
         llm_client=llm_client,
         router_template=router_meta["template"],
     )
+    intent = intent_result.intent_type
 
-    specialist_key = _INTENT_DISPATCH.get(intent, _INTENT_DISPATCH[DIRECT_INTENT])
+    specialist_key = _INTENT_DISPATCH.get(intent, _INTENT_DISPATCH[FALLBACK_INTENT])
     specialist_agent_type, specialist_function_name = specialist_key
     bearer_label = f"{specialist_agent_type}/{specialist_function_name}"
 
@@ -182,7 +185,7 @@ async def _invoke_specialist(
     current_run_id: str | None,
 ) -> dict[str, Any]:
     """Dispatch to the right T2 agent and normalise its output."""
-    if intent == "investigator":
+    if intent == "zoom_fail":
         agent_result = await InvestigatorAgent().analyze(
             fail=fail_context or {},
             rule=rule_context or {},
@@ -192,7 +195,7 @@ async def _invoke_specialist(
             max_tokens=specialist_meta["max_tokens"],
             thinking_enabled=specialist_meta["thinking_enabled"],
         )
-    elif intent == "citation":
+    elif intent == "citation_reglementaire":
         agent_result = await CitationAgent().find_source(
             rule=rule_context or {},
             llm_client=llm_client,
@@ -201,7 +204,7 @@ async def _invoke_specialist(
             max_tokens=specialist_meta["max_tokens"],
             thinking_enabled=specialist_meta["thinking_enabled"],
         )
-    elif intent == "historical":
+    elif intent == "historique_recurrence":
         agent_result = await HistoricalAgent().compare(
             current_run_id=current_run_id or "",
             tenant_id=tenant_id,
@@ -239,7 +242,7 @@ async def _direct_response(
     specialist_meta: PromptMeta,
     llm_client: LLMClient,
 ) -> dict[str, Any]:
-    """Direct LLM call when the router returned `direct` (general help)."""
+    """Direct LLM call when the router returned `general_help`."""
     request = LLMRequest(
         prompt=message,
         temperature=specialist_meta["temperature"],

@@ -64,7 +64,7 @@ async def test_orchestrate_dispatches_investigator_when_router_says_so() -> None
     )
     llm = _build_llm(
         [
-            _llm_response(json.dumps({"intent": "investigator"})),
+            _llm_response(json.dumps({"intent_type": "zoom_fail", "confidence": 0.95})),
             _llm_response(json.dumps({"response_markdown": "Cause racine identifiée."})),
         ]
     )
@@ -78,7 +78,7 @@ async def test_orchestrate_dispatches_investigator_when_router_says_so() -> None
     )
     assert result.agents_called == ["investigator/analyze_fail"]
     assert "Cause racine identifiée" in result.response_markdown
-    assert "investigator" in result.thinking_trace
+    assert "zoom_fail" in result.thinking_trace
 
 
 @pytest.mark.asyncio
@@ -91,7 +91,9 @@ async def test_orchestrate_dispatches_citation_when_router_says_so() -> None:
     )
     llm = _build_llm(
         [
-            _llm_response(json.dumps({"intent": "citation"})),
+            _llm_response(
+                json.dumps({"intent_type": "citation_reglementaire", "confidence": 0.92})
+            ),
             _llm_response(json.dumps({"response_markdown": "Voir circulaire 2018-06."})),
         ]
     )
@@ -116,7 +118,9 @@ async def test_orchestrate_dispatches_historical_when_router_says_so() -> None:
     )
     # HistoricalAgent will call pool.fetch internally; default is [] so the
     # agent returns a stable fallback without a second LLM call.
-    llm = _build_llm([_llm_response(json.dumps({"intent": "historical"}))])
+    llm = _build_llm(
+        [_llm_response(json.dumps({"intent_type": "historique_recurrence", "confidence": 0.88}))]
+    )
     result = await orchestrate(
         message="Quelle est la tendance par rapport au trimestre précédent ?",
         tenant_id=_TENANT,
@@ -130,7 +134,7 @@ async def test_orchestrate_dispatches_historical_when_router_says_so() -> None:
 
 
 @pytest.mark.asyncio
-async def test_orchestrate_falls_back_to_direct_when_router_says_direct() -> None:
+async def test_orchestrate_falls_back_to_general_help_when_router_says_so() -> None:
     pool = _build_pool(
         [
             _prompt_row("[REGALICA_ROUTER_V1]"),
@@ -139,7 +143,7 @@ async def test_orchestrate_falls_back_to_direct_when_router_says_direct() -> Non
     )
     llm = _build_llm(
         [
-            _llm_response(json.dumps({"intent": "direct"})),
+            _llm_response(json.dumps({"intent_type": "general_help", "confidence": 0.7})),
             _llm_response("Bonjour, je suis Regalica."),
         ]
     )
@@ -177,7 +181,7 @@ async def test_orchestrate_returns_fallback_when_specialist_prompt_inactive() ->
             None,  # specialist prompt missing
         ]
     )
-    llm = _build_llm([_llm_response(json.dumps({"intent": "investigator"}))])
+    llm = _build_llm([_llm_response(json.dumps({"intent_type": "zoom_fail", "confidence": 0.95}))])
     result = await orchestrate(
         message="Pourquoi ?",
         tenant_id=_TENANT,
@@ -199,7 +203,7 @@ async def test_orchestrate_thinking_trace_follows_persona_template() -> None:
     )
     llm = _build_llm(
         [
-            _llm_response(json.dumps({"intent": "direct"})),
+            _llm_response(json.dumps({"intent_type": "general_help", "confidence": 0.6})),
             _llm_response("OK."),
         ]
     )
@@ -213,11 +217,11 @@ async def test_orchestrate_thinking_trace_follows_persona_template() -> None:
     assert "mais je pense" in result.thinking_trace
     assert "donc je vais" in result.thinking_trace
     assert "Test message" in result.thinking_trace
-    assert "direct" in result.thinking_trace
+    assert "general_help" in result.thinking_trace
 
 
 @pytest.mark.asyncio
-async def test_orchestrate_unknown_intent_falls_back_to_direct() -> None:
+async def test_orchestrate_unknown_intent_falls_back_to_general_help() -> None:
     pool = _build_pool(
         [
             _prompt_row("[REGALICA_ROUTER_V1]"),
@@ -226,7 +230,7 @@ async def test_orchestrate_unknown_intent_falls_back_to_direct() -> None:
     )
     llm = _build_llm(
         [
-            _llm_response(json.dumps({"intent": "made_up_intent_xyz"})),
+            _llm_response(json.dumps({"intent_type": "made_up_intent_xyz", "confidence": 0.8})),
             _llm_response("Direct response."),
         ]
     )
@@ -237,4 +241,5 @@ async def test_orchestrate_unknown_intent_falls_back_to_direct() -> None:
         llm_client=llm,
     )
     assert result.agents_called == ["regalica/aggregate_general_help"]
-    assert "made_up_intent_xyz" in result.thinking_trace
+    # Router rejects out-of-enum value and substitutes general_help.
+    assert "general_help" in result.thinking_trace
