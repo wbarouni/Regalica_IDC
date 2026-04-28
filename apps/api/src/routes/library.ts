@@ -17,7 +17,7 @@ const RULES_STATUS_VALUES = new Set([
 // 14 referentials_*_active views from migration 037, in the
 // order declared there. Each entry maps to the public-facing
 // `code` returned by GET /referentials.
-const REFERENTIAL_VIEWS: ReadonlyArray<{ code: string; view: string }> = [
+const REFERENTIAL_VIEWS: readonly { code: string; view: string }[] = [
   { code: 'annexes', view: 'referentials_annexes_active' },
   { code: 'rubriques', view: 'referentials_rubriques_active' },
   { code: 'colonnes', view: 'referentials_colonnes_active' },
@@ -133,7 +133,7 @@ export function libraryRouter(pool: Pool): IRouter {
     const useView = statusFilter === null;
     const fromClause = useView ? 'rules_active' : 'rules';
     const conditions: string[] = ['tenant_id = $1'];
-    const args: Array<string | number> = [tenantId];
+    const args: (string | number)[] = [tenantId];
     if (axTerm !== null) {
       args.push(axTerm);
       conditions.push(`ax_term = $${args.length}`);

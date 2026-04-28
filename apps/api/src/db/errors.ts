@@ -29,7 +29,6 @@ export function handleDbError(err: unknown, res: Response): void {
   if (process.env['NODE_ENV'] === 'test') {
     // Surface the actual error in the test log so silent pino sinks
     // don't hide the diagnostic when debugging route integration tests.
-    // eslint-disable-next-line no-console
     console.error('[handleDbError]', err);
   }
   if (isDbError(err)) {
