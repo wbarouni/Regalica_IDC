@@ -27,13 +27,55 @@
     "validate": "Valider",
     "cancel": "Annuler",
     "download": "Télécharger",
-    "search": "Rechercher"
+    "search": "Rechercher",
+    "markRead": "Marquer lu"
   },
   "status": {
     "draft": "Brouillon",
     "active": "Actif",
     "deprecated": "Déprécié"
   },
-  "loading": "Chargement…",
-  "error": "Une erreur est survenue"
+  "persona": {
+    "context": "Contexte actif",
+    "tenant": "Banque",
+    "arrete": "Arrêté",
+    "run": "Run",
+    "failsSevere": "FAIL sévères"
+  },
+  "kpi": {
+    "conformity": "Conformité",
+    "evaluated": "Règles évaluées",
+    "pass": "Conformes",
+    "failSevere": "FAIL sévères",
+    "failRounding": "Écarts d'arrondi"
+  },
+  "summary": {
+    "byAnnexe": "Par annexe"
+  },
+  "agent": {
+    "ingestor": "IngestorXML",
+    "dependency": "Dependency",
+    "temporal": "Temporal",
+    "xsd": "BCT · XSD",
+    "embedded": "BCT · Embarqué",
+    "rdg": "BCT · RDG",
+    "investigator": "Investigator",
+    "citation": "Citation",
+    "reporter": "Reporter",
+    "historical": "Historical"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "Aucune notification non lue."
+  },
+  "dock": {
+    "placeholder": "Posez une question à Regalica…",
+    "send": "Envoyer"
+  },
+  "error": {
+    "generic": "Une erreur est survenue",
+    "noActiveRun": "Aucune validation en cours pour cet établissement.",
+    "configMissing": "Configuration requise"
+  },
+  "loading": "Chargement…"
 }

@@ -3,28 +3,7 @@ import { Routes, Route } from 'react-router-dom';
 
 import { LanguageSwitcher } from './components/primitives/LanguageSwitcher';
 import { useDir } from './hooks/useDir';
-
-function WorkspacePlaceholder() {
-  const { t } = useTranslation();
-  const steps = ['step1', 'step2', 'step3'] as const;
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 text-center">
-      <div className="w-px h-16 bg-marigold-400 mx-auto" />
-      <div>
-        <h1 className="font-bold text-xl sm:text-2xl tracking-tight mb-2">{t('nav.workspace')}</h1>
-        <p className="text-stone-500 text-sm font-mono">Phase 4 · REGFlow Edition One</p>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-md">
-        {steps.map((step, i) => (
-          <div key={step} className="border border-stone-200 rounded-lg p-3 text-left">
-            <div className="text-xs font-mono text-stone-500 mb-1">{i + 1}/3</div>
-            <div className="text-xs font-medium">{t(`bct.${step}`)}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+import Workspace from './pages/Workspace';
 
 function PagePlaceholder({ tKey }: { tKey: string }) {
   const { t } = useTranslation();
@@ -77,7 +56,8 @@ export default function App() {
                    max-w-screen-xl mx-auto"
       >
         <Routes>
-          <Route path="/" element={<WorkspacePlaceholder />} />
+          <Route path="/" element={<Workspace />} />
+          <Route path="/workspace" element={<Workspace />} />
           <Route path="/library" element={<PagePlaceholder tKey="nav.library" />} />
           <Route path="/filings" element={<PagePlaceholder tKey="nav.filings" />} />
         </Routes>

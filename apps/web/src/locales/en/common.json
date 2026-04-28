@@ -27,13 +27,55 @@
     "validate": "Validate",
     "cancel": "Cancel",
     "download": "Download",
-    "search": "Search"
+    "search": "Search",
+    "markRead": "Mark read"
   },
   "status": {
     "draft": "Draft",
     "active": "Active",
     "deprecated": "Deprecated"
   },
-  "loading": "Loading…",
-  "error": "An error occurred"
+  "persona": {
+    "context": "Active context",
+    "tenant": "Bank",
+    "arrete": "Reporting date",
+    "run": "Run",
+    "failsSevere": "Severe FAILs"
+  },
+  "kpi": {
+    "conformity": "Conformity",
+    "evaluated": "Rules evaluated",
+    "pass": "Pass",
+    "failSevere": "Severe FAILs",
+    "failRounding": "Rounding gaps"
+  },
+  "summary": {
+    "byAnnexe": "By annex"
+  },
+  "agent": {
+    "ingestor": "IngestorXML",
+    "dependency": "Dependency",
+    "temporal": "Temporal",
+    "xsd": "BCT · XSD",
+    "embedded": "BCT · Embedded",
+    "rdg": "BCT · RDG",
+    "investigator": "Investigator",
+    "citation": "Citation",
+    "reporter": "Reporter",
+    "historical": "Historical"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No unread notifications."
+  },
+  "dock": {
+    "placeholder": "Ask Regalica…",
+    "send": "Send"
+  },
+  "error": {
+    "generic": "An error occurred",
+    "noActiveRun": "No active validation for this institution.",
+    "configMissing": "Configuration required"
+  },
+  "loading": "Loading…"
 }

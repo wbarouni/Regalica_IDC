@@ -27,13 +27,55 @@
     "validate": "تحقق",
     "cancel": "إلغاء",
     "download": "تحميل",
-    "search": "بحث"
+    "search": "بحث",
+    "markRead": "تحديد كمقروء"
   },
   "status": {
     "draft": "مسودة",
     "active": "نشط",
     "deprecated": "مهجور"
   },
-  "loading": "جارٍ التحميل…",
-  "error": "حدث خطأ"
+  "persona": {
+    "context": "السياق النشط",
+    "tenant": "المصرف",
+    "arrete": "تاريخ التصريح",
+    "run": "تشغيل",
+    "failsSevere": "أخطاء جسيمة"
+  },
+  "kpi": {
+    "conformity": "المطابقة",
+    "evaluated": "القواعد المُقيَّمة",
+    "pass": "المطابقة",
+    "failSevere": "أخطاء جسيمة",
+    "failRounding": "فوارق التقريب"
+  },
+  "summary": {
+    "byAnnexe": "حسب الملحق"
+  },
+  "agent": {
+    "ingestor": "IngestorXML",
+    "dependency": "Dependency",
+    "temporal": "Temporal",
+    "xsd": "BCT · XSD",
+    "embedded": "BCT · مدمج",
+    "rdg": "BCT · RDG",
+    "investigator": "Investigator",
+    "citation": "Citation",
+    "reporter": "Reporter",
+    "historical": "Historical"
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "empty": "لا توجد إشعارات غير مقروءة."
+  },
+  "dock": {
+    "placeholder": "اسأل Regalica…",
+    "send": "إرسال"
+  },
+  "error": {
+    "generic": "حدث خطأ",
+    "noActiveRun": "لا توجد عملية تحقق جارية لهذه المؤسسة.",
+    "configMissing": "التكوين مطلوب"
+  },
+  "loading": "جارٍ التحميل…"
 }
