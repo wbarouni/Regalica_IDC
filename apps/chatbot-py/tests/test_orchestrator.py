@@ -149,7 +149,8 @@ async def test_orchestrate_citation_reglementaire_invokes_only_citation_and_aggr
 
 @pytest.mark.asyncio
 async def test_orchestrate_historique_recurrence_invokes_historical_and_aggregator() -> None:
-    """historique_recurrence → Historical + aggregator. No previous run -> stable fallback inside agent."""
+    """historique_recurrence → Historical + aggregator.
+    No previous run -> stable fallback inside agent."""
     prompts: dict[tuple[str, str], dict[str, Any] | None] = {
         ("regalica", "router"): _prompt_row("[REGALICA_ROUTER_V1]"),
         ("regalica", "aggregate_historique_recurrence"): _prompt_row(
@@ -257,7 +258,8 @@ async def test_orchestrate_returns_fallback_when_router_prompt_inactive() -> Non
 
 @pytest.mark.asyncio
 async def test_orchestrate_returns_fallback_when_aggregator_prompt_inactive() -> None:
-    """Aggregator prompt missing -> response_markdown explains, agents_called still includes labels."""
+    """Aggregator prompt missing -> response_markdown explains,
+    agents_called still includes labels."""
     prompts: dict[tuple[str, str], dict[str, Any] | None] = {
         ("regalica", "router"): _prompt_row("[REGALICA_ROUTER_V1]"),
         # aggregate_zoom_fail intentionally missing.
