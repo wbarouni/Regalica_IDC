@@ -10,3 +10,6 @@ tests/fixtures
 # Frozen historical material — never reformat.
 docs/archive/
 docs/as-is-captured/
+
+# Auto-generated — regenerated from tokens.json by tools/generate-css-vars.ts.
+apps/web/src/styles/tokens.generated.css
