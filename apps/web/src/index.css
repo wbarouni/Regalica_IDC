@@ -2,19 +2,66 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Edition One — variables CSS */
+/* Variables CSS Edition One — sourcées depuis src/tokens/tokens.json.
+   Tailwind expose déjà la palette via les utilitaires (bg-ink, text-paper, etc.).
+   Ces variables couvrent les cas hors classes utilitaires. */
 :root {
-  --color-ink: #0a0a0a;
-  --color-paper: #fafafa;
-  --color-marigold: #d97757;
-  --color-stone-200: #e5e5ea;
-  --color-stone-500: #aeaeb2;
+  /* Couleurs primaires */
+  --ink: #0a0a0a;
+  --paper: #fafafa;
+  --marigold: #d97757;
+
+  /* Stone scale */
+  --stone-100: #f2f2f2;
+  --stone-200: #e5e5ea;
+  --stone-300: #d1d1d6;
+  --stone-500: #aeaeb2;
+  --stone-700: #6c6c70;
+  --stone-900: #3a3a3c;
+
+  /* Sémantique verdict */
+  --pass: #3a8f54;
+  --fail: #bf4424;
+  --round: #b58614;
+  --info: #2968a5;
+
+  /* Typographie */
   --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
+
+  /* Rayons */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+}
+
+/* RTL : alignement texte par défaut */
+[dir='rtl'] {
+  text-align: right;
+}
+
+/* Scrollbar Edition One */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--stone-100);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--stone-300);
+  border-radius: 3px;
 }
 
 body {
-  background-color: var(--color-paper);
-  color: var(--color-ink);
   font-family: var(--font-sans);
+  background-color: var(--paper);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+code,
+pre,
+.font-mono {
+  font-family: var(--font-mono);
 }

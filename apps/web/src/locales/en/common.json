@@ -1,0 +1,39 @@
+{
+  "nav": {
+    "workspace": "Workspace",
+    "library": "Library",
+    "filings": "Filings"
+  },
+  "verdict": {
+    "pass": "PASS",
+    "fail_severe": "FAIL",
+    "fail_rounding": "ROUNDING FAIL",
+    "skipped": "SKIPPED"
+  },
+  "domain": {
+    "annexe": "Annex",
+    "regle": "Rule",
+    "rubrique": "Item",
+    "colonne": "Column",
+    "arrete": "Reporting date",
+    "tenant": "Institution"
+  },
+  "bct": {
+    "step1": "XSD check",
+    "step2": "Embedded check",
+    "step3": "RDG quality check"
+  },
+  "action": {
+    "validate": "Validate",
+    "cancel": "Cancel",
+    "download": "Download",
+    "search": "Search"
+  },
+  "status": {
+    "draft": "Draft",
+    "active": "Active",
+    "deprecated": "Deprecated"
+  },
+  "loading": "Loading…",
+  "error": "An error occurred"
+}

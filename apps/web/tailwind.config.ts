@@ -1,27 +1,36 @@
+// Edition One palette + typography sourced from src/tokens/tokens.json.
+// Single source of truth: never type a hex value here.
 import type { Config } from 'tailwindcss';
+
+import tokens from './src/tokens/tokens.json';
+
+const c = tokens.color;
 
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
+    screens: {
+      sm: '390px',
+      md: '768px',
+      lg: '1024px',
+      xl: '1280px',
+      '2xl': '1440px',
+    },
     extend: {
       colors: {
-        ink: '#0A0A0A',
-        paper: '#FAFAFA',
-        marigold: { DEFAULT: '#D97757', 400: '#D97757', 600: '#A34A30' },
-        stone: {
-          100: '#F2F2F2',
-          200: '#E5E5EA',
-          300: '#D1D1D6',
-          500: '#AEAEB2',
-          700: '#6C6C70',
-          900: '#3A3A3C',
-        },
-        evergreen: { DEFAULT: '#2D7A4F', 50: '#F4FBF6' },
-        vermilion: { DEFAULT: '#C0392B', 50: '#FEF2F1' },
+        ink: c.ink,
+        paper: c.paper,
+        paperPure: c.paperPure,
+        marigold: c.marigold,
+        stone: c.stone,
+        evergreen: c.evergreen,
+        vermilion: c.vermilion,
+        amber: c.amber,
+        azure: c.azure,
       },
       fontFamily: {
-        sans: ['"IBM Plex Sans"', 'system-ui', 'sans-serif'],
-        mono: ['"IBM Plex Mono"', 'monospace'],
+        sans: [tokens.font.sans],
+        mono: [tokens.font.mono],
       },
     },
   },

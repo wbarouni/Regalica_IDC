@@ -1,0 +1,39 @@
+{
+  "nav": {
+    "workspace": "Espace de travail",
+    "library": "Bibliothèque",
+    "filings": "Déclarations"
+  },
+  "verdict": {
+    "pass": "CONFORME",
+    "fail_severe": "NON CONFORME",
+    "fail_rounding": "ÉCART ARRONDI",
+    "skipped": "NON ÉVALUÉ"
+  },
+  "domain": {
+    "annexe": "Annexe",
+    "regle": "Règle",
+    "rubrique": "Rubrique",
+    "colonne": "Colonne",
+    "arrete": "Arrêté",
+    "tenant": "Établissement"
+  },
+  "bct": {
+    "step1": "Contrôle XSD",
+    "step2": "Contrôle embarqué",
+    "step3": "Contrôle qualité RDG"
+  },
+  "action": {
+    "validate": "Valider",
+    "cancel": "Annuler",
+    "download": "Télécharger",
+    "search": "Rechercher"
+  },
+  "status": {
+    "draft": "Brouillon",
+    "active": "Actif",
+    "deprecated": "Déprécié"
+  },
+  "loading": "Chargement…",
+  "error": "Une erreur est survenue"
+}

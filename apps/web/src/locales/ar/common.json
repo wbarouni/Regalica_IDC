@@ -1,0 +1,39 @@
+{
+  "nav": {
+    "workspace": "مساحة العمل",
+    "library": "المكتبة",
+    "filings": "التصريحات"
+  },
+  "verdict": {
+    "pass": "مطابق",
+    "fail_severe": "غير مطابق",
+    "fail_rounding": "فارق تقريب",
+    "skipped": "غير مُقيَّم"
+  },
+  "domain": {
+    "annexe": "ملحق",
+    "regle": "قاعدة",
+    "rubrique": "بند",
+    "colonne": "عمود",
+    "arrete": "تاريخ التصريح",
+    "tenant": "المؤسسة"
+  },
+  "bct": {
+    "step1": "مراقبة XSD",
+    "step2": "المراقبة المدمجة",
+    "step3": "مراقبة جودة RDG"
+  },
+  "action": {
+    "validate": "تحقق",
+    "cancel": "إلغاء",
+    "download": "تحميل",
+    "search": "بحث"
+  },
+  "status": {
+    "draft": "مسودة",
+    "active": "نشط",
+    "deprecated": "مهجور"
+  },
+  "loading": "جارٍ التحميل…",
+  "error": "حدث خطأ"
+}
