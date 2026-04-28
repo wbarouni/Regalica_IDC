@@ -26,6 +26,12 @@ function isDbError(e: unknown): e is { code: string; message: string } {
  */
 export function handleDbError(err: unknown, res: Response): void {
   logger.error({ err }, 'route handler failed');
+  if (process.env['NODE_ENV'] === 'test') {
+    // Surface the actual error in the test log so silent pino sinks
+    // don't hide the diagnostic when debugging route integration tests.
+    // eslint-disable-next-line no-console
+    console.error('[handleDbError]', err);
+  }
   if (isDbError(err)) {
     if (err.code === '42P01') {
       res.status(501).json({

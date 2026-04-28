@@ -17,17 +17,33 @@ export interface RlsContext {
   userId?: string;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function assertUuid(value: string, label: string): void {
+  if (!UUID_RE.test(value)) {
+    throw new Error(`withConnection: ${label} must be a UUID`);
+  }
+}
+
 export async function withConnection<T>(
   pool: Pool,
   ctx: RlsContext,
   fn: (client: PoolClient) => Promise<T>,
 ): Promise<T> {
+  // Postgres does not accept parameter substitution on SET statements,
+  // so we interpolate the literal directly. The values are gated by
+  // `assertUuid` (and at the route boundary by tenantMiddleware /
+  // authMiddleware), eliminating injection paths.
+  assertUuid(ctx.tenantId, 'tenantId');
+  if (ctx.userId !== undefined) {
+    assertUuid(ctx.userId, 'userId');
+  }
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    await client.query('SET LOCAL app.current_tenant_id = $1', [ctx.tenantId]);
+    await client.query(`SET LOCAL app.current_tenant_id = '${ctx.tenantId}'`);
     if (ctx.userId !== undefined) {
-      await client.query('SET LOCAL app.current_user_id = $1', [ctx.userId]);
+      await client.query(`SET LOCAL app.current_user_id = '${ctx.userId}'`);
     }
     const result = await fn(client);
     await client.query('COMMIT');
