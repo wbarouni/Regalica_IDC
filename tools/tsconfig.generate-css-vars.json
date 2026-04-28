@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "noUnusedLocals": false,
+    "lib": ["ES2020"],
+    "types": ["node"],
+    "typeRoots": ["../node_modules/@types", "../node_modules/.pnpm/node_modules/@types"]
+  },
+  "include": ["generate-css-vars.ts", "../apps/web/src/tokens/tokens.json"]
+}
