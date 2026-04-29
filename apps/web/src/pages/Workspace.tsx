@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { TENANT_DISPLAY_NAME } from '../lib/config';
-import { useConversations } from '../hooks/useConversations';
+import { useChat, type ChatMessage } from '../hooks/useChat';
 import { useCurrentRun } from '../hooks/useCurrentRun';
 import { useNotifications } from '../hooks/useNotifications';
 import { useRunSummary } from '../hooks/useRunSummary';
@@ -205,55 +205,115 @@ function PipelineRibbon() {
   );
 }
 
-function Composer({ runId }: { runId: string | null }) {
+function ChatTurn({ message }: { message: ChatMessage }) {
   const { t } = useTranslation();
-  const { createConversation } = useConversations();
-  const [text, setText] = useState<string>('');
-  const [submitting, setSubmitting] = useState<boolean>(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [traceOpen, setTraceOpen] = useState<boolean>(false);
+  if (message.role === 'user') {
+    return (
+      <div className="msg-user">
+        <span>{message.content}</span>
+        <div className="msg-user__meta">{new Date(message.timestamp).toLocaleTimeString()}</div>
+      </div>
+    );
+  }
+  const trace = message.thinking_trace ?? null;
+  return (
+    <div className="msg-rega">
+      <div className="msg-rega__avatar" />
+      <div className="msg-rega__body">
+        <div className="msg-rega__head">
+          <span className="msg-rega__name">Regalica</span>
+          <span className="msg-rega__time">{new Date(message.timestamp).toLocaleTimeString()}</span>
+        </div>
+        <div className="msg-rega__text">
+          <p>{message.content}</p>
+        </div>
+        {trace !== null && trace.length > 0 && (
+          <article className="artefact" data-state={traceOpen ? 'expanded' : 'collapsed'}>
+            <header className="artefact__header" onClick={() => setTraceOpen((v) => !v)}>
+              <span className="artefact__title">{t('chat.thinking')}</span>
+              <span className="artefact__badge artefact__badge--rega">trace</span>
+            </header>
+            <div className="artefact__body">
+              <p style={{ fontSize: '13px', color: 'var(--stone-800)' }}>{trace}</p>
+              {message.agents_called !== undefined && message.agents_called.length > 0 && (
+                <p
+                  style={{
+                    marginTop: '8px',
+                    fontSize: '11px',
+                    color: 'var(--stone-600)',
+                    fontFamily: 'var(--font-mono)',
+                  }}
+                >
+                  {message.agents_called.join(' / ')}
+                </p>
+              )}
+            </div>
+          </article>
+        )}
+      </div>
+    </div>
+  );
+}
 
-  async function handleSubmit() {
-    if (text.trim().length === 0 || submitting) return;
-    setSubmitting(true);
-    setSubmitError(null);
-    try {
-      await createConversation({
-        title: text.slice(0, 80),
-        language: 'fr',
-        ...(runId !== null ? { linked_validation_run_id: runId } : {}),
-      });
-      setText('');
-    } catch (e: unknown) {
-      setSubmitError(e instanceof Error ? e.message : 'UNKNOWN');
-    } finally {
-      setSubmitting(false);
+function Composer({ runId: _runId }: { runId: string | null }) {
+  const { t } = useTranslation();
+  const { messages, loading, error, sendMessage, clearError } = useChat();
+  const [text, setText] = useState<string>('');
+
+  async function handleSubmit(): Promise<void> {
+    if (text.trim().length === 0 || loading) return;
+    const payload = text;
+    setText('');
+    await sendMessage(payload);
+  }
+
+  function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>): void {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      void handleSubmit();
     }
   }
 
   return (
-    <div className="border-t border-stone-200 pt-3">
+    <div className="border-t border-stone-200 pt-3 space-y-3">
+      {messages.length > 0 && (
+        <div className="space-y-3">
+          {messages.map((m) => (
+            <ChatTurn key={m.id} message={m} />
+          ))}
+        </div>
+      )}
+      {error !== null && (
+        <div className="text-xs font-mono text-vermilion-700 flex items-center gap-2" role="alert">
+          <span>{error === 'MISSING_CONFIG' ? t('chat.errorConfig') : t('chat.errorGeneric')}</span>
+          <button type="button" onClick={clearError} className="underline hover:text-ink">
+            ×
+          </button>
+        </div>
+      )}
       <div className="flex gap-2 items-end">
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder={t('dock.placeholder')}
+          onKeyDown={handleKeyDown}
+          placeholder={t('chat.inputPlaceholder')}
           rows={1}
+          disabled={loading}
           className="flex-1 border border-stone-300 rounded-lg px-3 py-2 text-sm
-                     focus:outline-none focus:border-marigold resize-none"
+                     focus:outline-none focus:border-marigold resize-none
+                     disabled:opacity-60"
         />
         <button
           type="button"
           onClick={() => void handleSubmit()}
-          disabled={submitting || text.trim().length === 0}
+          disabled={loading || text.trim().length === 0}
           className="px-4 py-2 bg-ink text-paper rounded-lg text-sm font-medium
                      disabled:opacity-50 disabled:cursor-not-allowed hover:bg-stone-800"
         >
-          {submitting ? t('loading') : t('dock.send')}
+          {loading ? t('chat.thinking') : t('chat.sendButton')}
         </button>
       </div>
-      {submitError !== null && (
-        <p className="mt-2 text-xs font-mono text-vermilion-700">{submitError}</p>
-      )}
     </div>
   );
 }

@@ -73,5 +73,10 @@ class Settings(BaseSettings):
     chatbot_router_agent_type: str = Field(alias="CHATBOT_ROUTER_AGENT_TYPE")
     chatbot_router_function_name: str = Field(alias="CHATBOT_ROUTER_FUNCTION_NAME")
 
+    # CORS allow-list for the chatbot HTTP boundary. Comma-separated list
+    # of origins authorised to call /chat/*. Empty/unset disables
+    # cross-origin entirely (same-origin callers still work).
+    chatbot_cors_origin: str = Field(default="", alias="CHATBOT_CORS_ORIGIN")
+
 
 settings = Settings()

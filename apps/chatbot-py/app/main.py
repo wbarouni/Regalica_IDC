@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.db.pool import close_pool, get_pool
@@ -46,6 +47,23 @@ app = FastAPI(
     docs_url="/docs" if settings.env != "production" else None,
     redoc_url=None,
 )
+
+# CORS allow-list driven by CHATBOT_CORS_ORIGIN (comma-separated). The
+# frontend at VITE_CHATBOT_URL must be present in the list or the
+# browser blocks fetch() against /chat/*. Empty value -> middleware
+# not registered (same-origin callers still work; cross-origin
+# rejected by the browser as expected).
+_cors_origins = [
+    origin.strip() for origin in settings.chatbot_cors_origin.split(",") if origin.strip()
+]
+if _cors_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_cors_origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
+        allow_headers=["*"],
+    )
 
 app.include_router(health_router, prefix="/health", tags=["health"])
 app.include_router(chat_router, prefix="/chat", tags=["chat"])

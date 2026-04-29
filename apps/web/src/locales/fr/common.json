@@ -139,6 +139,13 @@
     "placeholder": "Posez une question à Regalica…",
     "send": "Envoyer"
   },
+  "chat": {
+    "thinking": "Regalica réfléchit…",
+    "errorGeneric": "Une erreur est survenue. Réessayez.",
+    "errorConfig": "Configuration manquante (TENANT_ID / USER_ID / CHATBOT_URL).",
+    "sendButton": "Envoyer",
+    "inputPlaceholder": "Posez une question à Regalica…"
+  },
   "error": {
     "generic": "Une erreur est survenue",
     "noActiveRun": "Aucune validation en cours pour cet établissement.",

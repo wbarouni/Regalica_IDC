@@ -139,6 +139,13 @@
     "placeholder": "اسأل Regalica…",
     "send": "إرسال"
   },
+  "chat": {
+    "thinking": "Regalica تفكّر…",
+    "errorGeneric": "حدث خطأ. حاول مرة أخرى.",
+    "errorConfig": "إعدادات ناقصة (TENANT_ID / USER_ID / CHATBOT_URL).",
+    "sendButton": "إرسال",
+    "inputPlaceholder": "اسأل Regalica…"
+  },
   "error": {
     "generic": "حدث خطأ",
     "noActiveRun": "لا توجد عملية تحقق جارية لهذه المؤسسة.",

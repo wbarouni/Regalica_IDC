@@ -139,6 +139,13 @@
     "placeholder": "Ask Regalica…",
     "send": "Send"
   },
+  "chat": {
+    "thinking": "Regalica is thinking…",
+    "errorGeneric": "An error occurred. Please try again.",
+    "errorConfig": "Configuration missing (TENANT_ID / USER_ID / CHATBOT_URL).",
+    "sendButton": "Send",
+    "inputPlaceholder": "Ask Regalica…"
+  },
   "error": {
     "generic": "An error occurred",
     "noActiveRun": "No active validation for this institution.",
