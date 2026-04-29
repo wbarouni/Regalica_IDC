@@ -11,5 +11,10 @@ tests/fixtures
 docs/archive/
 docs/as-is-captured/
 
+# Verbatim Edition One mockups — source for primitives.css extraction.
+# Never reformat: prettier's defaults change tag/attribute layout and
+# break the diffability of the design source-of-truth.
+docs/mockups/
+
 # Auto-generated — regenerated from tokens.json by tools/generate-css-vars.ts.
 apps/web/src/styles/tokens.generated.css

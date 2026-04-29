@@ -1,3 +1,11 @@
+/* @import rules MUST precede every other statement per CSS spec
+   (PostCSS / Vite enforce this). tokens.generated.css declares the
+   Edition One palette as :root custom properties; primitives.css
+   imports the verbatim mockup styles consumed by Workspace and
+   Library pages. */
+@import './styles/tokens.generated.css';
+@import './styles/primitives.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
