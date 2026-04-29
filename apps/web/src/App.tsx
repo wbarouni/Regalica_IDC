@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom';
 
 import { LanguageSwitcher } from './components/primitives/LanguageSwitcher';
 import { useDir } from './hooks/useDir';
+import Library from './pages/Library';
 import Workspace from './pages/Workspace';
 
 function PagePlaceholder({ tKey }: { tKey: string }) {
@@ -58,7 +59,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Workspace />} />
           <Route path="/workspace" element={<Workspace />} />
-          <Route path="/library" element={<PagePlaceholder tKey="nav.library" />} />
+          <Route path="/library" element={<Library />} />
           <Route path="/filings" element={<PagePlaceholder tKey="nav.filings" />} />
         </Routes>
       </main>

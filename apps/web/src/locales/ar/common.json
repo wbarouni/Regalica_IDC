@@ -40,7 +40,55 @@
     "tenant": "المصرف",
     "arrete": "تاريخ التصريح",
     "run": "تشغيل",
-    "failsSevere": "أخطاء جسيمة"
+    "failsSevere": "أخطاء جسيمة",
+    "role": "خبيرة تنظيمية بالذكاء الاصطناعي",
+    "statusMode": "تحقيق",
+    "rounding": "تقريب",
+    "statArrete": "تاريخ التصريح",
+    "statRun": "تشغيل",
+    "mode": {
+      "workspace": "الوضع الحالي",
+      "library": "المكتبة"
+    }
+  },
+  "lib": {
+    "title": "المكتبة",
+    "filterAll": "جميع الملاحق",
+    "filterActive": "نشط",
+    "filterPending": "في انتظار المراجعة",
+    "filterCross": "الكل",
+    "noRules": "لم يتم العثور على قواعد.",
+    "circulairesComingSoon": "استيراد المنشورات — المرحلة 5.",
+    "filingsComingSoon": "التصريحات المؤرشفة — المرحلة 5.",
+    "colStatus": "الحالة",
+    "colNumRegle": "القاعدة",
+    "colRubrique": "الوصف",
+    "colOper": "العملية",
+    "colTerms": "المصطلحات",
+    "colType": "النوع",
+    "colVersion": "الإصدار",
+    "colEntries": "المدخلات",
+    "colUpdatedAt": "تاريخ التحديث",
+    "rayons": {
+      "rules": "قواعد RDG",
+      "referentials": "المراجع",
+      "circulaires": "المنشورات",
+      "filings": "التصريحات المؤرشفة"
+    },
+    "domains": {
+      "label": "مجالات BCT",
+      "rcm": "الميزانية",
+      "rsm": "التفصيل",
+      "rpla": "المحفظة",
+      "rpta": "المعدلات"
+    },
+    "status": {
+      "active": "نشط",
+      "pending_review": "في انتظار المراجعة",
+      "draft": "مسودة",
+      "deprecated": "مهجور",
+      "rejected": "مرفوض"
+    }
   },
   "kpi": {
     "conformity": "المطابقة",

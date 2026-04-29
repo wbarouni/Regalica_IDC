@@ -40,7 +40,55 @@
     "tenant": "Bank",
     "arrete": "Reporting date",
     "run": "Run",
-    "failsSevere": "Severe FAILs"
+    "failsSevere": "Severe FAILs",
+    "role": "AI regulatory expert",
+    "statusMode": "Investigation",
+    "rounding": "rounding",
+    "statArrete": "Reporting date",
+    "statRun": "Run",
+    "mode": {
+      "workspace": "Current mode",
+      "library": "Library"
+    }
+  },
+  "lib": {
+    "title": "Library",
+    "filterAll": "All annexes",
+    "filterActive": "Active",
+    "filterPending": "Pending review",
+    "filterCross": "All",
+    "noRules": "No rules found.",
+    "circulairesComingSoon": "Circular ingestion — Phase 5.",
+    "filingsComingSoon": "Archived filings — Phase 5.",
+    "colStatus": "Status",
+    "colNumRegle": "Rule",
+    "colRubrique": "Description",
+    "colOper": "Op",
+    "colTerms": "Terms",
+    "colType": "Type",
+    "colVersion": "Version",
+    "colEntries": "Entries",
+    "colUpdatedAt": "Updated",
+    "rayons": {
+      "rules": "RDG rules",
+      "referentials": "Referentials",
+      "circulaires": "Circulars",
+      "filings": "Archived filings"
+    },
+    "domains": {
+      "label": "BCT domains",
+      "rcm": "Balance sheet",
+      "rsm": "Breakdown",
+      "rpla": "Portfolio",
+      "rpta": "Rates"
+    },
+    "status": {
+      "active": "Active",
+      "pending_review": "Pending review",
+      "draft": "Draft",
+      "deprecated": "Deprecated",
+      "rejected": "Rejected"
+    }
   },
   "kpi": {
     "conformity": "Conformity",

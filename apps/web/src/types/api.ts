@@ -81,6 +81,16 @@ export interface Referential {
   last_updated_at: string | null;
 }
 
+export const RULE_STATUSES = {
+  ACTIVE: 'active',
+  PENDING_REVIEW: 'pending_review',
+  DRAFT: 'draft',
+  DEPRECATED: 'deprecated',
+  REJECTED: 'rejected',
+} as const;
+
+export type RuleStatus = (typeof RULE_STATUSES)[keyof typeof RULE_STATUSES];
+
 export interface Conversation {
   id: string;
   title: string | null;

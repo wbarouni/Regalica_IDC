@@ -23,3 +23,6 @@ const rawPageSize = import.meta.env['VITE_DEFAULT_PAGE_SIZE'] as string | undefi
 const parsedPageSize = rawPageSize !== undefined ? Number.parseInt(rawPageSize, 10) : NaN;
 export const DEFAULT_PAGE_SIZE =
   Number.isFinite(parsedPageSize) && parsedPageSize > 0 ? parsedPageSize : 50;
+
+export const BRAND_NAME = import.meta.env['VITE_BRAND_NAME'] as string | undefined;
+export const PRODUCT_NAME = import.meta.env['VITE_PRODUCT_NAME'] as string | undefined;

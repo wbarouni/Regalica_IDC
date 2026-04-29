@@ -40,7 +40,55 @@
     "tenant": "Banque",
     "arrete": "Arrêté",
     "run": "Run",
-    "failsSevere": "FAIL sévères"
+    "failsSevere": "FAIL sévères",
+    "role": "Experte réglementaire IA",
+    "statusMode": "Investigation",
+    "rounding": "arrondi",
+    "statArrete": "Arrêté",
+    "statRun": "Run",
+    "mode": {
+      "workspace": "Mode actuel",
+      "library": "Bibliothèque"
+    }
+  },
+  "lib": {
+    "title": "Bibliothèque",
+    "filterAll": "Toutes les annexes",
+    "filterActive": "Active",
+    "filterPending": "4-yeux",
+    "filterCross": "Tout",
+    "noRules": "Aucune règle trouvée.",
+    "circulairesComingSoon": "Ingestion des circulaires — Phase 5.",
+    "filingsComingSoon": "Filings archivés — Phase 5.",
+    "colStatus": "Statut",
+    "colNumRegle": "Règle",
+    "colRubrique": "Description",
+    "colOper": "Op",
+    "colTerms": "Termes",
+    "colType": "Type",
+    "colVersion": "Version",
+    "colEntries": "Entrées",
+    "colUpdatedAt": "Mis à jour",
+    "rayons": {
+      "rules": "Règles RDG",
+      "referentials": "Référentiels",
+      "circulaires": "Circulaires",
+      "filings": "Filings archivés"
+    },
+    "domains": {
+      "label": "Domaines BCT",
+      "rcm": "Bilan",
+      "rsm": "Ventilation",
+      "rpla": "Portefeuille",
+      "rpta": "Taux"
+    },
+    "status": {
+      "active": "Active",
+      "pending_review": "4-yeux",
+      "draft": "Brouillon",
+      "deprecated": "Dépréciée",
+      "rejected": "Rejetée"
+    }
   },
   "kpi": {
     "conformity": "Conformité",
