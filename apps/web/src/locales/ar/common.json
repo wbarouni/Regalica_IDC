@@ -48,7 +48,26 @@
     "statRun": "تشغيل",
     "mode": {
       "workspace": "الوضع الحالي",
-      "library": "المكتبة"
+      "library": "المكتبة",
+      "filings": "التصريحات الجارية"
+    }
+  },
+  "filings": {
+    "title": "التصريحات الجارية",
+    "noFilings": "لم يتم العثور على تصريحات.",
+    "clearFilters": "إعادة تعيين",
+    "colAnnexe": "الملحق",
+    "colDate": "تاريخ التصريح",
+    "colFichier": "الملف",
+    "colTaille": "الحجم",
+    "colXsd": "XSD",
+    "colDepose": "تاريخ الإيداع",
+    "filterAnnexe": "جميع الملاحق",
+    "filterStatus": "حالة XSD",
+    "status": {
+      "passed": "مقبول",
+      "failed": "مرفوض",
+      "pending": "في الانتظار"
     }
   },
   "lib": {

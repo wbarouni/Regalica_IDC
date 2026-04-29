@@ -48,7 +48,26 @@
     "statRun": "Run",
     "mode": {
       "workspace": "Current mode",
-      "library": "Library"
+      "library": "Library",
+      "filings": "Active filings"
+    }
+  },
+  "filings": {
+    "title": "Active filings",
+    "noFilings": "No filings found.",
+    "clearFilters": "Reset",
+    "colAnnexe": "Annex",
+    "colDate": "Reporting date",
+    "colFichier": "File",
+    "colTaille": "Size",
+    "colXsd": "XSD",
+    "colDepose": "Uploaded",
+    "filterAnnexe": "All annexes",
+    "filterStatus": "XSD status",
+    "status": {
+      "passed": "Passed",
+      "failed": "Failed",
+      "pending": "Pending"
     }
   },
   "lib": {

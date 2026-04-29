@@ -13,6 +13,7 @@ import { logger } from './logger.js';
 import { authMiddleware, tenantMiddleware } from './middleware/auth.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { conversationsRouter } from './routes/conversations.js';
+import { filingsRouter } from './routes/filings.js';
 import { healthRouter } from './routes/health.js';
 import { libraryRouter } from './routes/library.js';
 import { notificationsRouter } from './routes/notifications.js';
@@ -45,6 +46,7 @@ export function createApp(pool?: Pool): Express {
     app.use(apiMountPath, notificationsRouter(pool));
     app.use(apiMountPath, libraryRouter(pool));
     app.use(apiMountPath, conversationsRouter(pool));
+    app.use(apiMountPath, filingsRouter(pool));
   }
 
   app.use(errorHandler);

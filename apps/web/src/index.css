@@ -5,6 +5,7 @@
    Library pages. */
 @import './styles/tokens.generated.css';
 @import './styles/primitives.css';
+@import './styles/filings.css';
 
 @tailwind base;
 @tailwind components;

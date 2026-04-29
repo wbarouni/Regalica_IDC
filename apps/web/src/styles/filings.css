@@ -1,0 +1,535 @@
+/* Filings-specific Edition One classes — verbatim extract from
+   docs/mockups/regalica-filings.html. Only top-level statements
+   whose selectors reference classes NOT already in primitives.css
+   are kept; this prevents silent overrides on Workspace and
+   Library shared selectors (.persona, .canvas, .cmd, .ledger,
+   etc.). Brace-balanced parser handles @media wrappers correctly. */
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Masthead */
+.masthead {
+  padding: 36px 28px 22px;
+  border-bottom: 1px solid var(--stone-200);
+  display: flex;
+  align-items: flex-end;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+.masthead__text {
+  flex: 1 1 480px;
+}
+
+.masthead__label {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--stone-600);
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+.masthead__title {
+  font-size: 38px;
+  font-weight: 200;
+  letter-spacing: -1px;
+  line-height: 1.05;
+  margin: 0 0 12px;
+}
+
+.masthead__subtitle {
+  font-size: 14px;
+  font-weight: 300;
+  color: var(--stone-700);
+  max-width: 640px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.masthead__subtitle strong {
+  font-weight: 500;
+  color: var(--ink);
+}
+
+/* KPI grid */
+.kpi {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(128px, 1fr));
+  gap: 1px;
+  background: var(--stone-200);
+  border: 1px solid var(--stone-200);
+}
+
+.kpi__cell {
+  background: var(--paper-pure);
+  padding: 14px 18px;
+  min-width: 128px;
+}
+
+.kpi__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.kpi__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.kpi__label {
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--stone-600);
+  font-weight: 500;
+}
+
+.kpi__val {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 26px;
+  font-weight: 300;
+  letter-spacing: -0.5px;
+  color: var(--ink);
+  line-height: 1;
+}
+
+/* Filter strip */
+.filters {
+  padding: 12px 28px;
+  border-bottom: 1px solid var(--stone-200);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  background: var(--paper-pure);
+}
+
+.filter-label {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--stone-600);
+  font-weight: 500;
+  margin-right: 6px;
+}
+
+[dir='rtl'] .filter-label {
+  margin-right: 0;
+  margin-left: 6px;
+}
+
+.filter-pill {
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: var(--stone-100);
+  border: 1px solid var(--stone-200);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--stone-800);
+  cursor: pointer;
+  transition: background 0.2s var(--ease);
+}
+
+.filter-pill:hover {
+  background: var(--stone-200);
+}
+
+.filter-search {
+  flex: 1;
+  min-width: 220px;
+  max-width: 320px;
+  margin-inline-start: auto;
+  height: 30px;
+  padding: 0 12px 0 32px;
+  background: var(--stone-100)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238E8E93' stroke-width='1.5' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M21 21l-4.3-4.3'/%3E%3C/svg%3E")
+    no-repeat 10px center;
+  background-size: 14px;
+  border: 1px solid var(--stone-200);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--ink);
+  outline: none;
+}
+
+[dir='rtl'] .filter-search {
+  padding: 0 32px 0 12px;
+  background-position: right 10px center;
+}
+
+.filter-search:focus {
+  border-color: var(--marigold-400);
+}
+
+/* Table */
+.table-wrap {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--paper);
+}
+
+.runs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.runs-table thead th {
+  text-align: start;
+  padding: 14px 14px;
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--stone-600);
+  border-bottom: 1px solid var(--stone-300);
+  background: var(--paper-pure);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.runs-table tbody td {
+  padding: 14px 14px;
+  border-bottom: 1px solid var(--stone-100);
+  vertical-align: middle;
+}
+
+.runs-table tbody tr {
+  cursor: pointer;
+  transition: background 0.2s var(--ease);
+}
+
+.runs-table tbody tr:hover td {
+  background: var(--marigold-25);
+}
+
+.runs-table tbody tr.urgent td:first-child {
+  box-shadow: inset 3px 0 0 var(--vermilion-500);
+}
+
+[dir='rtl'] .runs-table tbody tr.urgent td:first-child {
+  box-shadow: inset -3px 0 0 var(--vermilion-500);
+}
+
+.pill--draft {
+  background: var(--stone-100);
+  color: var(--stone-800);
+}
+
+.pill--review {
+  background: var(--amber-50);
+  color: var(--amber-700);
+}
+
+.pill--ready {
+  background: var(--evergreen-50);
+  color: var(--evergreen-700);
+}
+
+.pill--signed {
+  background: var(--stone-950);
+  color: var(--paper);
+}
+
+.pill--bct-waiting {
+  background: var(--azure-50);
+  color: var(--azure-700);
+}
+
+.pill--bct-accepted {
+  background: var(--evergreen-50);
+  color: var(--evergreen-700);
+}
+
+.pill--bct-rejected {
+  background: var(--vermilion-50);
+  color: var(--vermilion-700);
+}
+
+/* Regalica signed mark */
+.rega-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--marigold-700);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.rega-mark::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--marigold-400);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* Sparkline cell */
+.spark-svg {
+  display: block;
+}
+
+.fail-count {
+  font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 11.5px;
+}
+
+.fail-count.zero {
+  color: var(--stone-500);
+}
+
+.fail-count.nonzero {
+  color: var(--vermilion-700);
+  font-weight: 500;
+}
+
+/* Quick action button */
+.act-btn {
+  padding: 5px 11px;
+  background: transparent;
+  border: 1px solid var(--stone-300);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--stone-800);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s var(--ease);
+}
+
+.act-btn:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.act-btn--sign {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.act-btn--sign:hover {
+  background: var(--marigold-500);
+  border-color: var(--marigold-500);
+}
+
+/* ════════════════════════════════════════════
+     SIGNATURE MODE OVERLAY — Chamber moment
+     ════════════════════════════════════════════ */
+.sig-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 10, 0.88);
+  z-index: 100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  animation: fadeIn 0.32s var(--ease);
+}
+
+.sig-overlay.open {
+  display: flex;
+}
+
+.sig-surface {
+  background: var(--paper-pure);
+  max-width: 680px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 56px 64px 48px;
+  border-radius: 2px;
+  position: relative;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
+}
+
+.sig-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--stone-600);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+[dir='rtl'] .sig-close {
+  right: auto;
+  left: 18px;
+}
+
+.sig-close:hover {
+  background: var(--stone-100);
+  color: var(--ink);
+}
+
+.sig-label {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--marigold-700);
+  font-weight: 500;
+  margin-bottom: 20px;
+}
+
+.sig-title {
+  font-size: 32px;
+  font-weight: 200;
+  letter-spacing: -0.8px;
+  line-height: 1.15;
+  margin: 0 0 24px;
+  color: var(--ink);
+}
+
+.sig-body {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--stone-900);
+  margin-bottom: 28px;
+}
+
+.sig-body strong {
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.sig-summary {
+  background: var(--stone-50);
+  border-left: 3px solid var(--evergreen-500);
+  padding: 18px 22px;
+  margin-bottom: 28px;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+[dir='rtl'] .sig-summary {
+  border-left: none;
+  border-right: 3px solid var(--evergreen-500);
+}
+
+.sig-summary__row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  color: var(--stone-800);
+}
+
+.sig-summary__row strong {
+  color: var(--ink);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12.5px;
+}
+
+.sig-attest {
+  border: 1px solid var(--stone-300);
+  padding: 22px;
+  margin-bottom: 24px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink);
+  font-style: italic;
+}
+
+.sig-attest__line {
+  display: inline-block;
+  width: 200px;
+  border-bottom: 1px solid var(--ink);
+  margin: 0 6px;
+  vertical-align: text-bottom;
+}
+
+.sig-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 28px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--stone-900);
+}
+
+.sig-check input {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--marigold-400);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.sig-actions {
+  display: flex;
+  gap: 12px;
+  padding-top: 20px;
+  border-top: 1px solid var(--stone-200);
+}
+
+.sig-btn {
+  flex: 1;
+  padding: 13px 20px;
+  border-radius: 3px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+}
+
+.sig-btn--primary {
+  background: var(--ink);
+  color: var(--paper);
+  border: 1px solid var(--ink);
+}
+
+.sig-btn--primary:hover:not(:disabled) {
+  background: var(--marigold-600);
+  border-color: var(--marigold-600);
+}
+
+.sig-btn--primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.sig-btn--secondary {
+  background: transparent;
+  color: var(--stone-800);
+  border: 1px solid var(--stone-400);
+}
+
+.sig-btn--secondary:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.sig-hint {
+  font-size: 11.5px;
+  color: var(--stone-600);
+  margin-top: 14px;
+  line-height: 1.5;
+}

@@ -3,13 +3,9 @@ import { Routes, Route } from 'react-router-dom';
 
 import { LanguageSwitcher } from './components/primitives/LanguageSwitcher';
 import { useDir } from './hooks/useDir';
+import Filings from './pages/Filings';
 import Library from './pages/Library';
 import Workspace from './pages/Workspace';
-
-function PagePlaceholder({ tKey }: { tKey: string }) {
-  const { t } = useTranslation();
-  return <div className="text-stone-500 font-mono text-sm">{t(tKey)} — Phase 4</div>;
-}
 
 export default function App() {
   const { t } = useTranslation();
@@ -60,7 +56,7 @@ export default function App() {
           <Route path="/" element={<Workspace />} />
           <Route path="/workspace" element={<Workspace />} />
           <Route path="/library" element={<Library />} />
-          <Route path="/filings" element={<PagePlaceholder tKey="nav.filings" />} />
+          <Route path="/filings" element={<Filings />} />
         </Routes>
       </main>
     </div>

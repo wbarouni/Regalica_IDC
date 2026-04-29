@@ -7,7 +7,7 @@ import type { ValidationRun } from '../../types/api';
 interface PersonaSidebarProps {
   run: ValidationRun | null;
   loading: boolean;
-  mode: 'workspace' | 'library';
+  mode: 'workspace' | 'library' | 'filings';
 }
 
 /**

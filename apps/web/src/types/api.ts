@@ -81,6 +81,17 @@ export interface Referential {
   last_updated_at: string | null;
 }
 
+export interface Filing {
+  id: string;
+  code_annexe: string;
+  date_annexe: string;
+  file_name: string;
+  file_size_bytes: number;
+  xsd_validation_status: string | null;
+  uploaded_at: string;
+  uploaded_by_user_id: string;
+}
+
 export const RULE_STATUSES = {
   ACTIVE: 'active',
   PENDING_REVIEW: 'pending_review',
