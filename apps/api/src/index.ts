@@ -1,8 +1,19 @@
 import { createApp, createHttpServer } from './app';
 import { config } from './config';
+import { getPool } from './db/pool';
 import { logger } from './logger';
 
-const app = createApp();
+// Inject the production pg pool so /api/tenants/* routes mount.
+// When DATABASE_URL is unset, getPool() throws -- log and start
+// the app in /health-only mode rather than crashing the process.
+let pool: ReturnType<typeof getPool> | undefined;
+try {
+  pool = getPool();
+} catch (err) {
+  logger.warn({ err }, 'database pool unavailable; only /health is mounted');
+}
+
+const app = createApp(pool);
 const { server, io } = createHttpServer(app);
 
 const shutdown = (signal: string): void => {
