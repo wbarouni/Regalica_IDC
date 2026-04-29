@@ -1,4 +1,16 @@
 {
   "version": "0.0.1",
-  "configurations": []
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["dev"],
+      "cwd": "apps/web",
+      "port": 5173,
+      "env": {
+        "VITE_ALLOWED_HOSTS": "all"
+      },
+      "autoPort": true
+    }
+  ]
 }
