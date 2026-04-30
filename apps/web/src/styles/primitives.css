@@ -48,17 +48,13 @@ body {
   margin: 0;
   background: var(--stone-100);
   color: var(--ink);
-  font-family:
-    'Inter',
-    -apple-system,
-    sans-serif;
-  font-feature-settings: 'ss01', 'cv11';
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
 [lang='ar'] body,
 [dir='rtl'] body {
-  font-family: 'Noto Sans Arabic', 'Inter', sans-serif;
+  font-family: 'Noto Sans Arabic', var(--font-sans);
 }
 .mono {
   font-family: 'IBM Plex Mono', ui-monospace, monospace;
@@ -1393,7 +1389,7 @@ body {
 }
 [lang='ar'] .dock__field,
 [dir='rtl'] .dock__field {
-  font-family: 'Noto Sans Arabic', 'Inter', sans-serif;
+  font-family: 'Noto Sans Arabic', var(--font-sans);
 }
 .dock__field::placeholder {
   color: var(--stone-500);
@@ -1653,4 +1649,144 @@ body {
   .desktop-only {
     display: none !important;
   }
+}
+
+/* ============================================================
+   Phase C — Library shell: stubs for the mockup blocks not yet
+   implemented. Kept empty on purpose: visual rules will land
+   alongside the React components that consume them. Tokens from
+   tokens.generated.css remain the only source of values.
+   ============================================================ */
+
+/* Rayons strip (rules / referentials / circulaires / filings + actions) */
+.rayons {
+  /* TODO Phase C1 — strip layout (gap, divider, hover) */
+}
+.rayon {
+  /* TODO Phase C1 — pill-style rayon button */
+}
+.rayon__count {
+  /* TODO Phase C1 — numeric badge inside .rayon */
+}
+.rayons__actions {
+  /* TODO Phase C1 — secondary actions group */
+}
+
+/* Hierarchical BCT domain navigator (left aside) */
+.nav {
+  /* TODO Phase C2 — navigator container */
+}
+.nav__title {
+  /* TODO Phase C2 — section heading */
+}
+.nav__domain {
+  /* TODO Phase C2 — domain row */
+}
+.nav__domain-head {
+  /* TODO Phase C2 — domain header (clickable) */
+}
+.nav__domain-caret {
+  /* TODO Phase C2 — collapse caret */
+}
+.nav__domain-num {
+  /* TODO Phase C2 — domain index */
+}
+.nav__domain-name {
+  /* TODO Phase C2 — domain label */
+}
+.nav__domain-count {
+  /* TODO Phase C2 — domain count */
+}
+.nav__sub {
+  /* TODO Phase C2 — sub-domain row */
+}
+.nav__sub-head {
+  /* TODO Phase C2 — sub-domain header */
+}
+.nav__sub-num {
+  /* TODO Phase C2 — sub-domain index */
+}
+.nav__sub-name {
+  /* TODO Phase C2 — sub-domain label */
+}
+.nav__sub-count {
+  /* TODO Phase C2 — sub-domain count */
+}
+.nav__annexe {
+  /* TODO Phase C2 — annexe tile group */
+}
+.nav__ax {
+  /* TODO Phase C2 — annexe tile */
+}
+.nav__ax-code {
+  /* TODO Phase C2 — annexe code chip */
+}
+
+/* Annexe content header (mono code chip + title + meta cards) */
+.content {
+  /* TODO Phase C3 — content container */
+}
+.content__inner {
+  /* TODO Phase C3 — inner wrap */
+}
+.content__ax-head {
+  /* TODO Phase C3 — annexe header block */
+}
+.content__ax-code {
+  /* TODO Phase C3 — mono AX_TERM chip */
+}
+.content__ax-title {
+  /* TODO Phase C3 — annexe title */
+}
+.content__ax-sub {
+  /* TODO Phase C3 — sub-domain breadcrumb */
+}
+.content__ax-meta {
+  /* TODO Phase C3 — meta cards row */
+}
+.content__ax-meta-item {
+  /* TODO Phase C3 — single meta card */
+}
+.content__ax-meta-label {
+  /* TODO Phase C3 — meta label */
+}
+.content__ax-meta-val {
+  /* TODO Phase C3 — meta value */
+}
+
+/* Library search field + rules toolbar */
+.rules-panel {
+  /* TODO Phase C4 — rules panel container */
+}
+.rules-toolbar {
+  /* TODO Phase C4 — search + filter row */
+}
+.search-field {
+  /* TODO Phase C4 — text input with magnifier prefix */
+}
+
+/* Viewer pane (PDF / XML / Retour BCT) — gated Phase 6 */
+.viz {
+  /* TODO Phase 6 — viewer pane shell */
+}
+.viz__header {
+  /* TODO Phase 6 — viewer header */
+}
+.viz__type {
+  /* TODO Phase 6 — type chip */
+}
+.viz__title {
+  /* TODO Phase 6 — viewer title */
+}
+.viz__tools {
+  /* TODO Phase 6 — viewer toolbar */
+}
+.viz__tool {
+  /* TODO Phase 6 — viewer tool button */
+}
+.viz__body {
+  /* TODO Phase 6 — viewer scroll body */
+}
+.viz__footer {
+  /* TODO Phase 6 — viewer footer */
 }

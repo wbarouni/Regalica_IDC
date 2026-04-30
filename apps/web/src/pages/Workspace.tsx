@@ -1,29 +1,42 @@
 import { useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import ReactMarkdown from 'react-markdown';
+import { useNavigate } from 'react-router-dom';
+import remarkGfm from 'remark-gfm';
 
-import { TENANT_DISPLAY_NAME } from '../lib/config';
+import { LanguageSwitcher } from '../components/primitives/LanguageSwitcher';
+import { PersonaSidebar } from '../components/layout/PersonaSidebar';
 import { useChat, type ChatMessage } from '../hooks/useChat';
 import { useCurrentRun } from '../hooks/useCurrentRun';
 import { useNotifications } from '../hooks/useNotifications';
 import { useRunSummary } from '../hooks/useRunSummary';
 import type { Notification, ValidationRun } from '../types/api';
 
+type AgentStatus = 'done' | 'current' | 'pending';
+
+interface AgentStep {
+  readonly id: string;
+  readonly tKey: string;
+  readonly fn: string;
+  readonly status: AgentStatus;
+}
+
 // Static pipeline grammar (Doc 10 §15). The dynamic per-run agent
 // status table (`run_agent_steps`) is not yet implemented in
 // migrations; the API returns 501 for /agents. Until that table
-// lands, the ribbon shows the canonical pipeline names with a
-// neutral status.
-const PIPELINE_STEPS: readonly { id: string; tKey: string }[] = [
-  { id: 'ingestor', tKey: 'agent.ingestor' },
-  { id: 'dependency', tKey: 'agent.dependency' },
-  { id: 'temporal', tKey: 'agent.temporal' },
-  { id: 'xsd', tKey: 'agent.xsd' },
-  { id: 'embedded', tKey: 'agent.embedded' },
-  { id: 'rdg', tKey: 'agent.rdg' },
-  { id: 'investigator', tKey: 'agent.investigator' },
-  { id: 'citation', tKey: 'agent.citation' },
-  { id: 'reporter', tKey: 'agent.reporter' },
-  { id: 'historical', tKey: 'agent.historical' },
+// lands, every step is rendered as `pending` — when the live state
+// is wired, status comes from the API payload.
+const PIPELINE_STEPS: readonly AgentStep[] = [
+  { id: 'ingestor', tKey: 'agent.ingestor', fn: 'parse_xml', status: 'pending' },
+  { id: 'dependency', tKey: 'agent.dependency', fn: 'resolve_deps', status: 'pending' },
+  { id: 'temporal', tKey: 'agent.temporal', fn: 'check_dates', status: 'pending' },
+  { id: 'xsd', tKey: 'agent.xsd', fn: 'validate_xsd', status: 'pending' },
+  { id: 'embedded', tKey: 'agent.embedded', fn: 'check_embedded', status: 'pending' },
+  { id: 'rdg', tKey: 'agent.rdg', fn: 'evaluate_rules', status: 'pending' },
+  { id: 'investigator', tKey: 'agent.investigator', fn: 'inspect_fails', status: 'pending' },
+  { id: 'citation', tKey: 'agent.citation', fn: 'cite_sources', status: 'pending' },
+  { id: 'reporter', tKey: 'agent.reporter', fn: 'compose_report', status: 'pending' },
+  { id: 'historical', tKey: 'agent.historical', fn: 'compare_runs', status: 'pending' },
 ];
 
 function ConfigMissingState({ missing }: { missing: string }) {
@@ -51,42 +64,31 @@ function LoadingState() {
 function NoActiveRun() {
   const { t } = useTranslation();
   return (
-    <div className="rounded-lg border border-stone-200 bg-stone-100 p-6 text-sm text-stone-700">
-      {t('error.noActiveRun')}
+    <div className="rounded-lg border border-dashed border-stone-300 bg-paper px-6 py-10 text-center">
+      <div
+        className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-marigold/10 text-marigold"
+        aria-hidden="true"
+      >
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M14 3v4a1 1 0 0 0 1 1h4" />
+          <path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z" />
+          <path d="M9 13h6M9 17h4" />
+        </svg>
+      </div>
+      <p className="text-sm font-medium text-ink">{t('error.noActiveRun')}</p>
+      <p className="mt-1 font-mono text-[11px] uppercase tracking-wider text-stone-500">
+        {t('error.noActiveRunHint', 'Importez un dépôt XML pour démarrer une validation.')}
+      </p>
     </div>
-  );
-}
-
-function PersonaStats({ run }: { run: ValidationRun | null }) {
-  const { t } = useTranslation();
-  const tenantName = TENANT_DISPLAY_NAME ?? '—';
-  const arrete = run?.arrete_date ?? '—';
-  const runShort = run !== null ? `#${run.run_id.slice(0, 8)}` : '—';
-  const fails = run?.total_fail_severe ?? 0;
-  return (
-    <aside className="border border-stone-200 rounded-lg p-4 space-y-3 text-sm">
-      <div className="font-mono text-xs uppercase tracking-wider text-stone-500">
-        {t('persona.context')}
-      </div>
-      <div className="space-y-2">
-        <div className="flex justify-between">
-          <span className="text-stone-700">{t('persona.tenant')}</span>
-          <span className="font-mono">{tenantName}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-stone-700">{t('persona.arrete')}</span>
-          <span className="font-mono">{arrete}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-stone-700">{t('persona.run')}</span>
-          <span className="font-mono">{runShort}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-stone-700">{t('persona.failsSevere')}</span>
-          <span className="font-mono text-vermilion-600">{fails}</span>
-        </div>
-      </div>
-    </aside>
   );
 }
 
@@ -144,21 +146,13 @@ function KpiGrid({ run }: { run: ValidationRun }) {
   const conformity =
     run.conformity_rate !== null ? `${(run.conformity_rate * 100).toFixed(2)}%` : '—';
   const cells: { label: string; value: string; tone: string }[] = [
-    {
-      label: t('kpi.conformity'),
-      value: conformity,
-      tone: 'text-evergreen-700',
-    },
+    { label: t('kpi.conformity'), value: conformity, tone: 'text-evergreen-700' },
     {
       label: t('kpi.evaluated'),
       value: String(run.total_rules_evaluated ?? '—'),
       tone: 'text-ink',
     },
-    {
-      label: t('kpi.pass'),
-      value: String(run.total_pass ?? '—'),
-      tone: 'text-evergreen-700',
-    },
+    { label: t('kpi.pass'), value: String(run.total_pass ?? '—'), tone: 'text-evergreen-700' },
     {
       label: t('kpi.failSevere'),
       value: String(run.total_fail_severe ?? '—'),
@@ -184,24 +178,26 @@ function KpiGrid({ run }: { run: ValidationRun }) {
   );
 }
 
-function PipelineRibbon() {
+function Ribbon({ steps, runIdShort }: { steps: readonly AgentStep[]; runIdShort: string | null }) {
   const { t } = useTranslation();
   return (
-    <div className="border border-stone-200 rounded-lg p-3 overflow-x-auto">
-      <div className="flex items-center gap-2 text-xs font-mono">
-        {PIPELINE_STEPS.map((step, i) => (
-          <span key={step.id} className="flex items-center gap-2 flex-shrink-0">
-            <span className="inline-block w-2 h-2 rounded-full bg-stone-300" aria-hidden="true" />
-            <span className="text-stone-700 whitespace-nowrap">{t(step.tKey)}</span>
-            {i < PIPELINE_STEPS.length - 1 && (
-              <span className="text-stone-300" aria-hidden="true">
-                ›
-              </span>
-            )}
-          </span>
+    <section className="ribbon" aria-label={t('orchestration.title')}>
+      <div className="ribbon__header">
+        <span className="ribbon__title">{t('orchestration.title')}</span>
+        {runIdShort !== null && <span className="ribbon__meta">#{runIdShort}</span>}
+      </div>
+      <div className="ribbon__track" role="list">
+        {steps.map((s) => (
+          <div key={s.id} className={`agent agent--${s.status}`} role="listitem">
+            <span className="agent__dot" aria-hidden="true" />
+            <span className="agent__labels">
+              <span className="agent__name">{t(s.tKey)}</span>
+              <span className="agent__fn">{s.fn}</span>
+            </span>
+          </div>
         ))}
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -219,14 +215,24 @@ function ChatTurn({ message }: { message: ChatMessage }) {
   const trace = message.thinking_trace ?? null;
   return (
     <div className="msg-rega">
-      <div className="msg-rega__avatar" />
+      <div className="msg-rega__avatar">
+        <img src="/portrait.jpg" alt="Regalica" />
+      </div>
       <div className="msg-rega__body">
         <div className="msg-rega__head">
           <span className="msg-rega__name">Regalica</span>
           <span className="msg-rega__time">{new Date(message.timestamp).toLocaleTimeString()}</span>
         </div>
-        <div className="msg-rega__text">
-          <p>{message.content}</p>
+        <div
+          className="msg-rega__text prose prose-sm prose-stone max-w-none
+                     prose-p:my-2 prose-headings:mt-3 prose-headings:mb-2
+                     prose-pre:bg-stone-100 prose-pre:text-ink
+                     prose-code:before:hidden prose-code:after:hidden
+                     prose-code:bg-stone-100 prose-code:px-1 prose-code:py-0.5
+                     prose-code:rounded prose-code:font-mono prose-code:text-[0.85em]
+                     prose-a:text-azure prose-a:underline-offset-2"
+        >
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
         </div>
         {trace !== null && trace.length > 0 && (
           <article className="artefact" data-state={traceOpen ? 'expanded' : 'collapsed'}>
@@ -256,7 +262,7 @@ function ChatTurn({ message }: { message: ChatMessage }) {
   );
 }
 
-function Composer({ runId: _runId }: { runId: string | null }) {
+function Composer() {
   const { t } = useTranslation();
   const { messages, loading, error, sendMessage, clearError } = useChat();
   const [text, setText] = useState<string>('');
@@ -320,6 +326,7 @@ function Composer({ runId: _runId }: { runId: string | null }) {
 
 export default function Workspace() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { run, loading: runLoading, error: runError } = useCurrentRun();
   const { summary } = useRunSummary(run?.run_id ?? null);
   const { notifications, loading: notifLoading, markAsRead } = useNotifications();
@@ -332,56 +339,73 @@ export default function Workspace() {
     return <ConfigMissingState missing={runError} />;
   }
 
+  const runIdShort = run !== null ? run.run_id.slice(0, 8) : null;
+
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6">
-        <PersonaStats run={run} />
-        <div className="space-y-4">
-          <PipelineRibbon />
-          {runLoading && <LoadingState />}
-          {!runLoading && run === null && runError === 'NO_ACTIVE_RUN' && <NoActiveRun />}
-          {run !== null && (
-            <>
-              <KpiGrid run={run} />
-              {summary !== null && summary.annexes.length > 0 && (
-                <div>
-                  <div className="font-mono text-[10px] uppercase tracking-wider text-stone-500 mb-2">
-                    {t('summary.byAnnexe')}
+    <div className="app">
+      <PersonaSidebar run={run} loading={runLoading} mode="workspace" />
+
+      <main className="canvas">
+        <header className="cmd">
+          <nav className="cmd__nav" aria-label={t('nav.workspace')}>
+            <a onClick={() => navigate('/filings')}>{t('nav.filings')}</a>
+            <a className="active">{t('nav.workspace')}</a>
+            <a onClick={() => navigate('/library')}>{t('nav.library')}</a>
+          </nav>
+          <div className="cmd__context">
+            <LanguageSwitcher />
+          </div>
+        </header>
+
+        <Ribbon steps={PIPELINE_STEPS} runIdShort={runIdShort} />
+
+        <div className="thread-scroll">
+          <div className="thread">
+            {runLoading && <LoadingState />}
+            {!runLoading && run === null && runError === null && <NoActiveRun />}
+            {run !== null && (
+              <>
+                <KpiGrid run={run} />
+                {summary !== null && summary.annexes.length > 0 && (
+                  <div>
+                    <div className="font-mono text-[10px] uppercase tracking-wider text-stone-500 mb-2">
+                      {t('summary.byAnnexe')}
+                    </div>
+                    <ul className="space-y-1 text-sm font-mono">
+                      {summary.annexes.map((a) => (
+                        <li
+                          key={a.code}
+                          className="flex justify-between items-center border border-stone-200 rounded px-3 py-2"
+                        >
+                          <span>{a.code}</span>
+                          <span className="text-stone-700">
+                            {Number(a.fail_severe)} severe · {Number(a.fail_rounding)} rounding
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <ul className="space-y-1 text-sm font-mono">
-                    {summary.annexes.map((a) => (
-                      <li
-                        key={a.code}
-                        className="flex justify-between items-center border border-stone-200 rounded px-3 py-2"
-                      >
-                        <span>{a.code}</span>
-                        <span className="text-stone-700">
-                          {Number(a.fail_severe)} severe · {Number(a.fail_rounding)} rounding
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
+                )}
+              </>
+            )}
 
-      <section>
-        <div className="font-mono text-[10px] uppercase tracking-wider text-stone-500 mb-2">
-          {t('notifications.title')}
-        </div>
-        <NotificationsList
-          notifications={notifications}
-          loading={notifLoading}
-          onMark={(id) => {
-            void markAsRead(id);
-          }}
-        />
-      </section>
+            <section>
+              <div className="font-mono text-[10px] uppercase tracking-wider text-stone-500 mb-2">
+                {t('notifications.title')}
+              </div>
+              <NotificationsList
+                notifications={notifications}
+                loading={notifLoading}
+                onMark={(id) => {
+                  void markAsRead(id);
+                }}
+              />
+            </section>
 
-      <Composer runId={run?.run_id ?? null} />
+            <Composer />
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

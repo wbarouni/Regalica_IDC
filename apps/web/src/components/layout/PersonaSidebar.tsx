@@ -26,7 +26,7 @@ export function PersonaSidebar({ run, loading, mode }: PersonaSidebarProps): JSX
   return (
     <aside className="persona">
       <div className="persona__brand desktop-only">
-        <div className="persona__mark" />
+        <img className="persona__mark" src="/Logo.jpg" alt={brand} />
         <div>
           <div className="persona__brand-name">{brand}</div>
           <div className="persona__brand-sub">{product}</div>

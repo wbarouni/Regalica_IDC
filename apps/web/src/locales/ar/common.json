@@ -119,6 +119,9 @@
   "summary": {
     "byAnnexe": "حسب الملحق"
   },
+  "orchestration": {
+    "title": "التنسيق"
+  },
   "agent": {
     "ingestor": "IngestorXML",
     "dependency": "Dependency",

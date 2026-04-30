@@ -119,6 +119,9 @@
   "summary": {
     "byAnnexe": "Par annexe"
   },
+  "orchestration": {
+    "title": "Orchestration"
+  },
   "agent": {
     "ingestor": "IngestorXML",
     "dependency": "Dependency",
