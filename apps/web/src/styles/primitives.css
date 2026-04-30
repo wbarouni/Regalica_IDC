@@ -679,6 +679,74 @@ body {
   border-right-color: var(--stone-400);
 }
 
+/* Phase B variants — explicit modifiers for the artefact types
+   rendered by the Workspace thread. Default border colour is the
+   marigold-400 inherited from `.artefact`; each variant below
+   overrides only the properties it needs. Tokens are taken
+   verbatim from tokens.generated.css (no hex literals). */
+.artefact--synthese {
+  border-left-color: var(--marigold-400);
+}
+[dir='rtl'] .artefact--synthese {
+  border-right-color: var(--marigold-400);
+}
+.artefact--livrable_a {
+  border-left-width: 2px;
+  border-left-color: var(--stone-700);
+}
+[dir='rtl'] .artefact--livrable_a {
+  border-right-width: 2px;
+  border-right-color: var(--stone-700);
+}
+.artefact--livrable_b {
+  background: var(--stone-100);
+  border-left-color: var(--stone-500);
+}
+[dir='rtl'] .artefact--livrable_b {
+  border-right-color: var(--stone-500);
+}
+.artefact--livrable_c {
+  border-left-color: var(--vermilion-500);
+}
+[dir='rtl'] .artefact--livrable_c {
+  border-right-color: var(--vermilion-500);
+}
+.artefact--notification {
+  background: var(--marigold-25);
+  border-left-color: var(--marigold-400);
+}
+[dir='rtl'] .artefact--notification {
+  border-right-color: var(--marigold-400);
+}
+.artefact--briefing {
+  border-left-color: var(--stone-900);
+}
+[dir='rtl'] .artefact--briefing {
+  border-right-color: var(--stone-900);
+}
+/* Per-variant icon background + stroke. The base .artefact__icon
+   uses marigold; --livrable_c flips it to vermilion to match the
+   FAIL semantics, --notification leans on marigold as the active
+   accent, --briefing reuses the dim ink-like stone palette. */
+.artefact--livrable_c .artefact__icon {
+  background: var(--vermilion-50);
+}
+.artefact--livrable_c .artefact__icon svg {
+  stroke: var(--vermilion-700);
+}
+.artefact--briefing .artefact__icon {
+  background: var(--stone-100);
+}
+.artefact--briefing .artefact__icon svg {
+  stroke: var(--stone-900);
+}
+.artefact--livrable_b .artefact__icon {
+  background: var(--stone-200);
+}
+.artefact--livrable_b .artefact__icon svg {
+  stroke: var(--stone-800);
+}
+
 .artefact__header {
   display: flex;
   align-items: center;
@@ -771,6 +839,38 @@ body {
 .artefact__badge--rega {
   background: var(--marigold-50);
   color: var(--marigold-700);
+}
+.artefact__badge--trace {
+  background: var(--stone-100);
+  color: var(--stone-700);
+}
+.artefact__badge--synthese {
+  background: var(--marigold-50);
+  color: var(--marigold-700);
+}
+.artefact__badge--livrable_a {
+  background: var(--stone-100);
+  color: var(--stone-800);
+}
+.artefact__badge--livrable_b {
+  background: var(--stone-200);
+  color: var(--stone-900);
+}
+.artefact__badge--livrable_c {
+  background: var(--vermilion-50);
+  color: var(--vermilion-500);
+}
+.artefact__badge--notification {
+  background: var(--marigold-25);
+  color: var(--marigold-400);
+}
+.artefact__badge--system {
+  background: var(--stone-100);
+  color: var(--stone-700);
+}
+.artefact__badge--briefing {
+  background: var(--stone-100);
+  color: var(--stone-900);
 }
 .artefact__controls {
   display: flex;
