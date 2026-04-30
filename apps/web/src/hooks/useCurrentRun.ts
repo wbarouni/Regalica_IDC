@@ -22,7 +22,7 @@ export function useCurrentRun(): UseCurrentRunResult {
       return;
     }
     let cancelled = false;
-    void fetchApi<ValidationRun>(`/api/tenants/${TENANT_ID}/runs/current`)
+    void fetchApi<ValidationRun | null>(`/api/tenants/${TENANT_ID}/runs/current`)
       .then((r) => {
         if (!cancelled) {
           setRun(r.data);

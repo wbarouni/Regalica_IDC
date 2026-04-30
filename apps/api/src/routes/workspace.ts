@@ -50,14 +50,8 @@ export function workspaceRouter(pool: Pool): IRouter {
         );
         return r.rows;
       });
-      if (rows.length === 0) {
-        res.status(404).json({
-          error: { code: 'NO_ACTIVE_RUN', message: 'No active run found' },
-        });
-        return;
-      }
       res.json({
-        data: rows[0],
+        data: rows[0] ?? null,
         meta: { ts: new Date().toISOString(), version: '1' },
       });
     } catch (err) {
