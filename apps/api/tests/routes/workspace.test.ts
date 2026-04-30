@@ -12,7 +12,7 @@ describeIfDb('routes — workspace', () => {
   let firstStepId: string;
 
   beforeAll(async () => {
-    ctx = await setupRoutesContext(50);
+    ctx = await setupRoutesContext(52);
 
     // RLS-protected inserts: open a transaction, set the GUCs, then insert.
     const seed = ctx.testPool;

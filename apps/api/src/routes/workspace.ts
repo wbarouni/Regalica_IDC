@@ -2,11 +2,11 @@ import { Router, type IRouter, type Request, type Response } from 'express';
 import type { Pool } from 'pg';
 
 import { handleDbError } from '../db/errors.js';
+import { getPlatformConfigNumber } from '../lib/platformConfig.js';
 import { subscribeRunEvents } from '../lib/runEventBus.js';
 import { withConnection } from '../db/withConnection.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const SSE_HEARTBEAT_MS = 15_000;
 
 interface RunAgentStepRow {
   id: string;
@@ -271,6 +271,14 @@ export function workspaceRouter(pool: Pool): IRouter {
       return;
     }
 
+    let heartbeatMs: number;
+    try {
+      heartbeatMs = await getPlatformConfigNumber(pool, 'sse_heartbeat_ms');
+    } catch (err) {
+      handleDbError(err, res);
+      return;
+    }
+
     res.status(200);
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache, no-transform');
@@ -297,7 +305,7 @@ export function workspaceRouter(pool: Pool): IRouter {
       // SSE comment line — keeps proxies and browsers from timing out
       // an otherwise idle connection. Not delivered as a custom event.
       res.write(`: ping ${String(Date.now())}\n\n`);
-    }, SSE_HEARTBEAT_MS);
+    }, heartbeatMs);
 
     req.on('close', () => {
       clearInterval(heartbeat);

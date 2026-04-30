@@ -10,7 +10,7 @@ describeIfDb('routes — prompts', () => {
   let runId: string;
 
   beforeAll(async () => {
-    ctx = await setupRoutesContext(50);
+    ctx = await setupRoutesContext(52);
 
     const upload = await ctx.testPool.query<{ id: string }>(
       `INSERT INTO xml_uploads

@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "source": "docs/03-ARCHITECTURE-ET-ZERO-HARDCODING.md §3 — runtime tunables moved out of applicative source code (Guard D-006).",
+  "consumers": [
+    "apps/api/migrations/052_seed_platform_config.sql — embeds this array verbatim in the seed DO block",
+    "apps/api/src/lib/platformConfig.ts — getPlatformConfig(pool, key) loader with module-level cache"
+  ],
+  "note": "config_value is JSONB. Numbers stay numbers, strings stay strings; the loader deserialises into the call site's expected JS type. Adding a new tunable is (this file + 052) — no schema migration.",
+  "items": [
+    {
+      "config_key": "sse_heartbeat_ms",
+      "config_value": 15000,
+      "description": "Heartbeat interval (ms) for the /runs/:runId/stream SSE relay. Sent as an SSE comment line every N ms to keep proxies and browsers from timing out idle connections."
+    }
+  ]
+}
