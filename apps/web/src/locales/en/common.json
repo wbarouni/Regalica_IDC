@@ -122,6 +122,9 @@
   "orchestration": {
     "title": "Orchestration"
   },
+  "ribbon": {
+    "meta": "{{duration}}s · {{bct_count}} BCT steps · {{agent_count}} agents"
+  },
   "agent": {
     "ingestor": "IngestorXML",
     "dependency": "Dependency",
@@ -134,13 +137,39 @@
     "reporter": "Reporter",
     "historical": "Historical"
   },
+  "chip": {
+    "zoom": "Zoom on a FAIL",
+    "cluster": "Root-cause cluster detail",
+    "historical": "Item history",
+    "citation": "Cite BCT circular",
+    "simulation": "Simulate correction",
+    "sanction": "Estimate BCT sanction",
+    "plan": "Optimal correction plan"
+  },
+  "artefact": {
+    "badge": {
+      "trace": "trace",
+      "synthese": "Synthesis",
+      "livrable_a": "Deliverable A",
+      "livrable_b": "Deliverable B",
+      "livrable_c": "Deliverable C",
+      "notification": "Notification",
+      "system": "System",
+      "briefing": "Briefing"
+    }
+  },
   "notifications": {
     "title": "Notifications",
     "empty": "No unread notifications."
   },
   "dock": {
     "placeholder": "Ask Regalica…",
-    "send": "Send"
+    "send": "Send",
+    "hint_send": "↵ send",
+    "hint_newline": "⇧↵ new line"
+  },
+  "date": {
+    "dayLabel": "{{date}}"
   },
   "chat": {
     "thinking": "Regalica is thinking…",
@@ -152,7 +181,8 @@
   "error": {
     "generic": "An error occurred",
     "noActiveRun": "No active validation for this institution.",
-    "configMissing": "Configuration required"
+    "configMissing": "Configuration required",
+    "invalid_xml_format": "Invalid format — only XML files are accepted."
   },
   "loading": "Loading…"
 }

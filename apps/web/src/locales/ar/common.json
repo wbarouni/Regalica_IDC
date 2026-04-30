@@ -122,6 +122,9 @@
   "orchestration": {
     "title": "التنسيق"
   },
+  "ribbon": {
+    "meta": "{{duration}} ث · {{bct_count}} خطوات BCT · {{agent_count}} وكلاء"
+  },
   "agent": {
     "ingestor": "IngestorXML",
     "dependency": "Dependency",
@@ -134,13 +137,39 @@
     "reporter": "Reporter",
     "historical": "Historical"
   },
+  "chip": {
+    "zoom": "تكبير على خطأ FAIL",
+    "cluster": "تفاصيل عنقود السبب الجذري",
+    "historical": "تاريخ البند",
+    "citation": "استشهاد بمنشور BCT",
+    "simulation": "محاكاة التصحيح",
+    "sanction": "تقدير عقوبة BCT",
+    "plan": "خطة التصحيح المثلى"
+  },
+  "artefact": {
+    "badge": {
+      "trace": "أثر",
+      "synthese": "ملخص",
+      "livrable_a": "تسليم أ",
+      "livrable_b": "تسليم ب",
+      "livrable_c": "تسليم ج",
+      "notification": "إشعار",
+      "system": "نظام",
+      "briefing": "إحاطة"
+    }
+  },
   "notifications": {
     "title": "الإشعارات",
     "empty": "لا توجد إشعارات غير مقروءة."
   },
   "dock": {
     "placeholder": "اسأل Regalica…",
-    "send": "إرسال"
+    "send": "إرسال",
+    "hint_send": "↵ إرسال",
+    "hint_newline": "⇧↵ سطر جديد"
+  },
+  "date": {
+    "dayLabel": "{{date}}"
   },
   "chat": {
     "thinking": "Regalica تفكّر…",
@@ -152,7 +181,8 @@
   "error": {
     "generic": "حدث خطأ",
     "noActiveRun": "لا توجد عملية تحقق جارية لهذه المؤسسة.",
-    "configMissing": "التكوين مطلوب"
+    "configMissing": "التكوين مطلوب",
+    "invalid_xml_format": "تنسيق غير صالح — لا تُقبل سوى ملفات XML."
   },
   "loading": "جارٍ التحميل…"
 }
