@@ -1,5 +1,6 @@
 // Edition One palette + typography sourced from src/tokens/tokens.json.
 // Single source of truth: never type a hex value here.
+import typography from '@tailwindcss/typography';
 import type { Config } from 'tailwindcss';
 
 import tokens from './src/tokens/tokens.json';
@@ -34,5 +35,5 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [typography],
 } satisfies Config;
