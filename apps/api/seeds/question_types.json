@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "source": "docs/04-WORKFLOW-UTILISATEUR-COMPLET.md §T2 — 7 user-facing investigation question types",
+  "consumers": [
+    "apps/api/migrations/050_seed_question_types.sql — embeds this array verbatim in the seed DO block",
+    "apps/api/src/routes/prompts.ts — GET /prompts/suggestions returns this list",
+    "apps/web/src/components/SuggestionChips.tsx — renders one .dock__sug per row"
+  ],
+  "note": "fn_name is the short radical (zoom, cluster, …). chatbot-py maps it to regalica.aggregate_<fn_name> in prompt_bank when routing the chat. Adding an 8th type is a (49 schema unchanged + 50 seed amendment) — no frontend or chatbot-py change required as long as a matching prompt_bank.regalica.aggregate_<fn_name> entry exists.",
+  "total": 7,
+  "items": [
+    { "fn_name": "zoom", "label_i18n_key": "chip.zoom", "ordinal": 1 },
+    { "fn_name": "cluster", "label_i18n_key": "chip.cluster", "ordinal": 2 },
+    { "fn_name": "historical", "label_i18n_key": "chip.historical", "ordinal": 3 },
+    { "fn_name": "citation", "label_i18n_key": "chip.citation", "ordinal": 4 },
+    { "fn_name": "simulation", "label_i18n_key": "chip.simulation", "ordinal": 5 },
+    { "fn_name": "sanction", "label_i18n_key": "chip.sanction", "ordinal": 6 },
+    { "fn_name": "plan", "label_i18n_key": "chip.plan", "ordinal": 7 }
+  ]
+}
