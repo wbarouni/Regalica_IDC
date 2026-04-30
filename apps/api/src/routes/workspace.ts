@@ -2,7 +2,47 @@ import { Router, type IRouter, type Request, type Response } from 'express';
 import type { Pool } from 'pg';
 
 import { handleDbError } from '../db/errors.js';
+import { subscribeRunEvents } from '../lib/runEventBus.js';
 import { withConnection } from '../db/withConnection.js';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const SSE_HEARTBEAT_MS = 15_000;
+
+interface RunAgentStepRow {
+  id: string;
+  agent_type: string;
+  function_name: string;
+  ordinal: number;
+  status: string;
+  duration_ms: number | null;
+  started_at: Date | null;
+  completed_at: Date | null;
+  error_message: string | null;
+}
+
+function toAgentStepDto(r: RunAgentStepRow): {
+  id: string;
+  agentType: string;
+  functionName: string;
+  ordinal: number;
+  status: string;
+  durationMs: number | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  errorMessage: string | null;
+} {
+  return {
+    id: r.id,
+    agentType: r.agent_type,
+    functionName: r.function_name,
+    ordinal: r.ordinal,
+    status: r.status,
+    durationMs: r.duration_ms,
+    startedAt: r.started_at !== null ? r.started_at.toISOString() : null,
+    completedAt: r.completed_at !== null ? r.completed_at.toISOString() : null,
+    errorMessage: r.error_message,
+  };
+}
 
 /**
  * Mounted at /api/tenants/:tenantId — assumes authMiddleware +
@@ -12,7 +52,8 @@ import { withConnection } from '../db/withConnection.js';
  * Route inventory (Doc 6 §11, §12 / Phase 4):
  *   GET  /runs/current
  *   GET  /runs/:runId/summary
- *   GET  /runs/:runId/agents      -> 501 (run_agent_steps absent)
+ *   GET  /runs/:runId/agents      -> Phase B (run_agent_steps + lazy init)
+ *   GET  /runs/:runId/stream      -> Phase B (SSE relay over runEventBus)
  *   GET  /runs/:runId/fails       -> filter all|fail|rounding ; pass=400
  */
 export function workspaceRouter(pool: Pool): IRouter {
@@ -116,12 +157,152 @@ export function workspaceRouter(pool: Pool): IRouter {
     }
   });
 
-  router.get('/runs/:runId/agents', (_req: Request, res: Response) => {
-    res.status(501).json({
-      error: {
-        code: 'NOT_IMPLEMENTED',
-        message: 'Agent step tracking table not yet implemented',
-      },
+  router.get('/runs/:runId/agents', async (req: Request, res: Response) => {
+    const tenantId = req.params['tenantId'] as string;
+    const runId = req.params['runId'] as string;
+    const userId = res.locals['userId'] as string;
+    if (!UUID_RE.test(runId)) {
+      res.status(400).json({
+        error: { code: 'INVALID_RUN_ID', message: 'runId must be a valid UUID' },
+      });
+      return;
+    }
+    try {
+      const dto = await withConnection(pool, { tenantId, userId }, async (client) => {
+        // Verify the run belongs to this tenant before any read on
+        // run_agent_steps. RLS would also stop a cross-tenant query
+        // but checking the run row first lets us return 404 with a
+        // domain code instead of an empty array.
+        const runQ = await client.query<{ id: string }>(
+          `SELECT id FROM validation_runs WHERE id = $1 AND tenant_id = $2`,
+          [runId, tenantId],
+        );
+        if (runQ.rows.length === 0) {
+          return null;
+        }
+
+        const existing = await client.query<RunAgentStepRow>(
+          `SELECT id, agent_type, function_name, ordinal, status,
+                  duration_ms, started_at, completed_at, error_message
+           FROM run_agent_steps
+           WHERE run_id = $1 AND deleted_at IS NULL
+           ORDER BY ordinal`,
+          [runId],
+        );
+        if (existing.rows.length > 0) {
+          return existing.rows.map(toAgentStepDto);
+        }
+
+        // Lazy initialise the timeline from the active prompt_bank.
+        // The pipeline ordinal is alphabetical-stable per (agent_type,
+        // function_name) — chatbot-py owns the canonical ordering and
+        // will overwrite this default the first time it transitions a
+        // step to 'current'.
+        await client.query(
+          `INSERT INTO run_agent_steps
+             (run_id, tenant_id, agent_type, function_name, ordinal, status)
+           SELECT
+             $1, $2, agent_type, function_name,
+             ROW_NUMBER() OVER (ORDER BY agent_type, function_name)::SMALLINT AS ordinal,
+             'pending'
+           FROM prompt_bank
+           WHERE status = 'active'
+           ORDER BY agent_type, function_name
+           ON CONFLICT (run_id, agent_type, function_name) DO NOTHING`,
+          [runId, tenantId],
+        );
+
+        const after = await client.query<RunAgentStepRow>(
+          `SELECT id, agent_type, function_name, ordinal, status,
+                  duration_ms, started_at, completed_at, error_message
+           FROM run_agent_steps
+           WHERE run_id = $1 AND deleted_at IS NULL
+           ORDER BY ordinal`,
+          [runId],
+        );
+        return after.rows.map(toAgentStepDto);
+      });
+      if (dto === null) {
+        res.status(404).json({
+          error: { code: 'RUN_NOT_FOUND', message: 'Run not found' },
+        });
+        return;
+      }
+      res.json({
+        data: { steps: dto },
+        meta: { ts: new Date().toISOString(), version: '1' },
+      });
+    } catch (err) {
+      handleDbError(err, res);
+    }
+  });
+
+  router.get('/runs/:runId/stream', async (req: Request, res: Response) => {
+    const tenantId = req.params['tenantId'] as string;
+    const runId = req.params['runId'] as string;
+    const userId = res.locals['userId'] as string;
+    if (!UUID_RE.test(runId)) {
+      res.status(400).json({
+        error: { code: 'INVALID_RUN_ID', message: 'runId must be a valid UUID' },
+      });
+      return;
+    }
+
+    // Tenant ownership check before opening the long-lived stream.
+    // We exit the transaction immediately; the stream itself does not
+    // need a DB session.
+    let runExists = false;
+    try {
+      runExists = await withConnection(pool, { tenantId, userId }, async (client) => {
+        const r = await client.query<{ id: string }>(
+          `SELECT id FROM validation_runs WHERE id = $1 AND tenant_id = $2`,
+          [runId, tenantId],
+        );
+        return r.rows.length > 0;
+      });
+    } catch (err) {
+      handleDbError(err, res);
+      return;
+    }
+    if (!runExists) {
+      res.status(404).json({
+        error: { code: 'RUN_NOT_FOUND', message: 'Run not found' },
+      });
+      return;
+    }
+
+    res.status(200);
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders?.();
+
+    let eventId = 0;
+    const writeFrame = (type: string, payload: unknown): void => {
+      eventId += 1;
+      res.write(`id: ${String(eventId)}\n`);
+      res.write(`event: ${type}\n`);
+      res.write(`data: ${JSON.stringify(payload)}\n\n`);
+    };
+
+    // Initial sync frame so the client can confirm subscription.
+    writeFrame('subscribed', { runId });
+
+    const unsubscribe = subscribeRunEvents(runId, (event) => {
+      writeFrame(event.type, event.payload);
+    });
+
+    const heartbeat = setInterval(() => {
+      // SSE comment line — keeps proxies and browsers from timing out
+      // an otherwise idle connection. Not delivered as a custom event.
+      res.write(`: ping ${String(Date.now())}\n\n`);
+    }, SSE_HEARTBEAT_MS);
+
+    req.on('close', () => {
+      clearInterval(heartbeat);
+      unsubscribe();
+      res.end();
     });
   });
 

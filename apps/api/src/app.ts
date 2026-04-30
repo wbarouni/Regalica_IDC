@@ -17,6 +17,7 @@ import { filingsRouter } from './routes/filings.js';
 import { healthRouter } from './routes/health.js';
 import { libraryRouter } from './routes/library.js';
 import { notificationsRouter } from './routes/notifications.js';
+import { promptsRouter } from './routes/prompts.js';
 import { workspaceRouter } from './routes/workspace.js';
 
 /**
@@ -47,6 +48,7 @@ export function createApp(pool?: Pool): Express {
     app.use(apiMountPath, libraryRouter(pool));
     app.use(apiMountPath, conversationsRouter(pool));
     app.use(apiMountPath, filingsRouter(pool));
+    app.use(apiMountPath, promptsRouter(pool));
   }
 
   app.use(errorHandler);
