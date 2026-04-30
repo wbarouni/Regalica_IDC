@@ -113,3 +113,27 @@ export interface Conversation {
   created_at: string;
   updated_at: string;
 }
+
+// Phase B — Workspace ribbon + suggestion chips DTOs.
+// camelCase to match the API mappers in apps/api/src/routes/workspace.ts
+// (RunAgentStep) and apps/api/src/routes/prompts.ts (QuestionType).
+export type AgentStepStatus = 'pending' | 'current' | 'done' | 'error';
+
+export interface RunAgentStep {
+  id: string;
+  agentType: string;
+  functionName: string;
+  ordinal: number;
+  status: AgentStepStatus;
+  durationMs: number | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  errorMessage: string | null;
+}
+
+export interface QuestionType {
+  id: string;
+  fnName: string;
+  labelI18nKey: string;
+  ordinal: number;
+}
