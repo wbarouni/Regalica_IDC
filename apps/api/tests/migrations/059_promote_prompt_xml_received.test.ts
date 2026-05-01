@@ -108,10 +108,13 @@ describeIfDb('migration 059 — promote_prompt_xml_received', () => {
     expect(rows[0]!.author_user_id).toBe(authorId);
   });
 
-  it('appears in v_active_prompts after promotion', async () => {
+  it('appears in prompt_bank_active after promotion', async () => {
+    // The active-prompt view is named prompt_bank_active (migration 037
+    // names it after the table convention <table>_active, not the
+    // v_<noun> form used in earlier drafts).
     const { rows } = await ctx.testPool.query<{ count: string }>(
       `SELECT COUNT(*)::text AS count
-         FROM v_active_prompts
+         FROM prompt_bank_active
          WHERE tenant_id = $1
            AND agent_type = 'regalica'
            AND function_name = 'xml_received'`,
