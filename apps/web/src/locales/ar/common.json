@@ -26,9 +26,18 @@
   "action": {
     "validate": "تحقق",
     "cancel": "إلغاء",
+    "dismiss": "تجاهل",
     "download": "تحميل",
     "search": "بحث",
-    "markRead": "تحديد كمقروء"
+    "markRead": "تحديد كمقروء",
+    "launchRun": "بدء التحقق"
+  },
+  "upload": {
+    "inProgress": "جارٍ الرفع",
+    "staged": "الملف جاهز",
+    "starting": "جارٍ البدء…",
+    "deduplicated": "تم استيعابه مسبقًا",
+    "errorPrefix": "خطأ"
   },
   "status": {
     "draft": "مسودة",

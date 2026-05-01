@@ -26,9 +26,18 @@
   "action": {
     "validate": "Valider",
     "cancel": "Annuler",
+    "dismiss": "Ignorer",
     "download": "Télécharger",
     "search": "Rechercher",
-    "markRead": "Marquer lu"
+    "markRead": "Marquer lu",
+    "launchRun": "Lancer la validation"
+  },
+  "upload": {
+    "inProgress": "Téléversement",
+    "staged": "Fichier prêt",
+    "starting": "Démarrage…",
+    "deduplicated": "déjà ingéré",
+    "errorPrefix": "Erreur"
   },
   "status": {
     "draft": "Brouillon",

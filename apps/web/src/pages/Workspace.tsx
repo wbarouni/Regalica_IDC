@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import { useNavigate } from 'react-router-dom';
@@ -15,6 +15,8 @@ import { useChat, type ChatMessage } from '../hooks/useChat';
 import { useCurrentRun } from '../hooks/useCurrentRun';
 import { useNotifications } from '../hooks/useNotifications';
 import { useRunSummary } from '../hooks/useRunSummary';
+import { useStartRun } from '../hooks/useStartRun';
+import { useUpload, type UploadDto } from '../hooks/useUpload';
 import type { Notification, RunAgentStep, ValidationRun } from '../types/api';
 import { groupByDay } from '../utils/groupByDay';
 
@@ -279,11 +281,30 @@ export default function Workspace() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { run, loading: runLoading, error: runError } = useCurrentRun();
-  const currentRunId = run?.run_id ?? null;
+  const [activeRunId, setActiveRunId] = useState<string | null>(null);
+  // Surcouche: an interactively-launched run takes precedence over
+  // the server-resolved current run. This lets the operator kick off a
+  // new validation_run without waiting for /current to repoll.
+  const currentRunId = activeRunId ?? run?.run_id ?? null;
   const { steps } = useAgentSteps(currentRunId);
   const { summary } = useRunSummary(currentRunId);
   const { notifications, markAsRead } = useNotifications();
-  const { messages, loading: chatLoading, error: chatError, sendMessage, clearError } = useChat();
+  const {
+    messages,
+    loading: chatLoading,
+    error: chatError,
+    sendMessage,
+    clearError,
+    conversationId,
+  } = useChat();
+
+  const upload = useUpload();
+  const startRun = useStartRun();
+  // Pending upload: the user picked a file but hasn't yet pressed
+  // "Lancer". Tracked locally so the Dock area can render the staged
+  // file + a launch button. Cleared on either successful run start or
+  // explicit reset.
+  const [pendingUpload, setPendingUpload] = useState<UploadDto | null>(null);
 
   const handleSend = useCallback(
     (text: string): void => {
@@ -306,6 +327,46 @@ export default function Workspace() {
     [markAsRead],
   );
 
+  const handleFileSelect = useCallback(
+    (file: File): void => {
+      void upload
+        .upload(file)
+        .then((dto) => {
+          setPendingUpload(dto);
+        })
+        .catch(() => {
+          // useUpload already stored the error code; the staged area
+          // surfaces it from upload.error.
+        });
+    },
+    [upload],
+  );
+
+  const handleLaunchRun = useCallback((): void => {
+    if (pendingUpload === null) return;
+    void startRun
+      .start({
+        upload_ids: [pendingUpload.upload_id],
+        primary_upload_id: pendingUpload.upload_id,
+        arrete_date: pendingUpload.arrete_date,
+        ...(conversationId !== null ? { conversation_id: conversationId } : {}),
+      })
+      .then((res) => {
+        setActiveRunId(res.run_id);
+        setPendingUpload(null);
+        upload.reset();
+      })
+      .catch(() => {
+        // useStartRun stored the error code.
+      });
+  }, [pendingUpload, conversationId, startRun, upload]);
+
+  const handleCancelPending = useCallback((): void => {
+    setPendingUpload(null);
+    upload.reset();
+    startRun.reset();
+  }, [upload, startRun]);
+
   if (
     runError === 'MISSING_TENANT_ID' ||
     runError === 'MISSING_API_URL' ||
@@ -314,7 +375,7 @@ export default function Workspace() {
     return <ConfigMissingState missing={runError} />;
   }
 
-  const runIdShort = run !== null ? run.run_id.slice(0, 8) : null;
+  const runIdShort = currentRunId !== null ? currentRunId.slice(0, 8) : null;
 
   return (
     <div className="app">
@@ -347,7 +408,9 @@ export default function Workspace() {
             )}
 
             {runLoading && <LoadingState />}
-            {!runLoading && run === null && runError === null && <NoActiveRun />}
+            {!runLoading && run === null && runError === null && activeRunId === null && (
+              <NoActiveRun />
+            )}
             {run !== null && (
               <Artefact type="synthese" state="standard">
                 <KpiGrid run={run} />
@@ -392,9 +455,26 @@ export default function Workspace() {
           </div>
         </div>
 
+        {(upload.uploading ||
+          pendingUpload !== null ||
+          upload.error !== null ||
+          startRun.error !== null) && (
+          <UploadStagedRow
+            uploading={upload.uploading}
+            progress={upload.progress}
+            uploadError={upload.error}
+            startError={startRun.error}
+            starting={startRun.starting}
+            pending={pendingUpload}
+            onLaunch={handleLaunchRun}
+            onCancel={handleCancelPending}
+          />
+        )}
+
         <Dock
           onSend={handleSend}
-          loading={chatLoading}
+          onFileSelect={handleFileSelect}
+          loading={chatLoading || upload.uploading || startRun.starting}
           suggestions={
             <SuggestionChips
               runId={currentRunId}
@@ -404,6 +484,95 @@ export default function Workspace() {
           }
         />
       </main>
+    </div>
+  );
+}
+
+function UploadStagedRow({
+  uploading,
+  progress,
+  uploadError,
+  startError,
+  starting,
+  pending,
+  onLaunch,
+  onCancel,
+}: {
+  uploading: boolean;
+  progress: number;
+  uploadError: string | null;
+  startError: string | null;
+  starting: boolean;
+  pending: UploadDto | null;
+  onLaunch: () => void;
+  onCancel: () => void;
+}) {
+  const { t } = useTranslation();
+  const error = uploadError ?? startError;
+  return (
+    <div
+      className="border-t border-stone-200 bg-paper px-4 py-3 flex items-center gap-3"
+      role="region"
+      aria-label={t('upload.staged')}
+    >
+      {uploading && (
+        <>
+          <span className="font-mono text-[11px] uppercase tracking-wider text-stone-500">
+            {t('upload.inProgress')}
+          </span>
+          <div className="flex-1 h-2 bg-stone-200 rounded overflow-hidden">
+            <div
+              className="h-full bg-marigold transition-[width]"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <span className="font-mono text-xs text-stone-700">{progress}%</span>
+        </>
+      )}
+      {!uploading && pending !== null && (
+        <>
+          <span className="font-mono text-[11px] uppercase tracking-wider text-stone-500">
+            {t('upload.staged')}
+          </span>
+          <span className="text-sm font-medium truncate">{pending.filename}</span>
+          <span className="font-mono text-xs text-stone-600">
+            {pending.annexe_code} · {pending.arrete_date}
+            {pending.deduplicated && ` · ${t('upload.deduplicated')}`}
+          </span>
+          <div className="flex-1" />
+          <button
+            type="button"
+            onClick={onCancel}
+            className="font-mono text-xs text-stone-600 hover:text-ink underline"
+            disabled={starting}
+          >
+            {t('action.cancel')}
+          </button>
+          <button
+            type="button"
+            onClick={onLaunch}
+            className="rounded bg-marigold px-3 py-1.5 text-xs font-mono uppercase tracking-wider text-ink disabled:opacity-50"
+            disabled={starting}
+          >
+            {starting ? t('upload.starting') : t('action.launchRun')}
+          </button>
+        </>
+      )}
+      {!uploading && pending === null && error !== null && (
+        <>
+          <span className="font-mono text-xs text-vermilion-700" role="alert">
+            {t('upload.errorPrefix')}: {error}
+          </span>
+          <div className="flex-1" />
+          <button
+            type="button"
+            onClick={onCancel}
+            className="font-mono text-xs text-stone-600 hover:text-ink underline"
+          >
+            {t('action.dismiss')}
+          </button>
+        </>
+      )}
     </div>
   );
 }

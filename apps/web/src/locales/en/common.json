@@ -26,9 +26,18 @@
   "action": {
     "validate": "Validate",
     "cancel": "Cancel",
+    "dismiss": "Dismiss",
     "download": "Download",
     "search": "Search",
-    "markRead": "Mark read"
+    "markRead": "Mark read",
+    "launchRun": "Start validation"
+  },
+  "upload": {
+    "inProgress": "Uploading",
+    "staged": "File ready",
+    "starting": "Starting…",
+    "deduplicated": "already ingested",
+    "errorPrefix": "Error"
   },
   "status": {
     "draft": "Draft",

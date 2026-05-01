@@ -31,6 +31,10 @@ const createRunBody = z.object({
   upload_ids: z.array(z.string().regex(UUID_RE)).min(1),
   primary_upload_id: z.string().regex(UUID_RE),
   arrete_date: z.string().regex(ISO_DATE_RE),
+  // Optional. When the frontend has already opened a chat conversation
+  // for the user, it threads the conversation_id here so the chatbot-py
+  // T0 briefing can be persisted into that thread (see commit A3).
+  conversation_id: z.string().regex(UUID_RE).optional(),
 });
 
 interface UploadOwnershipRow {
@@ -61,6 +65,7 @@ interface ChatbotPyKickoffPayload {
   upload_ids: string[];
   arrete_date: string;
   tenant_id: string;
+  conversation_id?: string;
 }
 
 function kickoffEngineAsync(payload: ChatbotPyKickoffPayload): void {
@@ -95,7 +100,7 @@ export function runsRouter(pool: Pool): IRouter {
       });
       return;
     }
-    const { upload_ids, primary_upload_id, arrete_date } = parsed.data;
+    const { upload_ids, primary_upload_id, arrete_date, conversation_id } = parsed.data;
     if (!upload_ids.includes(primary_upload_id)) {
       res.status(400).json({
         error: {
@@ -173,6 +178,7 @@ export function runsRouter(pool: Pool): IRouter {
         upload_ids,
         arrete_date,
         tenant_id: tenantId,
+        ...(conversation_id !== undefined ? { conversation_id } : {}),
       });
       res.status(201).json({
         data: { run_id: result.runId, status: result.runStatus },
