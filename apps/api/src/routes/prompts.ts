@@ -3,6 +3,7 @@ import type { Pool } from 'pg';
 
 import { handleDbError } from '../db/errors.js';
 import { withConnection } from '../db/withConnection.js';
+import { HTTP_BAD_REQUEST, HTTP_NOT_FOUND } from '../lib/http.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -36,7 +37,7 @@ export function promptsRouter(pool: Pool): IRouter {
     const runIdRaw = req.query['runId'];
     const runId = typeof runIdRaw === 'string' && runIdRaw.length > 0 ? runIdRaw : null;
     if (runId !== null && !UUID_RE.test(runId)) {
-      res.status(400).json({
+      res.status(HTTP_BAD_REQUEST).json({
         error: { code: 'INVALID_RUN_ID', message: 'runId must be a valid UUID' },
       });
       return;
@@ -64,7 +65,7 @@ export function promptsRouter(pool: Pool): IRouter {
       });
 
       if (rows === null) {
-        res.status(404).json({
+        res.status(HTTP_NOT_FOUND).json({
           error: { code: 'RUN_NOT_FOUND', message: 'Run not found' },
         });
         return;

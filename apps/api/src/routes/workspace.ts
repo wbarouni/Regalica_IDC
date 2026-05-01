@@ -5,6 +5,7 @@ import { handleDbError } from '../db/errors.js';
 import { getPlatformConfigNumber } from '../lib/platformConfig.js';
 import { subscribeRunEvents } from '../lib/runEventBus.js';
 import { withConnection } from '../db/withConnection.js';
+import { HTTP_BAD_REQUEST, HTTP_NOT_FOUND, HTTP_OK } from '../lib/http.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -141,7 +142,9 @@ export function workspaceRouter(pool: Pool): IRouter {
         return { run: runQ.rows[0], annexes: annexQ.rows };
       });
       if (data === null) {
-        res.status(404).json({ error: { code: 'RUN_NOT_FOUND', message: 'Run not found' } });
+        res
+          .status(HTTP_NOT_FOUND)
+          .json({ error: { code: 'RUN_NOT_FOUND', message: 'Run not found' } });
         return;
       }
       res.json({
@@ -162,7 +165,7 @@ export function workspaceRouter(pool: Pool): IRouter {
     const runId = req.params['runId'] as string;
     const userId = res.locals['userId'] as string;
     if (!UUID_RE.test(runId)) {
-      res.status(400).json({
+      res.status(HTTP_BAD_REQUEST).json({
         error: { code: 'INVALID_RUN_ID', message: 'runId must be a valid UUID' },
       });
       return;
@@ -223,7 +226,7 @@ export function workspaceRouter(pool: Pool): IRouter {
         return after.rows.map(toAgentStepDto);
       });
       if (dto === null) {
-        res.status(404).json({
+        res.status(HTTP_NOT_FOUND).json({
           error: { code: 'RUN_NOT_FOUND', message: 'Run not found' },
         });
         return;
@@ -242,7 +245,7 @@ export function workspaceRouter(pool: Pool): IRouter {
     const runId = req.params['runId'] as string;
     const userId = res.locals['userId'] as string;
     if (!UUID_RE.test(runId)) {
-      res.status(400).json({
+      res.status(HTTP_BAD_REQUEST).json({
         error: { code: 'INVALID_RUN_ID', message: 'runId must be a valid UUID' },
       });
       return;
@@ -265,7 +268,7 @@ export function workspaceRouter(pool: Pool): IRouter {
       return;
     }
     if (!runExists) {
-      res.status(404).json({
+      res.status(HTTP_NOT_FOUND).json({
         error: { code: 'RUN_NOT_FOUND', message: 'Run not found' },
       });
       return;
@@ -279,7 +282,7 @@ export function workspaceRouter(pool: Pool): IRouter {
       return;
     }
 
-    res.status(200);
+    res.status(HTTP_OK);
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache, no-transform');
     res.setHeader('Connection', 'keep-alive');
@@ -320,7 +323,7 @@ export function workspaceRouter(pool: Pool): IRouter {
     const userId = res.locals['userId'] as string;
     const filter = typeof req.query['filter'] === 'string' ? req.query['filter'] : 'all';
     if (filter === 'pass') {
-      res.status(400).json({
+      res.status(HTTP_BAD_REQUEST).json({
         error: {
           code: 'FILTER_NOT_SUPPORTED',
           message: 'PASS verdicts are not persisted by design',

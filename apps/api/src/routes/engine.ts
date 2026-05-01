@@ -6,6 +6,13 @@ import { handleDbError } from '../db/errors.js';
 import { emitAgentStep } from '../lib/runEventBus.js';
 import { engineAuthMiddleware } from '../middleware/engineAuth.js';
 import { withConnection } from '../db/withConnection.js';
+import {
+  HTTP_BAD_REQUEST,
+  HTTP_CREATED,
+  HTTP_FORBIDDEN,
+  HTTP_NOT_FOUND,
+  HTTP_OK,
+} from '../lib/http.js';
 
 /**
  * /api/engine/...
@@ -98,13 +105,13 @@ export function engineRouter(pool: Pool): IRouter {
     const runId = req.params['runId'];
     const tenantId = res.locals['enginePayloadTenantId'] as string | undefined;
     if (typeof runId !== 'string' || !UUID_RE.test(runId)) {
-      res.status(400).json({
+      res.status(HTTP_BAD_REQUEST).json({
         error: { code: 'INVALID_RUN_ID', message: 'runId must be a UUID' },
       });
       return;
     }
     if (typeof tenantId !== 'string' || !UUID_RE.test(tenantId)) {
-      res.status(400).json({
+      res.status(HTTP_BAD_REQUEST).json({
         error: {
           code: 'MISSING_TENANT_CLAIM',
           message: 'JWT payload must include a UUID `tenant_id` claim',
@@ -114,7 +121,7 @@ export function engineRouter(pool: Pool): IRouter {
     }
     const parsed = failDetailsBody.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({
+      res.status(HTTP_BAD_REQUEST).json({
         error: { code: 'INVALID_BODY', message: parsed.error.issues[0]?.message ?? 'invalid' },
       });
       return;
@@ -169,12 +176,12 @@ export function engineRouter(pool: Pool): IRouter {
         },
       );
       if (inserted === null) {
-        res.status(404).json({
+        res.status(HTTP_NOT_FOUND).json({
           error: { code: 'RUN_NOT_FOUND', message: 'run not found for tenant' },
         });
         return;
       }
-      res.status(201).json({
+      res.status(HTTP_CREATED).json({
         data: { inserted },
         meta: { ts: new Date().toISOString(), version: '1' },
       });
@@ -196,19 +203,19 @@ export function engineRouter(pool: Pool): IRouter {
     const stepId = req.params['stepId'];
     const tenantId = res.locals['enginePayloadTenantId'] as string | undefined;
     if (typeof runId !== 'string' || !UUID_RE.test(runId)) {
-      res.status(400).json({
+      res.status(HTTP_BAD_REQUEST).json({
         error: { code: 'INVALID_RUN_ID', message: 'runId must be a UUID' },
       });
       return;
     }
     if (typeof stepId !== 'string' || !UUID_RE.test(stepId)) {
-      res.status(400).json({
+      res.status(HTTP_BAD_REQUEST).json({
         error: { code: 'INVALID_STEP_ID', message: 'stepId must be a UUID' },
       });
       return;
     }
     if (typeof tenantId !== 'string' || !UUID_RE.test(tenantId)) {
-      res.status(400).json({
+      res.status(HTTP_BAD_REQUEST).json({
         error: {
           code: 'MISSING_TENANT_CLAIM',
           message: 'JWT payload must include a UUID `tenant_id` claim',
@@ -218,7 +225,7 @@ export function engineRouter(pool: Pool): IRouter {
     }
     const parsed = agentStepUpdateBody.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({
+      res.status(HTTP_BAD_REQUEST).json({
         error: {
           code: 'INVALID_BODY',
           message: parsed.error.issues[0]?.message ?? 'invalid',
@@ -257,7 +264,7 @@ export function engineRouter(pool: Pool): IRouter {
         return r.rows[0] ?? null;
       });
       if (updated === null) {
-        res.status(404).json({
+        res.status(HTTP_NOT_FOUND).json({
           error: {
             code: 'STEP_NOT_FOUND',
             message: 'agent step not found for run + tenant',
@@ -275,7 +282,7 @@ export function engineRouter(pool: Pool): IRouter {
         durationMs: updated.duration_ms,
       });
 
-      res.status(200).json({
+      res.status(HTTP_OK).json({
         data: {
           id: updated.id,
           agentType: updated.agent_type,
@@ -307,7 +314,7 @@ export function engineRouter(pool: Pool): IRouter {
     const conversationId = req.params['conversationId'];
     const claimTenantId = res.locals['enginePayloadTenantId'] as string | undefined;
     if (typeof conversationId !== 'string' || !UUID_RE.test(conversationId)) {
-      res.status(400).json({
+      res.status(HTTP_BAD_REQUEST).json({
         error: {
           code: 'INVALID_CONVERSATION_ID',
           message: 'conversationId must be a UUID',
@@ -316,7 +323,7 @@ export function engineRouter(pool: Pool): IRouter {
       return;
     }
     if (typeof claimTenantId !== 'string' || !UUID_RE.test(claimTenantId)) {
-      res.status(400).json({
+      res.status(HTTP_BAD_REQUEST).json({
         error: {
           code: 'MISSING_TENANT_CLAIM',
           message: 'JWT payload must include a UUID `tenant_id` claim',
@@ -326,7 +333,7 @@ export function engineRouter(pool: Pool): IRouter {
     }
     const parsed = messageBody.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({
+      res.status(HTTP_BAD_REQUEST).json({
         error: {
           code: 'INVALID_BODY',
           message: parsed.error.issues[0]?.message ?? 'invalid',
@@ -336,7 +343,7 @@ export function engineRouter(pool: Pool): IRouter {
     }
     const body = parsed.data;
     if (body.tenant_id !== claimTenantId) {
-      res.status(403).json({
+      res.status(HTTP_FORBIDDEN).json({
         error: {
           code: 'TENANT_MISMATCH',
           message: 'body tenant_id must match JWT tenant_id claim',
@@ -346,7 +353,7 @@ export function engineRouter(pool: Pool): IRouter {
     }
     const dbRole = ENGINE_ROLE_TO_DB[body.role];
     if (dbRole === undefined) {
-      res.status(400).json({
+      res.status(HTTP_BAD_REQUEST).json({
         error: { code: 'INVALID_ROLE', message: `unknown role ${body.role}` },
       });
       return;
@@ -395,7 +402,7 @@ export function engineRouter(pool: Pool): IRouter {
         },
       );
       if (created === null) {
-        res.status(404).json({
+        res.status(HTTP_NOT_FOUND).json({
           error: {
             code: 'CONVERSATION_NOT_FOUND',
             message: 'conversation not found for tenant',
@@ -403,7 +410,7 @@ export function engineRouter(pool: Pool): IRouter {
         });
         return;
       }
-      res.status(201).json({
+      res.status(HTTP_CREATED).json({
         data: {
           id: created.id,
           sequence_number: created.sequence_number,

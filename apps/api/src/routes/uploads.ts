@@ -9,6 +9,11 @@ import type { Pool, PoolClient } from 'pg';
 import { handleDbError } from '../db/errors.js';
 import { getPlatformConfig, getPlatformConfigNumber } from '../lib/platformConfig.js';
 import { withConnection } from '../db/withConnection.js';
+import {
+  HTTP_BAD_REQUEST,
+  HTTP_PAYLOAD_TOO_LARGE,
+  HTTP_UNPROCESSABLE_CONTENT,
+} from '../lib/http.js';
 
 /**
  * POST /api/tenants/:tenantId/uploads
@@ -182,13 +187,13 @@ export function uploadsRouter(pool: Pool): IRouter {
             return;
           }
           if (err instanceof MulterError && err.code === 'LIMIT_FILE_SIZE') {
-            res.status(413).json({
+            res.status(HTTP_PAYLOAD_TOO_LARGE).json({
               error: { code: 'UPLOAD_TOO_LARGE', message: 'File exceeds upload_max_bytes' },
             });
             return;
           }
           if (err instanceof MulterError) {
-            res.status(400).json({
+            res.status(HTTP_BAD_REQUEST).json({
               error: { code: 'MULTIPART_ERROR', message: err.code },
             });
             return;
@@ -204,7 +209,7 @@ export function uploadsRouter(pool: Pool): IRouter {
     const userId = res.locals['userId'] as string;
     const file = req.file;
     if (file === undefined) {
-      res.status(400).json({
+      res.status(HTTP_BAD_REQUEST).json({
         error: { code: 'MISSING_FILE', message: 'multipart field "file" is required' },
       });
       return;
@@ -215,7 +220,7 @@ export function uploadsRouter(pool: Pool): IRouter {
       header = parseBctXmlHeader(file.buffer.toString('utf-8'));
     } catch (err) {
       const code = err instanceof XmlHeaderError ? 'XML_HEADER_INVALID' : 'XML_PARSE_FAILED';
-      res.status(422).json({
+      res.status(HTTP_UNPROCESSABLE_CONTENT).json({
         error: { code, message: err instanceof Error ? err.message : 'Invalid XML' },
       });
       return;

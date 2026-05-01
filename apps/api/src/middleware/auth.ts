@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
+import { HTTP_BAD_REQUEST, HTTP_UNAUTHORIZED } from '../lib/http.js';
 
 /**
  * Strict UUID v1-v8 validator.
@@ -37,7 +38,7 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
   const fallback = req.query['userId'];
   const candidate = isUuid(header) ? header : isUuid(fallback) ? fallback : null;
   if (candidate === null) {
-    res.status(401).json({
+    res.status(HTTP_UNAUTHORIZED).json({
       error: {
         code: 'MISSING_USER_ID',
         message: 'X-User-Id header (or ?userId= query for SSE) required (valid UUID)',
@@ -58,7 +59,7 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction):
 export function tenantMiddleware(req: Request, res: Response, next: NextFunction): void {
   const tenantId = req.params['tenantId'];
   if (!isUuid(tenantId)) {
-    res.status(400).json({
+    res.status(HTTP_BAD_REQUEST).json({
       error: {
         code: 'INVALID_TENANT_ID',
         message: 'tenantId must be a valid UUID',

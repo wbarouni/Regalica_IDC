@@ -7,6 +7,7 @@ import { handleDbError } from '../db/errors.js';
 import { getPlatformConfig } from '../lib/platformConfig.js';
 import { logger } from '../logger.js';
 import { withConnection } from '../db/withConnection.js';
+import { HTTP_BAD_REQUEST, HTTP_CREATED, HTTP_FORBIDDEN } from '../lib/http.js';
 
 /**
  * /api/tenants/:tenantId/runs
@@ -95,14 +96,14 @@ export function runsRouter(pool: Pool): IRouter {
     const userId = res.locals['userId'] as string;
     const parsed = createRunBody.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({
+      res.status(HTTP_BAD_REQUEST).json({
         error: { code: 'INVALID_BODY', message: parsed.error.issues[0]?.message ?? 'invalid' },
       });
       return;
     }
     const { upload_ids, primary_upload_id, arrete_date, conversation_id } = parsed.data;
     if (!upload_ids.includes(primary_upload_id)) {
-      res.status(400).json({
+      res.status(HTTP_BAD_REQUEST).json({
         error: {
           code: 'PRIMARY_NOT_IN_LIST',
           message: 'primary_upload_id must be present in upload_ids',
@@ -164,7 +165,7 @@ export function runsRouter(pool: Pool): IRouter {
         return { kind: 'ok' as const, runId, runStatus };
       });
       if (result.kind === 'forbidden') {
-        res.status(403).json({
+        res.status(HTTP_FORBIDDEN).json({
           error: {
             code: 'UPLOAD_NOT_OWNED',
             message: 'one or more uploads do not belong to tenant',
@@ -180,7 +181,7 @@ export function runsRouter(pool: Pool): IRouter {
         tenant_id: tenantId,
         ...(conversation_id !== undefined ? { conversation_id } : {}),
       });
-      res.status(201).json({
+      res.status(HTTP_CREATED).json({
         data: { run_id: result.runId, status: result.runStatus },
         meta: { ts: new Date().toISOString(), version: '1' },
       });

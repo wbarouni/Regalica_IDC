@@ -3,6 +3,7 @@ import type { Pool } from 'pg';
 
 import { handleDbError } from '../db/errors.js';
 import { withConnection } from '../db/withConnection.js';
+import { HTTP_BAD_REQUEST } from '../lib/http.js';
 
 const VALID_XSD_STATUSES: ReadonlySet<string> = new Set(['passed', 'failed', 'pending']);
 
@@ -24,7 +25,7 @@ export function filingsRouter(pool: Pool): IRouter {
     const annexe = typeof req.query['annexe'] === 'string' ? req.query['annexe'] : null;
     const status = typeof req.query['status'] === 'string' ? req.query['status'] : null;
     if (status !== null && !VALID_XSD_STATUSES.has(status)) {
-      res.status(400).json({
+      res.status(HTTP_BAD_REQUEST).json({
         error: {
           code: 'INVALID_XSD_STATUS',
           message: 'status must be one of: passed, failed, pending',

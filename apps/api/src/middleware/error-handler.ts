@@ -1,4 +1,5 @@
 import type { ErrorRequestHandler } from 'express';
+import { HTTP_INTERNAL_SERVER_ERROR } from '../lib/http.js';
 
 export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   const log = (req as unknown as { log?: { error: (obj: unknown, msg: string) => void } }).log;
@@ -6,5 +7,5 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   if (res.headersSent) {
     return;
   }
-  res.status(500).json({ error: 'internal_server_error' });
+  res.status(HTTP_INTERNAL_SERVER_ERROR).json({ error: 'internal_server_error' });
 };

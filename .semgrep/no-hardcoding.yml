@@ -242,9 +242,14 @@ rules:
           regex: '^https?://.+'
 
   # --------------------------------------------------------------------
-  # D-006 — Numeric literal > 100 in an assignment, excluding HTTP
-  #         status codes (200/201/400/401/403/404/500) and vector
-  #         dimension (768).
+  # D-006 — Numeric literal > 100 in an assignment.
+  #
+  # Excludes the central HTTP-status constants module
+  # (apps/api/src/lib/http.ts) which IS the single source of truth
+  # for HTTP status codes per RFC 9110/6585 — every other file in
+  # the codebase must reference its named exports rather than emit
+  # the digit. The 768 vector-dim literal exception is kept in the
+  # comparison list below for the embeddings table seed migration.
   # --------------------------------------------------------------------
   - id: D-006-magic-number-assignment
     languages: [typescript, javascript, python]
@@ -255,6 +260,7 @@ rules:
     paths:
       exclude:
         - '**/apps/api/seeds/'
+        - '**/apps/api/src/lib/http.ts'
         - '**/tests/'
         - '**/test/'
         - '**/*.test.ts'

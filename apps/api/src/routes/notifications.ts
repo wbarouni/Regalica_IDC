@@ -3,6 +3,7 @@ import type { Pool } from 'pg';
 
 import { handleDbError } from '../db/errors.js';
 import { withConnection } from '../db/withConnection.js';
+import { HTTP_BAD_REQUEST, HTTP_NOT_FOUND } from '../lib/http.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -58,7 +59,7 @@ export function notificationsRouter(pool: Pool): IRouter {
     const userId = res.locals['userId'] as string;
     const notifId = req.params['notifId'] as string;
     if (!UUID_RE.test(notifId)) {
-      res.status(400).json({
+      res.status(HTTP_BAD_REQUEST).json({
         error: { code: 'INVALID_NOTIF_ID', message: 'notifId must be a valid UUID' },
       });
       return;
@@ -79,7 +80,7 @@ export function notificationsRouter(pool: Pool): IRouter {
       });
       if (updated === null) {
         // RLS filtered or row truly missing — same end state for the caller.
-        res.status(404).json({
+        res.status(HTTP_NOT_FOUND).json({
           error: {
             code: 'NOTIFICATION_NOT_FOUND',
             message: 'Notification not found or not owned by user',

@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from 'express';
 import jwt, { type JwtPayload } from 'jsonwebtoken';
 
 import { config } from '../config.js';
+import { HTTP_FORBIDDEN, HTTP_SERVICE_UNAVAILABLE, HTTP_UNAUTHORIZED } from '../lib/http.js';
 
 /**
  * engineAuthMiddleware — gate for service-to-service routes that
@@ -38,7 +39,7 @@ interface EnginePayload extends JwtPayload {
 export function engineAuthMiddleware(req: Request, res: Response, next: NextFunction): void {
   const secret = config.jwt.secret;
   if (secret === undefined || secret.length === 0) {
-    res.status(503).json({
+    res.status(HTTP_SERVICE_UNAVAILABLE).json({
       error: {
         code: 'SERVICE_AUTH_NOT_CONFIGURED',
         message: 'JWT_SECRET must be set to accept engine-signed requests',
@@ -48,7 +49,7 @@ export function engineAuthMiddleware(req: Request, res: Response, next: NextFunc
   }
   const header = req.header('authorization');
   if (header === undefined || !header.startsWith(BEARER_PREFIX)) {
-    res.status(401).json({
+    res.status(HTTP_UNAUTHORIZED).json({
       error: { code: 'MISSING_BEARER', message: 'Authorization: Bearer <jwt> required' },
     });
     return;
@@ -58,14 +59,14 @@ export function engineAuthMiddleware(req: Request, res: Response, next: NextFunc
   try {
     const decoded = jwt.verify(token, secret);
     if (typeof decoded === 'string') {
-      res.status(401).json({
+      res.status(HTTP_UNAUTHORIZED).json({
         error: { code: 'INVALID_TOKEN', message: 'JWT payload must be a JSON object' },
       });
       return;
     }
     payload = decoded as EnginePayload;
   } catch (err) {
-    res.status(401).json({
+    res.status(HTTP_UNAUTHORIZED).json({
       error: {
         code: 'INVALID_TOKEN',
         message: err instanceof Error ? err.message : 'JWT verification failed',
@@ -74,7 +75,7 @@ export function engineAuthMiddleware(req: Request, res: Response, next: NextFunc
     return;
   }
   if (payload.role !== ENGINE_ROLE) {
-    res.status(403).json({
+    res.status(HTTP_FORBIDDEN).json({
       error: {
         code: 'INSUFFICIENT_ROLE',
         message: `role claim must be "${ENGINE_ROLE}"`,

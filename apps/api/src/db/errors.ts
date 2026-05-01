@@ -1,6 +1,7 @@
 import type { Response } from 'express';
 
 import { logger } from '../logger.js';
+import { HTTP_INTERNAL_SERVER_ERROR, HTTP_NOT_IMPLEMENTED } from '../lib/http.js';
 
 /**
  * Postgres error code narrowing.
@@ -33,7 +34,7 @@ export function handleDbError(err: unknown, res: Response): void {
   }
   if (isDbError(err)) {
     if (err.code === '42P01') {
-      res.status(501).json({
+      res.status(HTTP_NOT_IMPLEMENTED).json({
         error: {
           code: 'TABLE_NOT_IMPLEMENTED',
           message: 'Required table does not exist yet',
@@ -42,7 +43,7 @@ export function handleDbError(err: unknown, res: Response): void {
       return;
     }
     if (err.code === '42703') {
-      res.status(501).json({
+      res.status(HTTP_NOT_IMPLEMENTED).json({
         error: {
           code: 'COLUMN_NOT_FOUND',
           message: 'Schema mismatch — check migrations',
@@ -51,7 +52,7 @@ export function handleDbError(err: unknown, res: Response): void {
       return;
     }
   }
-  res.status(500).json({
+  res.status(HTTP_INTERNAL_SERVER_ERROR).json({
     error: { code: 'INTERNAL', message: 'Internal server error' },
   });
 }

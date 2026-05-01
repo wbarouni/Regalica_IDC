@@ -3,6 +3,7 @@ import type { Pool } from 'pg';
 
 import { handleDbError } from '../db/errors.js';
 import { withConnection } from '../db/withConnection.js';
+import { HTTP_BAD_REQUEST, HTTP_CREATED } from '../lib/http.js';
 
 const SUPPORTED_LANGUAGES = new Set(['fr', 'en', 'ar']);
 
@@ -65,7 +66,7 @@ export function conversationsRouter(pool: Pool): IRouter {
         typeof body.linked_validation_run_id !== 'string' ||
         !UUID_RE.test(body.linked_validation_run_id)
       ) {
-        res.status(400).json({
+        res.status(HTTP_BAD_REQUEST).json({
           error: {
             code: 'INVALID_LINKED_RUN_ID',
             message: 'linked_validation_run_id must be a valid UUID or omitted',
@@ -88,7 +89,7 @@ export function conversationsRouter(pool: Pool): IRouter {
         );
         return r.rows[0];
       });
-      res.status(201).json({
+      res.status(HTTP_CREATED).json({
         data: created,
         meta: { ts: new Date().toISOString(), version: '1' },
       });
