@@ -18,8 +18,31 @@ from app.llm.base import LLMResponse
 from app.main import app
 from app.routes.chat import get_llm_client, get_pool
 from app.routes.upload import get_engine_client
+from app.services import platform_config as platform_config_module
 from fastapi import status
 from fastapi.testclient import TestClient
+
+
+@pytest.fixture(autouse=True)
+def _seed_temporal_calendar_cache() -> Iterator[None]:
+    """Pre-populate the platform_config cache with the canonical calendar.
+
+    Migration 062 seeds `temporal_arrete_calendar` in production; the
+    upload route's TemporalAgent reads it through the cached loader.
+    Without this fixture the loader would call mock_pool.fetchrow once
+    per test (returning None) and the agent would fail every run with a
+    PlatformConfigMissingError. Pre-populating the cache mirrors the
+    real production state and removes the need for every existing spec
+    to know about the loader's internals.
+    """
+    platform_config_module.reset_platform_config_cache()
+    platform_config_module._CACHE["temporal_arrete_calendar"] = {
+        "quarterly_end_months": [3, 6, 9, 12],
+        "annual_month": 12,
+        "annual_day": 31,
+    }
+    yield
+    platform_config_module.reset_platform_config_cache()
 
 _VALID_XML = (
     "<?xml version='1.0' encoding='UTF-8'?>"

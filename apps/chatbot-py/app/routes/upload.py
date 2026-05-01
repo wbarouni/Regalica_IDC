@@ -160,6 +160,7 @@ async def _run_temporal(ctx: _RunContext, _shared: dict[str, Any]) -> AgentResul
     return await TemporalAgent().validate(
         arrete_date=ctx.arrete_date,
         arrete_type=_DEFAULT_ARRETE_TYPE,
+        pool=ctx.pool,
     )
 
 

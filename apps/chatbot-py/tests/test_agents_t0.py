@@ -2,10 +2,17 @@
 
 Pure in-process: no DB (DependencyAgent uses an AsyncMock pool),
 no LLM, no XML on disk.
+
+Since commit C5 the TemporalAgent reads its calendar from
+`platform_config.temporal_arrete_calendar` via the cached loader.
+The autouse fixture below pre-populates that cache with the
+canonical calendar so the in-process tests don't have to mock
+fetchrow per spec.
 """
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -15,6 +22,28 @@ from app.agents import (
     IngestorXMLAgent,
     TemporalAgent,
 )
+from app.services import platform_config as pc
+
+
+@pytest.fixture(autouse=True)
+def _seed_temporal_calendar() -> Iterator[None]:
+    """Mirror migration 062's seed in the loader cache."""
+    pc.reset_platform_config_cache()
+    pc._CACHE["temporal_arrete_calendar"] = {
+        "quarterly_end_months": [3, 6, 9, 12],
+        "annual_month": 12,
+        "annual_day": 31,
+    }
+    yield
+    pc.reset_platform_config_cache()
+
+
+@pytest.fixture
+def _temporal_pool() -> MagicMock:
+    """Pool stand-in. The autouse cache means fetchrow is not hit."""
+    p = MagicMock()
+    p.fetchrow = AsyncMock(return_value=None)
+    return p
 
 _VALID_XML = """<?xml version="1.0" encoding="UTF-8"?>
 <root>
@@ -173,62 +202,62 @@ async def test_dependency_marks_autonomous_when_no_companions_required() -> None
 
 
 @pytest.mark.asyncio
-async def test_temporal_accepts_monthly_end_of_month() -> None:
+async def test_temporal_accepts_monthly_end_of_month(_temporal_pool: MagicMock) -> None:
     agent = TemporalAgent()
-    result = await agent.validate("2024-09-30", "monthly")
+    result = await agent.validate("2024-09-30", "monthly", _temporal_pool)
     assert result.success is True
     assert result.output["valid"] is True
     assert result.output["previous_period_date"] == "2024-08-31"
 
 
 @pytest.mark.asyncio
-async def test_temporal_rejects_monthly_mid_month() -> None:
+async def test_temporal_rejects_monthly_mid_month(_temporal_pool: MagicMock) -> None:
     agent = TemporalAgent()
-    result = await agent.validate("2024-09-15", "monthly")
+    result = await agent.validate("2024-09-15", "monthly", _temporal_pool)
     assert result.success is True
     assert result.output["valid"] is False
     assert result.output["previous_period_date"] == "2024-08-31"
 
 
 @pytest.mark.asyncio
-async def test_temporal_accepts_quarterly_end_of_quarter() -> None:
+async def test_temporal_accepts_quarterly_end_of_quarter(_temporal_pool: MagicMock) -> None:
     agent = TemporalAgent()
-    result = await agent.validate("2024-09-30", "quarterly")
+    result = await agent.validate("2024-09-30", "quarterly", _temporal_pool)
     assert result.success is True
     assert result.output["valid"] is True
     assert result.output["previous_period_date"] == "2024-06-30"
 
 
 @pytest.mark.asyncio
-async def test_temporal_rejects_quarterly_non_quarter_month() -> None:
+async def test_temporal_rejects_quarterly_non_quarter_month(_temporal_pool: MagicMock) -> None:
     agent = TemporalAgent()
-    result = await agent.validate("2024-08-31", "quarterly")
+    result = await agent.validate("2024-08-31", "quarterly", _temporal_pool)
     assert result.success is True
     assert result.output["valid"] is False
 
 
 @pytest.mark.asyncio
-async def test_temporal_accepts_annual_dec_31() -> None:
+async def test_temporal_accepts_annual_dec_31(_temporal_pool: MagicMock) -> None:
     agent = TemporalAgent()
-    result = await agent.validate("2025-12-31", "annual")
+    result = await agent.validate("2025-12-31", "annual", _temporal_pool)
     assert result.success is True
     assert result.output["valid"] is True
     assert result.output["previous_period_date"] == "2024-12-31"
 
 
 @pytest.mark.asyncio
-async def test_temporal_rejects_unsupported_arrete_type() -> None:
+async def test_temporal_rejects_unsupported_arrete_type(_temporal_pool: MagicMock) -> None:
     agent = TemporalAgent()
-    result = await agent.validate("2024-09-30", "weekly")
+    result = await agent.validate("2024-09-30", "weekly", _temporal_pool)
     assert result.success is False
     assert result.error is not None
     assert "unsupported" in result.error.lower()
 
 
 @pytest.mark.asyncio
-async def test_temporal_rejects_invalid_iso_date() -> None:
+async def test_temporal_rejects_invalid_iso_date(_temporal_pool: MagicMock) -> None:
     agent = TemporalAgent()
-    result = await agent.validate("not-a-date", "monthly")
+    result = await agent.validate("not-a-date", "monthly", _temporal_pool)
     assert result.success is False
     assert result.error is not None
     assert "invalid arrete_date" in result.error
