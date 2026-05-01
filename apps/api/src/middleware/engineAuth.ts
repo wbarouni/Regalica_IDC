@@ -11,8 +11,12 @@ import { HTTP_FORBIDDEN, HTTP_SERVICE_UNAVAILABLE, HTTP_UNAUTHORIZED } from '../
  * Contract:
  *   Authorization: Bearer <jwt>
  *   Payload claims:
- *     role: "regflow_engine"   (exact match)
+ *     role: <config.engine.roleClaim>   (exact match)
  *     [optional] tenant_id, run_id, iss, exp, iat
+ *
+ * The expected role claim string is operator-controlled via
+ * REGFLOW_ENGINE_ROLE_CLAIM. The chatbot-py client signs its tokens
+ * with the same value (settings.regflow_engine_role_claim).
  *
  * The token is signed with config.jwt.secret on the chatbot-py side
  * (PyJWT) using the same shared secret. Verification is HS256.
@@ -21,14 +25,13 @@ import { HTTP_FORBIDDEN, HTTP_SERVICE_UNAVAILABLE, HTTP_UNAUTHORIZED } from '../
  *   503 SERVICE_AUTH_NOT_CONFIGURED — JWT_SECRET unset on the server
  *   401 MISSING_BEARER             — Authorization header absent or malformed
  *   401 INVALID_TOKEN              — jwt.verify throws (signature, exp, …)
- *   403 INSUFFICIENT_ROLE          — token valid but role !== regflow_engine
+ *   403 INSUFFICIENT_ROLE          — token valid but role !== expected claim
  *
  * The user-facing X-User-Id middleware (apps/api/src/middleware/auth.ts)
  * is intentionally NOT touched by this gate; engine routes opt into
  * engineAuth explicitly at mount time.
  */
 
-const ENGINE_ROLE = 'regflow_engine';
 const BEARER_PREFIX = 'Bearer ';
 
 interface EnginePayload extends JwtPayload {
@@ -47,6 +50,7 @@ export function engineAuthMiddleware(req: Request, res: Response, next: NextFunc
     });
     return;
   }
+  const expectedRole = config.engine.roleClaim;
   const header = req.header('authorization');
   if (header === undefined || !header.startsWith(BEARER_PREFIX)) {
     res.status(HTTP_UNAUTHORIZED).json({
@@ -74,11 +78,11 @@ export function engineAuthMiddleware(req: Request, res: Response, next: NextFunc
     });
     return;
   }
-  if (payload.role !== ENGINE_ROLE) {
+  if (payload.role !== expectedRole) {
     res.status(HTTP_FORBIDDEN).json({
       error: {
         code: 'INSUFFICIENT_ROLE',
-        message: `role claim must be "${ENGINE_ROLE}"`,
+        message: `role claim must be "${expectedRole}"`,
       },
     });
     return;

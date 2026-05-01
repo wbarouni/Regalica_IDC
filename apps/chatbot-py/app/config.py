@@ -102,6 +102,12 @@ class Settings(BaseSettings):
         default=300,  # nosemgrep: D-006-magic-number-assignment
         alias="CHATBOT_ENGINE_JWT_TTL_SECONDS",
     )
+    # The role claim string that this client signs into every engine
+    # JWT. The Node API's engineAuthMiddleware compares verbatim against
+    # config.engine.roleClaim — both apps MUST agree on the exact same
+    # value, hence both read it from the same env var
+    # REGFLOW_ENGINE_ROLE_CLAIM. Required, no default.
+    regflow_engine_role_claim: str = Field(alias="REGFLOW_ENGINE_ROLE_CLAIM")
 
 
 settings = Settings()

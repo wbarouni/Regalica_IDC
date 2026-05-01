@@ -53,11 +53,13 @@ class RegflowApiError(Exception):
         self.endpoint = endpoint
 
 
-_ENGINE_ROLE = "regflow_engine"
-
-
 def _sign_engine_jwt(tenant_id: str) -> str:
     """Sign a short-lived HS256 token the API's engineAuthMiddleware accepts.
+
+    The role claim string comes from settings.regflow_engine_role_claim
+    (env REGFLOW_ENGINE_ROLE_CLAIM) — the Node API reads the same env
+    var into config.engine.roleClaim and compares verbatim. Both apps
+    MUST agree on the exact same value.
 
     The TTL comes from settings.chatbot_engine_jwt_ttl_seconds — operator-
     controlled via CHATBOT_ENGINE_JWT_TTL_SECONDS so the cost / risk
@@ -65,7 +67,7 @@ def _sign_engine_jwt(tenant_id: str) -> str:
     """
     now = int(time.time())
     payload: dict[str, Any] = {
-        "role": _ENGINE_ROLE,
+        "role": settings.regflow_engine_role_claim,
         "tenant_id": tenant_id,
         "iss": "chatbot-py",
         "iat": now,

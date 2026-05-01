@@ -13,6 +13,12 @@ const envSchema = z.object({
   PG_POOL_IDLE_TIMEOUT_MS: z.coerce.number().int().positive(),
   PG_POOL_CONN_TIMEOUT_MS: z.coerce.number().int().positive(),
   CHATBOT_PY_URL: z.string().url().optional(),
+  // Required: the role claim string the engine middleware expects in
+  // every JWT it validates. Symmetric with chatbot-py's
+  // settings.regflow_engine_role_claim — both apps must agree on the
+  // exact same string. Operator-controlled via REGFLOW_ENGINE_ROLE_CLAIM;
+  // missing/empty value fails the process at startup.
+  REGFLOW_ENGINE_ROLE_CLAIM: z.string().min(1),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -41,6 +47,9 @@ export const config = {
     connectionTimeoutMs: env.PG_POOL_CONN_TIMEOUT_MS,
   },
   chatbotPyUrl: env.CHATBOT_PY_URL,
+  engine: {
+    roleClaim: env.REGFLOW_ENGINE_ROLE_CLAIM,
+  },
 } as const;
 
 export type Config = typeof config;

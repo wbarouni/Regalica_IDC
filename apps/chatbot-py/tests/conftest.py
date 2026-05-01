@@ -35,6 +35,9 @@ _TEST_ENV_DEFAULTS: dict[str, str] = {
     # commit 41c — briefing prompt target loaded by /upload after T0
     "CHATBOT_BRIEFING_AGENT_TYPE": "regalica",
     "CHATBOT_BRIEFING_FUNCTION_NAME": "xml_received",
+    # commit C3 — engine JWT role claim, must match the API's
+    # REGFLOW_ENGINE_ROLE_CLAIM verbatim (both apps read the same env).
+    "REGFLOW_ENGINE_ROLE_CLAIM": "regflow_engine",
 }
 
 for _name, _value in _TEST_ENV_DEFAULTS.items():
