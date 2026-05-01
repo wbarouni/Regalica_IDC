@@ -26,9 +26,11 @@ from __future__ import annotations
 import time
 import zlib
 from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
 from typing import Annotated, Any, NamedTuple
 
 import asyncpg
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
@@ -36,12 +38,15 @@ from app.agents.base import AgentResult
 from app.agents.t0_dependency import DependencyAgent
 from app.agents.t0_ingestor import IngestorXMLAgent
 from app.agents.t0_temporal import TemporalAgent
+from app.clients.regflow_api import RegflowApiClient, RegflowApiError
 from app.config import settings
 from app.llm.base import LLMClient, LLMRequest
+from app.logger import get_logger
 from app.routes.chat import get_llm_client, get_pool
 from app.services.prompt_loader import load_active_prompt
 
 router = APIRouter()
+log = get_logger(__name__)
 
 # Default arrete periodicity assumed by the temporal agent when the
 # upload payload doesn't carry one. Quarterly is the BCT majority
@@ -57,6 +62,17 @@ class UploadKickoffRequest(BaseModel):
     upload_ids: list[str] = Field(min_length=1)
     arrete_date: str = Field(min_length=1)
     tenant_id: str = Field(min_length=1)
+    # Optional. When the frontend's chat dock has already opened a
+    # conversation prior to the run, it threads the conversation_id
+    # here so the T0 briefing can be persisted into that thread via
+    # the engine API. Absent => briefing is returned in the response
+    # only (the synchronous path that already exists).
+    conversation_id: str | None = Field(default=None, min_length=1)
+
+
+def get_engine_client() -> RegflowApiClient:
+    """FastAPI dependency that yields a fresh engine client per request."""
+    return RegflowApiClient()
 
 
 class UploadStepReport(BaseModel):
@@ -207,6 +223,82 @@ async def _load_upload_annexes(
     return [str(r["code_annexe"]) for r in rows]
 
 
+async def _seed_run_agent_steps(
+    pool: asyncpg.Pool,
+    *,
+    run_id: str,
+    tenant_id: str,
+    steps: list[_StepRow],
+) -> dict[tuple[str, str], str]:
+    """Insert one run_agent_steps row per T0 step (status=pending) and
+    return a {(agent_type, function_name): step_id} lookup so the
+    transition notifications can address the right row.
+
+    The INSERT is ON CONFLICT DO NOTHING and the SELECT is unconditional
+    so re-entry of /upload (e.g. after a partial failure + retry by the
+    operator) reuses the existing rows without duplicating them.
+    """
+    async with pool.acquire() as conn:
+        await conn.executemany(
+            """
+            INSERT INTO run_agent_steps
+                (run_id, tenant_id, agent_type, function_name, ordinal, status)
+            VALUES ($1::uuid, $2::uuid, $3, $4, $5, 'pending')
+            ON CONFLICT (run_id, agent_type, function_name) DO NOTHING
+            """,
+            [(run_id, tenant_id, s.agent_type, s.function_name, s.step_order) for s in steps],
+        )
+        rows = await conn.fetch(
+            """
+            SELECT id, agent_type, function_name
+              FROM run_agent_steps
+             WHERE run_id = $1::uuid AND tenant_id = $2::uuid
+               AND deleted_at IS NULL
+            """,
+            run_id,
+            tenant_id,
+        )
+    return {(str(r["agent_type"]), str(r["function_name"])): str(r["id"]) for r in rows}
+
+
+async def _safe_notify_step(
+    engine: RegflowApiClient,
+    *,
+    run_id: str,
+    step_id: str,
+    tenant_id: str,
+    new_status: str,
+    started_at: str | None = None,
+    completed_at: str | None = None,
+    error_message: str | None = None,
+) -> None:
+    """Best-effort notify_agent_step.
+
+    The /upload synchronous response (UploadResponse) is the source of
+    truth for the operator; the engine SSE animation is a UX nicety.
+    Swallow + log a notify failure rather than aborting the whole T0
+    pipeline because the workspace ribbon would not animate.
+    """
+    try:
+        await engine.notify_agent_step(
+            run_id=run_id,
+            step_id=step_id,
+            tenant_id=tenant_id,
+            new_status=new_status,
+            started_at=started_at,
+            completed_at=completed_at,
+            error_message=error_message,
+        )
+    except (RegflowApiError, httpx.HTTPError) as err:
+        log.warning(
+            "engine_notify_agent_step_failed",
+            run_id=run_id,
+            step_id=step_id,
+            new_status=new_status,
+            error=str(err),
+        )
+
+
 async def _load_t0_steps(pool: asyncpg.Pool) -> list[_StepRow]:
     """Read the active T0 sequence ordered by step_order."""
     rows = await pool.fetch(
@@ -284,69 +376,146 @@ async def post_upload(
     payload: UploadKickoffRequest,
     pool: Annotated[asyncpg.Pool, Depends(get_pool)],
     llm_client: Annotated[LLMClient, Depends(get_llm_client)],
+    engine: Annotated[RegflowApiClient, Depends(get_engine_client)],
 ) -> UploadResponse:
-    """Run the T0 pipeline + the Regalica briefing for one validation_run."""
-    steps = await _load_t0_steps(pool)
-    if not steps:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="workflow_steps T0 catalogue is empty",
+    """Run the T0 pipeline + the Regalica briefing for one validation_run.
+
+    For each T0 step the route calls the REGFlow API engine to (a) flip
+    the row's status (current -> done|error) AND (b) emit the matching
+    SSE frame so the workspace ribbon animates in real time. The
+    notify call is best-effort: a failure on the engine side does not
+    abort the local pipeline because the synchronous response below is
+    the authoritative result.
+
+    The conversation_id field is optional. When present, the rendered
+    briefing is also persisted into that conversation via the engine's
+    /conversations/<id>/messages endpoint so the user-facing chat
+    thread shows the message instead of having to extract it from the
+    /upload response.
+    """
+    try:
+        steps = await _load_t0_steps(pool)
+        if not steps:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="workflow_steps T0 catalogue is empty",
+            )
+
+        step_ids = await _seed_run_agent_steps(
+            pool,
+            run_id=payload.run_id,
+            tenant_id=payload.tenant_id,
+            steps=steps,
         )
-    ctx = _RunContext(
-        pool=pool,
-        tenant_id=payload.tenant_id,
-        primary_upload_id=payload.primary_upload_id,
-        upload_ids=payload.upload_ids,
-        arrete_date=payload.arrete_date,
-    )
-    shared: dict[str, Any] = {}
-    reports: list[UploadStepReport] = []
-    for step in steps:
-        runner = _DISPATCH.get(step.agent_type)
-        if runner is None:
+
+        ctx = _RunContext(
+            pool=pool,
+            tenant_id=payload.tenant_id,
+            primary_upload_id=payload.primary_upload_id,
+            upload_ids=payload.upload_ids,
+            arrete_date=payload.arrete_date,
+        )
+        shared: dict[str, Any] = {}
+        reports: list[UploadStepReport] = []
+        for step in steps:
+            runner = _DISPATCH.get(step.agent_type)
+            if runner is None:
+                reports.append(
+                    UploadStepReport(
+                        step_order=step.step_order,
+                        agent_type=step.agent_type,
+                        function_name=step.function_name,
+                        success=False,
+                        latency_ms=0,
+                        error=(
+                            f"no python dispatcher registered for agent_type '{step.agent_type}'"
+                        ),
+                    )
+                )
+                break
+
+            step_id = step_ids.get((step.agent_type, step.function_name))
+            started_at = datetime.now(UTC).isoformat()
+            if step_id is not None:
+                await _safe_notify_step(
+                    engine,
+                    run_id=payload.run_id,
+                    step_id=step_id,
+                    tenant_id=payload.tenant_id,
+                    new_status="current",
+                    started_at=started_at,
+                )
+
+            start = time.monotonic()
+            result = await runner(ctx, shared)
+            latency = int((time.monotonic() - start) * 1000)
+            completed_at = datetime.now(UTC).isoformat()
+
             reports.append(
                 UploadStepReport(
                     step_order=step.step_order,
                     agent_type=step.agent_type,
                     function_name=step.function_name,
-                    success=False,
-                    latency_ms=0,
-                    error=f"no python dispatcher registered for agent_type '{step.agent_type}'",
+                    success=result.success,
+                    latency_ms=latency or result.latency_ms,
+                    error=result.error,
+                    output=result.output,
                 )
             )
-            break
-        start = time.monotonic()
-        result = await runner(ctx, shared)
-        latency = int((time.monotonic() - start) * 1000)
-        reports.append(
-            UploadStepReport(
-                step_order=step.step_order,
-                agent_type=step.agent_type,
-                function_name=step.function_name,
-                success=result.success,
-                latency_ms=latency or result.latency_ms,
-                error=result.error,
-                output=result.output,
+            _propagate_outputs(shared, step, result)
+
+            if step_id is not None:
+                await _safe_notify_step(
+                    engine,
+                    run_id=payload.run_id,
+                    step_id=step_id,
+                    tenant_id=payload.tenant_id,
+                    new_status="done" if result.success else "error",
+                    started_at=started_at,
+                    completed_at=completed_at,
+                    error_message=result.error,
+                )
+
+            if not result.success:
+                break
+
+        briefing: UploadBriefing | None = None
+        if all(r.success for r in reports):
+            briefing = await _render_briefing(
+                pool=pool,
+                llm_client=llm_client,
+                tenant_id=payload.tenant_id,
+                payload=payload,
+                shared=shared,
             )
-        )
-        _propagate_outputs(shared, step, result)
-        if not result.success:
-            break
+            if briefing is not None and payload.conversation_id is not None:
+                try:
+                    await engine.persist_message(
+                        conversation_id=payload.conversation_id,
+                        tenant_id=payload.tenant_id,
+                        content=briefing.message,
+                        role="assistant",
+                        metadata={
+                            "agents_triggered": briefing.agents_triggered,
+                            "run_id": payload.run_id,
+                        },
+                        produced_by_agent=settings.chatbot_briefing_agent_type,
+                        run_id=payload.run_id,
+                    )
+                except (RegflowApiError, httpx.HTTPError) as err:
+                    log.warning(
+                        "engine_persist_briefing_failed",
+                        run_id=payload.run_id,
+                        conversation_id=payload.conversation_id,
+                        error=str(err),
+                    )
 
-    briefing: UploadBriefing | None = None
-    if all(r.success for r in reports):
-        briefing = await _render_briefing(
-            pool=pool,
-            llm_client=llm_client,
-            tenant_id=payload.tenant_id,
-            payload=payload,
-            shared=shared,
+        final_status = "t0_complete" if all(r.success for r in reports) else "t0_failed"
+        return UploadResponse(
+            status=final_status,
+            run_id=payload.run_id,
+            steps=reports,
+            briefing=briefing,
         )
-
-    final_status = "t0_complete" if all(r.success for r in reports) else "t0_failed"
-    return UploadResponse(
-        status=final_status,
-        run_id=payload.run_id,
-        steps=reports,
-        briefing=briefing,
-    )
+    finally:
+        await engine.aclose()

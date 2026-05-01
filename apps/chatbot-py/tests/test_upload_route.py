@@ -17,6 +17,7 @@ import pytest
 from app.llm.base import LLMResponse
 from app.main import app
 from app.routes.chat import get_llm_client, get_pool
+from app.routes.upload import get_engine_client
 from fastapi import status
 from fastapi.testclient import TestClient
 
@@ -76,6 +77,20 @@ def mock_pool() -> MagicMock:
     pool = MagicMock()
     pool.fetch = AsyncMock(return_value=[])
     pool.fetchrow = AsyncMock(return_value=None)
+    # _seed_run_agent_steps acquires a connection then runs
+    # executemany + fetch on it. Mock the async-context-manager contract
+    # plus both async methods so tests don't need a real DB.
+    conn = MagicMock()
+    conn.executemany = AsyncMock()
+    # Default seed lookup returns no rows -> step_id is None -> the
+    # route silently skips notify_agent_step. Tests that verify the
+    # seed contract override this to inject deterministic step_ids.
+    conn.fetch = AsyncMock(return_value=[])
+    acquire_cm = MagicMock()
+    acquire_cm.__aenter__ = AsyncMock(return_value=conn)
+    acquire_cm.__aexit__ = AsyncMock(return_value=None)
+    pool.acquire = MagicMock(return_value=acquire_cm)
+    pool._seed_conn = conn  # exposed for tests that want to assert on it
     return pool
 
 
@@ -87,9 +102,27 @@ def mock_llm() -> MagicMock:
 
 
 @pytest.fixture
-def client(mock_pool: MagicMock, mock_llm: MagicMock) -> Iterator[TestClient]:
+def mock_engine() -> MagicMock:
+    """RegflowApiClient stand-in.
+
+    notify_agent_step + persist_message are both AsyncMock so test cases
+    can introspect call_args, configure return values, or raise to
+    exercise the best-effort error swallowing in /upload.
+    """
+    eng = MagicMock()
+    eng.notify_agent_step = AsyncMock(return_value={"data": {}})
+    eng.persist_message = AsyncMock(return_value={"data": {}})
+    eng.aclose = AsyncMock(return_value=None)
+    return eng
+
+
+@pytest.fixture
+def client(
+    mock_pool: MagicMock, mock_llm: MagicMock, mock_engine: MagicMock
+) -> Iterator[TestClient]:
     app.dependency_overrides[get_pool] = lambda: mock_pool
     app.dependency_overrides[get_llm_client] = lambda: mock_llm
+    app.dependency_overrides[get_engine_client] = lambda: mock_engine
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
@@ -264,3 +297,167 @@ def test_upload_unknown_agent_type_aborts_pipeline(
     assert body["status"] == "t0_failed"
     assert body["steps"][0]["error"] is not None
     assert "no python dispatcher" in body["steps"][0]["error"]
+
+
+def test_upload_notifies_engine_for_each_step_transition(
+    client: TestClient,
+    mock_pool: MagicMock,
+    mock_llm: MagicMock,
+    mock_engine: MagicMock,
+) -> None:
+    """Each successful T0 step triggers two notify calls: current + done."""
+    mock_pool.fetch.side_effect = [
+        _t0_steps(),
+        [{"code_annexe": "RSM630"}],
+        [],  # DependencyAgent internal fetch
+    ]
+    mock_pool.fetchrow.side_effect = [_xml_upload_row(), None]
+    mock_llm.complete.return_value = _llm_response("ok")
+    # _seed_run_agent_steps reads back step_ids from the seed connection.
+    mock_pool._seed_conn.fetch.return_value = [
+        {
+            "id": "00000000-0000-7000-8000-000000000010",
+            "agent_type": "ingestor_xml",
+            "function_name": "parse_xml",
+        },
+        {
+            "id": "00000000-0000-7000-8000-000000000011",
+            "agent_type": "dependency",
+            "function_name": "check_companions",
+        },
+        {
+            "id": "00000000-0000-7000-8000-000000000012",
+            "agent_type": "temporal",
+            "function_name": "check_dates",
+        },
+    ]
+
+    res = client.post("/upload", json=_payload())
+    assert res.status_code == status.HTTP_200_OK, res.text
+
+    # 3 steps x 2 transitions = 6 notify_agent_step calls.
+    assert mock_engine.notify_agent_step.await_count == 6
+    transitions = [c.kwargs["new_status"] for c in mock_engine.notify_agent_step.await_args_list]
+    assert transitions == ["current", "done", "current", "done", "current", "done"]
+    # Each call addresses the step_id seeded for its (agent_type, function_name).
+    step_ids = [c.kwargs["step_id"] for c in mock_engine.notify_agent_step.await_args_list]
+    assert step_ids == [
+        "00000000-0000-7000-8000-000000000010",
+        "00000000-0000-7000-8000-000000000010",
+        "00000000-0000-7000-8000-000000000011",
+        "00000000-0000-7000-8000-000000000011",
+        "00000000-0000-7000-8000-000000000012",
+        "00000000-0000-7000-8000-000000000012",
+    ]
+    mock_engine.aclose.assert_awaited_once()
+
+
+def test_upload_notify_failure_does_not_abort_pipeline(
+    client: TestClient,
+    mock_pool: MagicMock,
+    mock_llm: MagicMock,
+    mock_engine: MagicMock,
+) -> None:
+    """An engine notify failure is logged + swallowed, T0 still completes."""
+    from app.clients.regflow_api import RegflowApiError
+
+    mock_pool.fetch.side_effect = [
+        _t0_steps(),
+        [{"code_annexe": "RSM630"}],
+        [],
+    ]
+    mock_pool.fetchrow.side_effect = [_xml_upload_row(), None]
+    mock_llm.complete.return_value = _llm_response("ok")
+    mock_pool._seed_conn.fetch.return_value = [
+        {
+            "id": "00000000-0000-7000-8000-000000000010",
+            "agent_type": "ingestor_xml",
+            "function_name": "parse_xml",
+        },
+        {
+            "id": "00000000-0000-7000-8000-000000000011",
+            "agent_type": "dependency",
+            "function_name": "check_companions",
+        },
+        {
+            "id": "00000000-0000-7000-8000-000000000012",
+            "agent_type": "temporal",
+            "function_name": "check_dates",
+        },
+    ]
+    mock_engine.notify_agent_step.side_effect = RegflowApiError(
+        500, "boom", endpoint="/runs/x/agent-steps/y"
+    )
+
+    res = client.post("/upload", json=_payload())
+    assert res.status_code == status.HTTP_200_OK, res.text
+    body = res.json()
+    assert body["status"] == "t0_complete"
+    # All 3 agents still ran end-to-end despite engine notify failures.
+    assert len(body["steps"]) == 3
+
+
+def test_upload_persists_briefing_when_conversation_id_supplied(
+    client: TestClient,
+    mock_pool: MagicMock,
+    mock_llm: MagicMock,
+    mock_engine: MagicMock,
+) -> None:
+    mock_pool.fetch.side_effect = [
+        _t0_steps(),
+        [{"code_annexe": "RSM630"}],
+        [],
+    ]
+    mock_pool.fetchrow.side_effect = [
+        _xml_upload_row(),
+        {
+            "template": "RSM630={annexe_code}",
+            "temperature": 0.7,
+            "max_tokens": 1024,
+            "thinking_enabled": False,
+            "target_model": "gemini-2.5-flash",
+        },
+    ]
+    mock_llm.complete.return_value = _llm_response("Réception confirmée pour RSM630.")
+
+    payload = _payload()
+    payload["conversation_id"] = "00000000-0000-7000-8000-0000000000aa"
+    res = client.post("/upload", json=payload)
+    assert res.status_code == status.HTTP_200_OK, res.text
+
+    mock_engine.persist_message.assert_awaited_once()
+    call = mock_engine.persist_message.await_args
+    assert call.kwargs["conversation_id"] == "00000000-0000-7000-8000-0000000000aa"
+    assert call.kwargs["tenant_id"] == payload["tenant_id"]
+    assert call.kwargs["content"] == "Réception confirmée pour RSM630."
+    assert call.kwargs["role"] == "assistant"
+    assert call.kwargs["run_id"] == payload["run_id"]
+    assert call.kwargs["produced_by_agent"] == "regalica"
+
+
+def test_upload_skips_persist_when_no_conversation_id(
+    client: TestClient,
+    mock_pool: MagicMock,
+    mock_llm: MagicMock,
+    mock_engine: MagicMock,
+) -> None:
+    mock_pool.fetch.side_effect = [
+        _t0_steps(),
+        [{"code_annexe": "RSM630"}],
+        [],
+    ]
+    mock_pool.fetchrow.side_effect = [
+        _xml_upload_row(),
+        {
+            "template": "ok={annexe_code}",
+            "temperature": 0.7,
+            "max_tokens": 1024,
+            "thinking_enabled": False,
+            "target_model": "gemini-2.5-flash",
+        },
+    ]
+    mock_llm.complete.return_value = _llm_response("ok")
+
+    res = client.post("/upload", json=_payload())
+    assert res.status_code == status.HTTP_200_OK, res.text
+    mock_engine.persist_message.assert_not_awaited()
