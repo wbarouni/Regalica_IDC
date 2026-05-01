@@ -93,6 +93,15 @@ class Settings(BaseSettings):
     # missing values fail the process at startup, never silently.
     api_url: str = Field(alias="REGFLOW_API_URL")
     jwt_secret: str = Field(alias="JWT_SECRET")
+    # Lifetime of the engine-signed JWT minted per request. Short
+    # enough that a leaked token expires before it can be replayed
+    # across many calls, long enough to absorb container clock drift.
+    # Default keeps existing deployments working without a new env
+    # var; operators can shorten via CHATBOT_ENGINE_JWT_TTL_SECONDS.
+    chatbot_engine_jwt_ttl_seconds: int = Field(
+        default=300,  # nosemgrep: D-006-magic-number-assignment
+        alias="CHATBOT_ENGINE_JWT_TTL_SECONDS",
+    )
 
 
 settings = Settings()

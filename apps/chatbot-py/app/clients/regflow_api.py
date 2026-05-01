@@ -53,24 +53,23 @@ class RegflowApiError(Exception):
         self.endpoint = endpoint
 
 
-# JWT lifetime — short enough that a leaked token expires before it can
-# be replayed across many requests, long enough to absorb clock drift
-# between chatbot-py and api containers (Docker compose usually < 1s,
-# but in production we may straddle bare-metal hosts).
-_JWT_TTL_SECONDS = 300
-
 _ENGINE_ROLE = "regflow_engine"
 
 
 def _sign_engine_jwt(tenant_id: str) -> str:
-    """Sign a short-lived HS256 token the API's engineAuthMiddleware accepts."""
+    """Sign a short-lived HS256 token the API's engineAuthMiddleware accepts.
+
+    The TTL comes from settings.chatbot_engine_jwt_ttl_seconds — operator-
+    controlled via CHATBOT_ENGINE_JWT_TTL_SECONDS so the cost / risk
+    trade-off is not baked into source (Guard D-006 doctrine).
+    """
     now = int(time.time())
     payload: dict[str, Any] = {
         "role": _ENGINE_ROLE,
         "tenant_id": tenant_id,
         "iss": "chatbot-py",
         "iat": now,
-        "exp": now + _JWT_TTL_SECONDS,
+        "exp": now + settings.chatbot_engine_jwt_ttl_seconds,
     }
     return jwt.encode(payload, settings.jwt_secret, algorithm="HS256")
 
