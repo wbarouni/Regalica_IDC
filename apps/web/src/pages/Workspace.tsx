@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import { useNavigate } from 'react-router-dom';
@@ -13,6 +13,7 @@ import { PersonaSidebar } from '../components/layout/PersonaSidebar';
 import { useAgentSteps } from '../hooks/useAgentSteps';
 import { useChat, type ChatMessage } from '../hooks/useChat';
 import { useCurrentRun } from '../hooks/useCurrentRun';
+import { useEventSource } from '../hooks/useEventSource';
 import { useNotifications } from '../hooks/useNotifications';
 import { useRunSummary } from '../hooks/useRunSummary';
 import { useStartRun } from '../hooks/useStartRun';
@@ -287,8 +288,21 @@ export default function Workspace() {
   // new validation_run without waiting for /current to repoll.
   const currentRunId = activeRunId ?? run?.run_id ?? null;
   const { steps } = useAgentSteps(currentRunId);
-  const { summary } = useRunSummary(currentRunId);
+  const { summary, refetch: refetchSummary } = useRunSummary(currentRunId);
   const { notifications, markAsRead } = useNotifications();
+
+  // SSE 'complete' event => the engine just persisted final
+  // synthesis_artifact + deliverable_c_artifact + KPIs to
+  // validation_runs. Re-pull /summary so the livrables surface
+  // immediately, no polling required.
+  const sse = useEventSource(currentRunId);
+  useEffect(() => {
+    if (currentRunId === null) return;
+    const unsubscribe = sse.subscribe('complete', () => {
+      refetchSummary();
+    });
+    return unsubscribe;
+  }, [currentRunId, sse, refetchSummary]);
   const {
     messages,
     loading: chatLoading,
@@ -436,6 +450,12 @@ export default function Workspace() {
                 )}
               </Artefact>
             )}
+            {summary !== null && summary.run.status === 'completed' && (
+              <T1Deliverables run={summary.run} annexes={summary.annexes} />
+            )}
+            {summary !== null && summary.run.status === 'completed' && (
+              <T3LockBanner totalFailSevere={summary.run.total_fail_severe ?? 0} />
+            )}
 
             <ChatThread messages={messages} />
 
@@ -484,6 +504,98 @@ export default function Workspace() {
           }
         />
       </main>
+    </div>
+  );
+}
+
+function T1Deliverables({
+  run,
+  annexes,
+}: {
+  run: ValidationRun;
+  annexes: readonly {
+    code: string;
+    fail_severe: string | number;
+    fail_rounding: string | number;
+  }[];
+}) {
+  const { t } = useTranslation();
+  const synthesis = run.synthesis_artifact ?? null;
+  const deliverableC = run.deliverable_c_artifact ?? null;
+  const synthesisText =
+    typeof synthesis === 'string'
+      ? synthesis
+      : synthesis !== null
+        ? JSON.stringify(synthesis, null, 2)
+        : null;
+  const deliverableCText =
+    typeof deliverableC === 'string'
+      ? deliverableC
+      : deliverableC !== null
+        ? JSON.stringify(deliverableC, null, 2)
+        : null;
+  return (
+    <>
+      {synthesisText !== null && (
+        <Artefact type="livrable_a" state="standard">
+          <pre className="text-sm font-mono whitespace-pre-wrap break-words">{synthesisText}</pre>
+        </Artefact>
+      )}
+      {annexes.length > 0 && (
+        <Artefact type="livrable_b" state="standard">
+          <div className="font-mono text-[10px] uppercase tracking-wider text-stone-500 mb-2">
+            {t('summary.byAnnexe')}
+          </div>
+          <ul className="space-y-1 text-sm font-mono">
+            {annexes.map((a) => (
+              <li
+                key={a.code}
+                className="flex justify-between items-center border border-stone-200 rounded px-3 py-2"
+              >
+                <span>{a.code}</span>
+                <span className="text-stone-700">
+                  {Number(a.fail_severe)} severe · {Number(a.fail_rounding)} rounding
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Artefact>
+      )}
+      {deliverableCText !== null && (
+        <Artefact type="livrable_c" state="standard">
+          <pre className="text-sm font-mono whitespace-pre-wrap break-words">
+            {deliverableCText}
+          </pre>
+        </Artefact>
+      )}
+    </>
+  );
+}
+
+function T3LockBanner({ totalFailSevere }: { totalFailSevere: number }) {
+  const { t } = useTranslation();
+  if (totalFailSevere <= 0) {
+    return (
+      <div className="rounded border border-evergreen-200 bg-evergreen-50 px-3 py-2 text-sm">
+        <span className="font-mono text-[10px] uppercase tracking-wider text-evergreen-700 mr-2">
+          {t('t3.unlockedLabel')}
+        </span>
+        <span className="text-evergreen-800">{t('t3.unlocked')}</span>
+      </div>
+    );
+  }
+  return (
+    <div
+      className="rounded border border-vermilion-200 bg-vermilion-50 px-3 py-2 text-sm"
+      role="status"
+      aria-live="polite"
+    >
+      <span className="font-mono text-[10px] uppercase tracking-wider text-vermilion-700 mr-2">
+        {t('t3.lockedLabel')}
+      </span>
+      <span className="text-vermilion-800">
+        {t('t3.lockedMessage', { count: totalFailSevere })}
+      </span>
     </div>
   );
 }

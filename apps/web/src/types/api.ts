@@ -15,6 +15,11 @@ export interface ValidationRun {
   step3_rdg_status: string | null;
   initiated_at: string;
   completed_at: string | null;
+  // Populated by /summary only (the lightweight /current view skips
+  // these large JSONB columns). Optional so /current consumers stay
+  // type-safe.
+  synthesis_artifact?: unknown;
+  deliverable_c_artifact?: unknown;
 }
 
 export interface AnnexeSummary {

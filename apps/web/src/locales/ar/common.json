@@ -128,6 +128,12 @@
   "summary": {
     "byAnnexe": "حسب الملحق"
   },
+  "t3": {
+    "unlockedLabel": "T3 مفتوح",
+    "unlocked": "لا يوجد FAIL حرج — التوقيع والإيداع T3 متاحان.",
+    "lockedLabel": "T3 مغلق",
+    "lockedMessage": "{{count}} FAIL حرج يجب تصحيحها قبل التوقيع والإيداع T3."
+  },
   "orchestration": {
     "title": "التنسيق"
   },

@@ -128,6 +128,12 @@
   "summary": {
     "byAnnexe": "By annex"
   },
+  "t3": {
+    "unlockedLabel": "T3 open",
+    "unlocked": "No severe FAIL detected — signature and T3 submission available.",
+    "lockedLabel": "T3 locked",
+    "lockedMessage": "{{count}} severe FAIL must be corrected before signature and T3 submission."
+  },
   "orchestration": {
     "title": "Orchestration"
   },
