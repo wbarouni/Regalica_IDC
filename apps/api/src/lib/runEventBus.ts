@@ -1,4 +1,8 @@
 import { EventEmitter } from 'node:events';
+import type { Pool } from 'pg';
+
+import { logger } from '../logger.js';
+import { getPlatformConfigNumber } from './platformConfig.js';
 
 /**
  * In-process event bus for run-scoped progress streaming.
@@ -14,6 +18,11 @@ import { EventEmitter } from 'node:events';
  * over Postgres so events survive process restarts and span horizontal
  * replicas. The emit helpers and event types stay stable across that
  * migration.
+ *
+ * Listener cap (`bus.setMaxListeners`) is operator-controlled via
+ * platform_config.sse_max_listeners — `configureRunEventBus(pool)`
+ * loads the value and applies it. Call exactly once at app boot
+ * before any SSE client connects.
  */
 
 export type RunEventType = 'agent_step' | 'progress' | 'complete' | 'error';
@@ -53,13 +62,38 @@ interface RunEvent {
 }
 
 const bus = new EventEmitter();
-// One subscriber per active SSE connection per run, plus internal
-// emitters. 100 is an order of magnitude above the realistic ceiling
-// (≤ a handful of analysts per tenant, single run focus per analyst).
-bus.setMaxListeners(100);
 
 function channel(runId: string): string {
   return `run:${runId}`;
+}
+
+/**
+ * Apply the operator-controlled listener cap from platform_config.
+ * Idempotent: callers may invoke it multiple times (a re-config on a
+ * platform_config update would rebound the cap). Failures are logged
+ * but never thrown — the bus stays usable with Node's default cap (10)
+ * until the configuration succeeds.
+ */
+export async function configureRunEventBus(pool: Pool): Promise<void> {
+  try {
+    const limit = await getPlatformConfigNumber(pool, 'sse_max_listeners');
+    bus.setMaxListeners(limit);
+    logger.info({ limit }, 'runEventBus listener cap configured from platform_config');
+  } catch (err) {
+    logger.error(
+      { err: err instanceof Error ? err.message : String(err) },
+      'runEventBus configuration failed; falling back to Node default cap',
+    );
+  }
+}
+
+/**
+ * Test-only escape hatch — read the current EventEmitter listener cap.
+ * Used by `runEventBus.test.ts` to assert that `configureRunEventBus`
+ * actually applied the platform_config value.
+ */
+export function getRunEventBusMaxListeners(): number {
+  return bus.getMaxListeners();
 }
 
 export function emitAgentStep(runId: string, payload: AgentStepEvent): void {

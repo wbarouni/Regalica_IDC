@@ -10,6 +10,7 @@ import { Server as SocketServer } from 'socket.io';
 
 import { config } from './config.js';
 import { logger } from './logger.js';
+import { configureRunEventBus } from './lib/runEventBus.js';
 import { authMiddleware, tenantMiddleware } from './middleware/auth.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { conversationsRouter } from './routes/conversations.js';
@@ -44,6 +45,11 @@ export function createApp(pool?: Pool): Express {
   app.use('/health', healthRouter);
 
   if (pool) {
+    // Configure the in-process SSE event bus from platform_config.
+    // Fire-and-forget: failures are logged inside the function and
+    // leave the bus on Node's default cap (10) — acceptable for the
+    // first few ms of boot before any client subscribes.
+    void configureRunEventBus(pool);
     const apiMountPath = '/api/tenants/:tenantId';
     app.use(apiMountPath, authMiddleware, tenantMiddleware);
     app.use(apiMountPath, workspaceRouter(pool));
