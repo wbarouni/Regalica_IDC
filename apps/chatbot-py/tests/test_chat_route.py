@@ -169,11 +169,21 @@ def test_post_chat_message_absorbs_llm_failure_in_general_help_path(
     assert body["agents_called"] == ["regalica/aggregate_general_help"]
 
 
-def test_post_chat_message_503_when_pool_missing() -> None:
-    """Without overrides, get_pool reads app.state.db_pool which is unset."""
+def test_post_chat_message_503_when_pool_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """get_pool reads app.state.db_pool; force it to None to assert the 503.
+
+    The TestClient runs the FastAPI lifespan, which creates a real pool
+    when DATABASE_URL is set in the test environment. We patch the
+    state attribute back to None AFTER startup but BEFORE the request
+    fires — get_pool reads the attribute at request time, so the route
+    handler sees a missing pool regardless of the local environment.
+    """
     app.dependency_overrides.clear()
     app.dependency_overrides[get_llm_client] = lambda: MagicMock()
     with TestClient(app) as c:
+        monkeypatch.setattr(app.state, "db_pool", None, raising=False)
         response = c.post("/chat/message", json=_valid_request_payload())
     app.dependency_overrides.clear()
     assert response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
