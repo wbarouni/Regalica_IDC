@@ -168,6 +168,11 @@ jobs:
           API_CORS_ORIGIN: http://test.local
           PG_POOL_IDLE_TIMEOUT_MS: '1000'
           PG_POOL_CONN_TIMEOUT_MS: '5000'
+          # Required by config.ts since commit C3 (H9). The migrate
+          # CLI loads the same module as the route handlers, so the
+          # full required-env block must be present even though
+          # migrations themselves never see this value.
+          REGFLOW_ENGINE_ROLE_CLAIM: regflow_engine
         run: |
           pnpm migrate:status
           pnpm migrate:up
