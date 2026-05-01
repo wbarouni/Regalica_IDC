@@ -18,6 +18,7 @@ import { healthRouter } from './routes/health.js';
 import { libraryRouter } from './routes/library.js';
 import { notificationsRouter } from './routes/notifications.js';
 import { promptsRouter } from './routes/prompts.js';
+import { uploadsRouter } from './routes/uploads.js';
 import { workspaceRouter } from './routes/workspace.js';
 
 /**
@@ -49,6 +50,7 @@ export function createApp(pool?: Pool): Express {
     app.use(apiMountPath, conversationsRouter(pool));
     app.use(apiMountPath, filingsRouter(pool));
     app.use(apiMountPath, promptsRouter(pool));
+    app.use(apiMountPath, uploadsRouter(pool));
   }
 
   app.use(errorHandler);

@@ -11,6 +11,21 @@
       "config_key": "sse_heartbeat_ms",
       "config_value": 15000,
       "description": "Heartbeat interval (ms) for the /runs/:runId/stream SSE relay. Sent as an SSE comment line every N ms to keep proxies and browsers from timing out idle connections."
+    },
+    {
+      "config_key": "upload_max_bytes",
+      "config_value": 104857600,
+      "description": "Maximum size (bytes) accepted by POST /api/uploads. Coupled with the xml_uploads.file_size_bytes <= 104857600 CHECK constraint defined in migration 024 — the platform_config value MUST stay <= the DB CHECK ceiling. Lifting the ceiling requires both an ALTER TABLE and a re-seed."
+    },
+    {
+      "config_key": "compression_algo",
+      "config_value": "gzip",
+      "description": "Compression algorithm name written to xml_uploads.compression_algo for newly uploaded XMLs. The DB column accepts any VARCHAR(20). 'gzip' uses Node's built-in zlib (zero new dependency); 'zstd' would require @mongodb-js/zstd + native node-gyp build (deferred — Windows toolchain pain)."
+    },
+    {
+      "config_key": "compression_level",
+      "config_value": 6,
+      "description": "Compression level for the xml_uploads body. gzip range is 0..9 (default 6); zstd range is 1..22. Reread by the upload route on every call so an operator can tune without redeploying."
     }
   ]
 }
