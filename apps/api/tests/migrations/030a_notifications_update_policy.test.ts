@@ -1,4 +1,5 @@
 import {
+  expectSqlState,
   setupMigrationsSchema,
   teardownMigrationsSchema,
   type MigrationsTestContext,
@@ -183,14 +184,16 @@ describeIfDb('migration 030a — notifications UPDATE policy', () => {
       await client.query(`SET LOCAL app.current_user_id = '${userA1}'`);
 
       // Try to reassign A1's notification to A2 — WITH CHECK must reject.
-      await expect(
+      // SQLSTATE 42501 insufficient_privilege — locale-stable RLS denial.
+      await expectSqlState(
         client.query(
           `UPDATE notifications
               SET user_id = $1
             WHERE id = $2`,
           [userA2, notifA1],
         ),
-      ).rejects.toThrow(/row-level security|policy/i);
+        '42501',
+      );
       await client.query('ROLLBACK');
     } finally {
       client.release();

@@ -1,4 +1,5 @@
 import {
+  expectSqlState,
   setupMigrationsSchema,
   teardownMigrationsSchema,
   type MigrationsTestContext,
@@ -88,8 +89,10 @@ describeIfDb('migration 003 — tenants', () => {
     await ctx.testPool.query(
       `INSERT INTO tenants (slug, legal_name) VALUES ('tenant-test-dup', 'D1')`,
     );
-    await expect(
+    // SQLSTATE 23505 unique_violation — locale-stable across PG en/fr/de/...
+    await expectSqlState(
       ctx.testPool.query(`INSERT INTO tenants (slug, legal_name) VALUES ('tenant-test-dup', 'D2')`),
-    ).rejects.toThrow(/duplicate key/);
+      '23505',
+    );
   });
 });

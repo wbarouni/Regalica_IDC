@@ -1,4 +1,5 @@
 import {
+  expectSqlState,
   setupMigrationsSchema,
   teardownMigrationsSchema,
   type MigrationsTestContext,
@@ -75,7 +76,8 @@ describeIfDb('migration 004 — users, roles, user_roles, sessions', () => {
   });
 
   it('user_roles enforces FK to users and roles', async () => {
-    await expect(
+    // SQLSTATE 23503 foreign_key_violation — locale-stable.
+    await expectSqlState(
       ctx.testPool.query(
         `INSERT INTO user_roles (tenant_id, user_id, role_id)
            VALUES ($1,
@@ -83,7 +85,8 @@ describeIfDb('migration 004 — users, roles, user_roles, sessions', () => {
                    '00000000-0000-7000-8000-000000000002')`,
         [tenantId],
       ),
-    ).rejects.toThrow(/violates foreign key constraint/);
+      '23503',
+    );
   });
 
   it('sessions_uk_token rejects duplicate token_hash', async () => {

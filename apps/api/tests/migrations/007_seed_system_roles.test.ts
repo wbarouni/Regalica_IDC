@@ -66,9 +66,21 @@ describeIfDb('migration 007 — seed_system_roles', () => {
   });
 
   it('installs the tenants_seed_roles trigger on tenants', async () => {
+    // Filter pg_trigger to the test schema's tenants table — without
+    // this join the query would also match the trigger on
+    // public.tenants if a previous `pnpm migrate:up` was run against
+    // the same database (the one the dev shell uses), and the
+    // .toHaveLength(1) assertion would see 2 rows.
     const { rows } = await ctx.testPool.query<{ tgname: string }>(
-      `SELECT tgname FROM pg_trigger
-         WHERE tgname = 'tenants_seed_roles' AND NOT tgisinternal`,
+      `SELECT t.tgname
+         FROM pg_trigger t
+         JOIN pg_class c ON c.oid = t.tgrelid
+         JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE t.tgname = 'tenants_seed_roles'
+          AND NOT t.tgisinternal
+          AND c.relname = 'tenants'
+          AND n.nspname = $1`,
+      [ctx.schemaName],
     );
     expect(rows).toHaveLength(1);
   });

@@ -108,3 +108,43 @@ export async function teardownMigrationsSchema(ctx: MigrationsTestContext): Prom
   await ctx.adminPool.query(`DROP SCHEMA IF EXISTS ${ctx.schemaName} CASCADE`);
   await ctx.adminPool.end();
 }
+
+/**
+ * Awaits a promise expected to reject with a Postgres error carrying a
+ * specific SQLSTATE. Locale-stable: PG error messages are translated
+ * (en/fr/de/...), but the 5-character SQLSTATE code defined in
+ * `errcodes.txt` is part of the wire protocol and identical across
+ * locales. Use this in lieu of `.rejects.toThrow(/english phrase/)`
+ * whenever the matched text is built by Postgres rather than by an
+ * application-level RAISE EXCEPTION (those carry custom strings, are
+ * locale-stable already, and remain matched on text).
+ *
+ * Usage:
+ *   await expectSqlState(client.query(...), '23505'); // unique_violation
+ *
+ * SQLSTATE codes used in the suite (PG official appendix):
+ *   23502 not_null_violation
+ *   23503 foreign_key_violation
+ *   23505 unique_violation
+ *   23514 check_violation
+ *   42501 insufficient_privilege  (RLS WITH CHECK / USING denial)
+ */
+export async function expectSqlState(query: Promise<unknown>, sqlstate: string): Promise<void> {
+  let caught: unknown = null;
+  try {
+    await query;
+  } catch (err) {
+    caught = err;
+  }
+  if (caught === null) {
+    throw new Error(`Expected query to reject with SQLSTATE ${sqlstate}, but it resolved`);
+  }
+  const code = (caught as { code?: unknown }).code;
+  if (code !== sqlstate) {
+    throw new Error(
+      `Expected SQLSTATE ${sqlstate}, got ${typeof code === 'string' ? code : 'undefined'}: ${
+        (caught as { message?: unknown }).message ?? caught
+      }`,
+    );
+  }
+}

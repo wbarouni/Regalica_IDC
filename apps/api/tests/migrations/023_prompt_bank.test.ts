@@ -1,4 +1,5 @@
 import {
+  expectSqlState,
   setupMigrationsSchema,
   teardownMigrationsSchema,
   type MigrationsTestContext,
@@ -226,9 +227,11 @@ describeIfDb('migration 023 — prompt_bank', () => {
   });
 
   it('blocks INSERT when actor lacks platform_owner role (RLS WITH CHECK)', async () => {
-    await expect(insertPrompt('denied', nonOwnerUserId)).rejects.toThrow(
-      /new row violates row-level security policy|permission denied/i,
-    );
+    // SQLSTATE 42501 insufficient_privilege — locale-stable. PG raises
+    // this for both an RLS WITH CHECK denial and a plain GRANT failure;
+    // here it covers the RLS path because the role check is a
+    // prerequisite of the WITH CHECK predicate.
+    await expectSqlState(insertPrompt('denied', nonOwnerUserId), '42501');
   });
 
   it('blocks SELECT when actor lacks platform_owner role (RLS USING)', async () => {

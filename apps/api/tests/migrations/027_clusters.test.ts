@@ -15,7 +15,15 @@ describeIfDb('migration 027 — clusters', () => {
   let ruleId: string;
 
   beforeAll(async () => {
-    ctx = await setupMigrationsSchema(27);
+    // Tier bumped to 61: migration 027's existence-check for
+    // vfd_fk_cluster used a broad information_schema query that, when
+    // run against a database where the same constraint exists in
+    // another schema (typical local dev DB after a prior
+    // `pnpm migrate:up`), saw that row and skipped creation. Migration
+    // 061 amends the check with a current_schema()-filtered
+    // pg_constraint join so the constraint is created here. CI runs
+    // against a fresh container and would pass either way.
+    ctx = await setupMigrationsSchema(61);
 
     const t = await ctx.testPool.query<{ id: string }>(
       `INSERT INTO tenants (slug, legal_name)

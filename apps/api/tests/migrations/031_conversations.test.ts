@@ -15,7 +15,12 @@ describeIfDb('migration 031 — conversations', () => {
   let directorUserId: string;
 
   beforeAll(async () => {
-    ctx = await setupMigrationsSchema(31);
+    // Tier bumped to 61: same root cause as the 027 bump — migration
+    // 031's existence check for validation_runs_fk_conversation was a
+    // broad information_schema query that bled across schemas in dev
+    // DBs. Migration 061 amends with a current_schema()-filtered
+    // pg_constraint join so the constraint is created here.
+    ctx = await setupMigrationsSchema(61);
 
     const t = await ctx.testPool.query<{ id: string }>(
       `INSERT INTO tenants (slug, legal_name)

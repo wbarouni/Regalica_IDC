@@ -1,4 +1,5 @@
 import {
+  expectSqlState,
   setupMigrationsSchema,
   teardownMigrationsSchema,
   type MigrationsTestContext,
@@ -151,7 +152,8 @@ describeIfDb('migration 024 — xml_uploads', () => {
       await client.query('SET LOCAL ROLE regflow_app');
       await client.query(`SET LOCAL app.current_tenant_id = '${otherTenantId}'`);
       await client.query(`SET LOCAL app.current_user_id = '${userId}'`);
-      await expect(
+      // SQLSTATE 42501 insufficient_privilege — locale-stable RLS denial.
+      await expectSqlState(
         client.query(
           `INSERT INTO xml_uploads (
              tenant_id, code_banque, code_annexe, date_annexe,
@@ -164,7 +166,8 @@ describeIfDb('migration 024 — xml_uploads', () => {
            )`,
           [tenantId, userId],
         ),
-      ).rejects.toThrow(/row-level security/i);
+        '42501',
+      );
       await client.query('ROLLBACK');
     } finally {
       client.release();
