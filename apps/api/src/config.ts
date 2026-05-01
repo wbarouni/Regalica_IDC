@@ -12,6 +12,7 @@ const envSchema = z.object({
   JWT_REFRESH_TTL: z.string().default('7d'),
   PG_POOL_IDLE_TIMEOUT_MS: z.coerce.number().int().positive(),
   PG_POOL_CONN_TIMEOUT_MS: z.coerce.number().int().positive(),
+  CHATBOT_PY_URL: z.string().url().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -39,6 +40,7 @@ export const config = {
     idleTimeoutMs: env.PG_POOL_IDLE_TIMEOUT_MS,
     connectionTimeoutMs: env.PG_POOL_CONN_TIMEOUT_MS,
   },
+  chatbotPyUrl: env.CHATBOT_PY_URL,
 } as const;
 
 export type Config = typeof config;

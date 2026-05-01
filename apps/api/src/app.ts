@@ -13,11 +13,13 @@ import { logger } from './logger.js';
 import { authMiddleware, tenantMiddleware } from './middleware/auth.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { conversationsRouter } from './routes/conversations.js';
+import { engineRouter } from './routes/engine.js';
 import { filingsRouter } from './routes/filings.js';
 import { healthRouter } from './routes/health.js';
 import { libraryRouter } from './routes/library.js';
 import { notificationsRouter } from './routes/notifications.js';
 import { promptsRouter } from './routes/prompts.js';
+import { runsRouter } from './routes/runs.js';
 import { uploadsRouter } from './routes/uploads.js';
 import { workspaceRouter } from './routes/workspace.js';
 
@@ -51,6 +53,10 @@ export function createApp(pool?: Pool): Express {
     app.use(apiMountPath, filingsRouter(pool));
     app.use(apiMountPath, promptsRouter(pool));
     app.use(apiMountPath, uploadsRouter(pool));
+    app.use(apiMountPath, runsRouter(pool));
+    // Engine routes use a separate auth chain (Bearer JWT signed
+    // with regflow_engine claim — see middleware/engineAuth.ts).
+    app.use('/api/engine', engineRouter(pool));
   }
 
   app.use(errorHandler);
