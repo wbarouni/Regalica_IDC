@@ -178,5 +178,38 @@ describeIfDb(
       expect(res.body.data.status).toBe('error');
       expect(res.body.data.errorMessage).toBe('parse failed: malformed XML');
     });
+
+    // Regression specs for the C1 datetime-offset fix. Placed last so the
+    // shared step row's terminal state set above isn't disturbed by these
+    // probes — each one only needs the route to ACCEPT the payload (200),
+    // the precise post-state isn't part of the contract under test.
+    it('accepts startedAt with explicit +00:00 offset (Python isoformat shape)', async () => {
+      // chatbot-py emits `datetime.now(UTC).isoformat()` which produces
+      // `2026-05-01T20:50:30.123456+00:00`. Zod default `.datetime()`
+      // rejects offsets and returned 400 INVALID_BODY — that's the
+      // silent failure mode that left run_agent_steps in 'pending'
+      // (engine_notify_agent_step_failed warnings in chatbot-py logs).
+      // With `{ offset: true }` the route accepts both shapes.
+      const startedAt = '2026-05-01T20:50:30.123456+00:00';
+      const completedAt = '2026-05-01T20:50:31.456000+00:00';
+      const res = await request(ctx.app)
+        .post(`/api/engine/runs/${runId}/agent-steps/${stepId}`)
+        .set('Authorization', `Bearer ${engineToken(ctx.tenantId)}`)
+        .send({ status: 'done', startedAt, completedAt });
+      expect(res.status).toBe(200);
+    });
+
+    it('accepts the legacy Z-suffixed UTC form (toISOString shape)', async () => {
+      // `{ offset: true }` is a strict superset of the default — the
+      // pre-fix shape from `new Date().toISOString()` (Node) must keep
+      // working without regression.
+      const startedAt = '2026-05-01T20:50:30.123Z';
+      const completedAt = '2026-05-01T20:50:31.456Z';
+      const res = await request(ctx.app)
+        .post(`/api/engine/runs/${runId}/agent-steps/${stepId}`)
+        .set('Authorization', `Bearer ${engineToken(ctx.tenantId)}`)
+        .send({ status: 'done', startedAt, completedAt });
+      expect(res.status).toBe(200);
+    });
   },
 );

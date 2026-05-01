@@ -45,8 +45,14 @@ const failDetailsBody = z.object({
 
 const agentStepUpdateBody = z.object({
   status: z.enum(['current', 'done', 'error']),
-  startedAt: z.string().datetime().optional(),
-  completedAt: z.string().datetime().optional(),
+  // `offset: true` accepts both the W3C/RFC 3339 forms `Z` and
+  // `±HH:MM`. Without it, zod's default `.datetime()` only accepts
+  // `Z` and rejects every payload coming from Python's
+  // `datetime.now(UTC).isoformat()` (which emits `+00:00`). That
+  // mismatch is what made every chatbot-py notify_agent_step return
+  // 400 INVALID_BODY silently — see commit message for the audit.
+  startedAt: z.string().datetime({ offset: true }).optional(),
+  completedAt: z.string().datetime({ offset: true }).optional(),
   errorMessage: z.string().optional(),
 });
 
