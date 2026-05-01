@@ -181,6 +181,7 @@
   "error": {
     "generic": "حدث خطأ",
     "noActiveRun": "لا توجد عملية تحقق جارية لهذه المؤسسة.",
+    "noActiveRunHint": "حمّل ملف XML لبدء عملية التحقق.",
     "configMissing": "التكوين مطلوب",
     "invalid_xml_format": "تنسيق غير صالح — لا تُقبل سوى ملفات XML."
   },

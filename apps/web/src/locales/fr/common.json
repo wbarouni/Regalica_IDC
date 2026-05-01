@@ -181,6 +181,7 @@
   "error": {
     "generic": "Une erreur est survenue",
     "noActiveRun": "Aucune validation en cours pour cet établissement.",
+    "noActiveRunHint": "Importez un dépôt XML pour démarrer une validation.",
     "configMissing": "Configuration requise",
     "invalid_xml_format": "Format invalide — seuls les fichiers XML sont acceptés."
   },

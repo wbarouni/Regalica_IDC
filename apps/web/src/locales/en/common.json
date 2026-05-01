@@ -181,6 +181,7 @@
   "error": {
     "generic": "An error occurred",
     "noActiveRun": "No active validation for this institution.",
+    "noActiveRunHint": "Upload an XML dispatch to start a validation.",
     "configMissing": "Configuration required",
     "invalid_xml_format": "Invalid format — only XML files are accepted."
   },
