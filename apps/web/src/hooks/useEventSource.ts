@@ -215,5 +215,14 @@ export function useEventSource(
 }
 
 function defaultPath(runId: string): string {
-  return `/api/tenants/${import.meta.env['VITE_TENANT_ID'] as string}/runs/${runId}/stream`;
+  // EventSource cannot send custom headers (no `X-User-Id`), so we
+  // pass the user id as a query parameter — the API's authMiddleware
+  // accepts it as a fallback for SSE only. Both VITE_TENANT_ID and
+  // VITE_USER_ID are operator-controlled (.env.example documents the
+  // contract); no literal UUID lives in source.
+  const tenantId = import.meta.env['VITE_TENANT_ID'] as string;
+  const userId = import.meta.env['VITE_USER_ID'] as string;
+  const qs =
+    userId !== undefined && userId.length > 0 ? `?userId=${encodeURIComponent(userId)}` : '';
+  return `/api/tenants/${tenantId}/runs/${runId}/stream${qs}`;
 }

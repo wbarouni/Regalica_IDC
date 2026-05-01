@@ -175,6 +175,25 @@ describeIfDb('routes — workspace', () => {
     expect(res.body.error.code).toBe('MISSING_USER_ID');
   });
 
+  it('accepts ?userId= query fallback when X-User-Id header is absent (SSE compat)', async () => {
+    // EventSource cannot send custom headers — the route must accept
+    // the user id as a query parameter so the workspace SSE stream is
+    // reachable. This guards the contract used by useEventSource.
+    const res = await request(ctx.app).get(
+      `/api/tenants/${ctx.tenantId}/runs/current?userId=${ctx.userId}`,
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.data.run_id).toBe(runId);
+  });
+
+  it('rejects ?userId= when not a valid UUID (401)', async () => {
+    const res = await request(ctx.app).get(
+      `/api/tenants/${ctx.tenantId}/runs/current?userId=not-a-uuid`,
+    );
+    expect(res.status).toBe(401);
+    expect(res.body.error.code).toBe('MISSING_USER_ID');
+  });
+
   it('rejects malformed tenantId (400)', async () => {
     const res = await request(ctx.app)
       .get('/api/tenants/not-a-uuid/runs/current')

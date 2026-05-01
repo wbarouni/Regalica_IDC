@@ -19,22 +19,33 @@ function isUuid(value: unknown): value is string {
  * replace the body of this middleware with JWT decode + signature
  * verification while keeping the same `res.locals['userId']` contract.
  *
- * `res.locals['userId']` is typed `string` everywhere downstream because
- * any path that did not pass through this middleware has already been
- * rejected with 401.
+ * SSE fallback: `new EventSource(...)` cannot set custom HTTP headers
+ * (WHATWG spec — the only options are `withCredentials` and the
+ * implicit `Last-Event-ID`). To keep one auth contract across the
+ * whole `/api/tenants/:tenantId/*` mount including the SSE
+ * `/runs/:runId/stream` endpoint, we accept a `?userId=<uuid>` query
+ * param when (and only when) the header is absent. The header still
+ * wins when both are present; the query path is the SSE-only escape
+ * hatch.
+ *
+ * `res.locals['userId']` is typed `string` everywhere downstream
+ * because any path that did not pass through this middleware has
+ * already been rejected with 401.
  */
 export function authMiddleware(req: Request, res: Response, next: NextFunction): void {
   const header = req.header('x-user-id');
-  if (!isUuid(header)) {
+  const fallback = req.query['userId'];
+  const candidate = isUuid(header) ? header : isUuid(fallback) ? fallback : null;
+  if (candidate === null) {
     res.status(401).json({
       error: {
         code: 'MISSING_USER_ID',
-        message: 'X-User-Id header required (valid UUID)',
+        message: 'X-User-Id header (or ?userId= query for SSE) required (valid UUID)',
       },
     });
     return;
   }
-  res.locals['userId'] = header;
+  res.locals['userId'] = candidate;
   next();
 }
 
