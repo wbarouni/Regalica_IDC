@@ -29,9 +29,12 @@ _TEST_ENV_DEFAULTS: dict[str, str] = {
     "EMBEDDING_MODEL": "text-embedding-004",
     "CHATBOT_ROUTER_AGENT_TYPE": "regalica",
     "CHATBOT_ROUTER_FUNCTION_NAME": "router",
-    # commit 41c — service-to-service config required by upload route
+    # commit 41c — service-to-service config required by /upload
     "REGFLOW_API_URL": "http://api-test:3000",
     "JWT_SECRET": "test-jwt-secret-32-bytes-minimum-padding",
+    # commit 41c — briefing prompt target loaded by /upload after T0
+    "CHATBOT_BRIEFING_AGENT_TYPE": "regalica",
+    "CHATBOT_BRIEFING_FUNCTION_NAME": "xml_received",
 }
 
 for _name, _value in _TEST_ENV_DEFAULTS.items():

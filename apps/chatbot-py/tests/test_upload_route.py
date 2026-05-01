@@ -11,10 +11,9 @@ from __future__ import annotations
 import zlib
 from collections.abc import Iterator
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from app.agents.base import AgentResult
 from app.llm.base import LLMResponse
 from app.main import app
 from app.routes.chat import get_llm_client, get_pool
