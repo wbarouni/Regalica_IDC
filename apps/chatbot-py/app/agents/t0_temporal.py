@@ -154,9 +154,7 @@ class TemporalAgent:
             previous_period = _previous_month_end(current)
         elif arrete_type == "quarterly":
             expected_day = monthrange(current.year, current.month)[1]
-            valid = (
-                current.day == expected_day and current.month in calendar.quarterly_end_months
-            )
+            valid = current.day == expected_day and current.month in calendar.quarterly_end_months
             previous_period = _previous_quarterly_end(current, calendar.quarterly_end_months)
         elif arrete_type == "annual":
             valid = current.month == calendar.annual_month and current.day == calendar.annual_day

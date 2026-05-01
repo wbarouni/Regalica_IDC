@@ -45,6 +45,7 @@ def _temporal_pool() -> MagicMock:
     p.fetchrow = AsyncMock(return_value=None)
     return p
 
+
 _VALID_XML = """<?xml version="1.0" encoding="UTF-8"?>
 <root>
   <Entete>

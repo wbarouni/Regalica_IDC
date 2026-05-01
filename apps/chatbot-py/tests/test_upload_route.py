@@ -44,6 +44,7 @@ def _seed_temporal_calendar_cache() -> Iterator[None]:
     yield
     platform_config_module.reset_platform_config_cache()
 
+
 _VALID_XML = (
     "<?xml version='1.0' encoding='UTF-8'?>"
     "<DeclarationBCT>"
