@@ -1,29 +1,45 @@
 /**
- * UI display constants — sourced from VITE_* env vars.
+ * UI display constants — sourced exclusively from VITE_* env vars.
  *
- * Truncation lengths are operator-controlled so the same source code
- * adapts to different mockup densities without recompilation. Sensible
- * fallbacks (RUN_ID_DISPLAY_LENGTH = 8, RULE_LABEL_PREVIEW_LENGTH = 60)
- * apply only when the env var is unset or non-numeric — they are not
- * "magic numbers" since the operator can override them via .env.local.
+ * Doctrine (commit C4 / H7)
+ *   ZERO hardcoding includes UI display widths. Every constant below
+ *   is REQUIRED in the operator's `.env.local` (or `.env` in dev) —
+ *   missing or invalid values throw `UiConstantsConfigError` at
+ *   module load. There is no implicit fallback. The contract is
+ *   symmetric with the chatbot-py Pydantic Settings strict mode and
+ *   the Node API zod schema: the app fails fast at boot rather than
+ *   silently picking a baked-in number.
+ *
+ * Required variables (see `.env.example`):
+ *   VITE_RUN_ID_DISPLAY_LENGTH      positive integer
+ *   VITE_RULE_LABEL_PREVIEW_LENGTH  positive integer
+ *   VITE_SSE_RECONNECT_BASE_MS      positive integer (milliseconds)
  */
 
-const rawRunIdLen = import.meta.env['VITE_RUN_ID_DISPLAY_LENGTH'] as string | undefined;
-const parsedRunIdLen = rawRunIdLen !== undefined ? Number.parseInt(rawRunIdLen, 10) : NaN;
-export const RUN_ID_DISPLAY_LENGTH =
-  Number.isFinite(parsedRunIdLen) && parsedRunIdLen > 0 ? parsedRunIdLen : 8;
+export class UiConstantsConfigError extends Error {
+  public readonly varName: string;
+  constructor(varName: string, raw: string | undefined) {
+    super(
+      `UI constant ${varName} is required: must be a positive integer in import.meta.env. ` +
+        `Got: ${raw === undefined ? '<unset>' : `"${raw}"`}.`,
+    );
+    this.name = 'UiConstantsConfigError';
+    this.varName = varName;
+  }
+}
 
-const rawRuleLen = import.meta.env['VITE_RULE_LABEL_PREVIEW_LENGTH'] as string | undefined;
-const parsedRuleLen = rawRuleLen !== undefined ? Number.parseInt(rawRuleLen, 10) : NaN;
-export const RULE_LABEL_PREVIEW_LENGTH =
-  Number.isFinite(parsedRuleLen) && parsedRuleLen > 0 ? parsedRuleLen : 60;
+function readPositiveIntEnv(varName: string): number {
+  const raw = import.meta.env[varName] as string | undefined;
+  if (raw === undefined || raw.length === 0) {
+    throw new UiConstantsConfigError(varName, raw);
+  }
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new UiConstantsConfigError(varName, raw);
+  }
+  return parsed;
+}
 
-// SSE reconnect base — first backoff slot in milliseconds. Subsequent
-// retries double up to a small ceiling (see useEventSource). Operator
-// can override via VITE_SSE_RECONNECT_BASE_MS in .env.local. Default
-// value lives as a string in this Number.parseInt second argument so
-// no numeric literal > 100 sits on the right-hand side of an = (D-006).
-const rawSseBase = import.meta.env['VITE_SSE_RECONNECT_BASE_MS'] as string | undefined;
-const parsedSseBase = Number.parseInt(rawSseBase ?? '1000', 10);
-export const SSE_RECONNECT_BASE_MS =
-  Number.isFinite(parsedSseBase) && parsedSseBase > 0 ? parsedSseBase : Number.parseInt('1000', 10);
+export const RUN_ID_DISPLAY_LENGTH = readPositiveIntEnv('VITE_RUN_ID_DISPLAY_LENGTH');
+export const RULE_LABEL_PREVIEW_LENGTH = readPositiveIntEnv('VITE_RULE_LABEL_PREVIEW_LENGTH');
+export const SSE_RECONNECT_BASE_MS = readPositiveIntEnv('VITE_SSE_RECONNECT_BASE_MS');
