@@ -73,10 +73,26 @@ class Settings(BaseSettings):
     chatbot_router_agent_type: str = Field(alias="CHATBOT_ROUTER_AGENT_TYPE")
     chatbot_router_function_name: str = Field(alias="CHATBOT_ROUTER_FUNCTION_NAME")
 
+    # T0 briefing prompt target loaded by /upload after the
+    # deterministic agents have run. Same env-driven pattern as the
+    # router target so no (agent_type, function_name) literal sits in
+    # source (Guard D-004).
+    chatbot_briefing_agent_type: str = Field(alias="CHATBOT_BRIEFING_AGENT_TYPE")
+    chatbot_briefing_function_name: str = Field(alias="CHATBOT_BRIEFING_FUNCTION_NAME")
+
     # CORS allow-list for the chatbot HTTP boundary. Comma-separated list
     # of origins authorised to call /chat/*. Empty/unset disables
     # cross-origin entirely (same-origin callers still work).
     chatbot_cors_origin: str = Field(default="", alias="CHATBOT_CORS_ORIGIN")
+
+    # Base URL of the REGFlow Node API used by chatbot-py for service-
+    # to-service calls (engine fail-details, agent-step events, …).
+    # The shared JWT_SECRET below is used to sign the Bearer token
+    # that the API's engineAuthMiddleware verifies. Both REGFLOW_API_URL
+    # and JWT_SECRET are deployment-wide values owned by the operator;
+    # missing values fail the process at startup, never silently.
+    api_url: str = Field(alias="REGFLOW_API_URL")
+    jwt_secret: str = Field(alias="JWT_SECRET")
 
 
 settings = Settings()

@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "source": "Doc-05 §Regalica T0 — intent xml_received: confirmation sobre + briefing analyse",
+  "consumers": [
+    "apps/api/migrations/058_seed_prompt_xml_received.sql — embeds the template + schemas verbatim in the seed DO block",
+    "apps/chatbot-py/app/routes/upload.py — loaded after the T0 deterministic agents to compose the user-facing briefing"
+  ],
+  "agent_type": "regalica",
+  "function_name": "xml_received",
+  "version_number": 1,
+  "temperature": 0.7,
+  "max_tokens": 1024,
+  "thinking_enabled": false,
+  "target_model_env": "GEMINI_MODEL",
+  "note_target_model": "target_model is read from the operator-controlled env var GEMINI_MODEL at seed time (chatbot-py canonical config) — NOT a literal in the JSON. Promotion to status='active' is gated by the 4-yeux process (author_user_id != validator_user_id, validated_at NOT NULL).",
+  "input_schema": {
+    "type": "object",
+    "required": ["upload_id", "filename", "annexe_code"],
+    "properties": {
+      "upload_id": { "type": "string" },
+      "filename": { "type": "string" },
+      "annexe_code": { "type": "string" },
+      "arrete_date": { "type": "string" }
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "required": ["message", "agents_triggered"],
+    "properties": {
+      "message": { "type": "string" },
+      "agents_triggered": { "type": "array", "items": { "type": "string" } }
+    }
+  },
+  "template": "Tu es Regalica, orchestratrice IA de la conformité réglementaire BCT pour REGFlow. Un dépôt XML vient d'être reçu et a passé l'ingestion T0. Confirme la réception en français bancaire professionnel, vouvoie l'utilisateur, sans formule servile, sans emoji.\n\nDONNÉES :\nupload_id={upload_id}\nfilename={filename}\nannexe_code={annexe_code}\narrete_date={arrete_date}\n\nMÉTHODE :\n1. Confirme la réception en une phrase sobre (mention le code annexe et la date d'arrêté).\n2. Indique que l'analyse réglementaire est en cours.\n3. Liste les agents post-T0 qui vont être déclenchés (depuis workflow_steps T1).\n\nFORMAT DE SORTIE (JSON strict, aucun texte avant ou après) :\n{\n  \"message\": \"<2 phrases maximum en français bancaire>\",\n  \"agents_triggered\": [\"<agent_type1>\", \"<agent_type2>\", ...]\n}"
+}

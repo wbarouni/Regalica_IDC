@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "source": "docs/04-WORKFLOW-UTILISATEUR-COMPLET.md (T0/T1) + docs/05-AGENTS-ET-PROMPTS-BANK.md §8 (deterministic vs LLM agents)",
+  "consumers": [
+    "apps/api/migrations/057_seed_workflow_steps.sql — embeds this array verbatim in the seed DO block",
+    "apps/chatbot-py/app/routes/upload.py — drives the T0 pipeline by reading WHERE phase='T0' AND is_active ORDER BY step_order"
+  ],
+  "note": "agent_type values for T0 are the canonical names from doc 05 §8 (deterministic agents — no prompt_bank entry). T1 mirrors prompt_bank.agent_type values verified against the active set in DB at 2026-05-01.",
+  "items": [
+    { "phase": "T0", "step_order": 1, "agent_type": "ingestor_xml", "function_name": "parse_xml" },
+    {
+      "phase": "T0",
+      "step_order": 2,
+      "agent_type": "dependency",
+      "function_name": "check_companions"
+    },
+    { "phase": "T0", "step_order": 3, "agent_type": "temporal", "function_name": "check_dates" },
+    {
+      "phase": "T1",
+      "step_order": 1,
+      "agent_type": "investigator",
+      "function_name": "analyze_fail"
+    },
+    {
+      "phase": "T1",
+      "step_order": 2,
+      "agent_type": "citation",
+      "function_name": "find_regulatory_source"
+    },
+    {
+      "phase": "T1",
+      "step_order": 3,
+      "agent_type": "historical",
+      "function_name": "compare_runs_history"
+    },
+    { "phase": "T1", "step_order": 4, "agent_type": "reporter", "function_name": "generate_pdf" }
+  ]
+}
