@@ -18,6 +18,7 @@ from app.llm.base import LLMResponse
 from app.main import app
 from app.routes.chat import get_llm_client, get_pool
 from app.services import intent_grammar as ig
+from app.services import platform_config as pc
 from fastapi import status
 from fastapi.testclient import TestClient
 
@@ -33,8 +34,17 @@ def _seed_intent_grammar_cache() -> Iterator[None]:
     every chat turn would short-circuit to the no-router fallback.
     Seeding the cache mirrors the production state and keeps the spec
     bodies focused on the orchestrator pipeline.
+
+    Also pre-seeds `platform_config._CACHE` with an EMPTY planner
+    trigger list so the conditional planner step (commit C10/2)
+    never fires in chat-route specs — those tests exercise the
+    canonical dispatch path. Planner-specific behaviour is covered
+    by test_orchestrator_planner.py.
     """
     ig.reset_intent_grammar_cache()
+    pc.reset_platform_config_cache()
+    pc._CACHE["regalica_planner_trigger_intents"] = []
+    pc._CACHE["regalica_planner_max_plan_steps"] = 4
     ig._CACHE = ig.IntentGrammar(
         intents={
             "general_help": ig.IntentSpec(
@@ -67,6 +77,7 @@ def _seed_intent_grammar_cache() -> Iterator[None]:
     )
     yield
     ig.reset_intent_grammar_cache()
+    pc.reset_platform_config_cache()
 
 
 def _llm_response(content: str) -> LLMResponse:

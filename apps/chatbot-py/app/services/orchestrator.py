@@ -37,10 +37,11 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
+import logging
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Final
 
 import asyncpg
 
@@ -50,16 +51,46 @@ from app.config import settings
 from app.llm.base import LLMClient, LLMRequest
 from app.services.intent_grammar import (
     IntentGrammar,
+    IntentSpec,
     SpecialistBearer,
     load_intent_grammar,
 )
 from app.services.intent_router import FALLBACK_INTENT, detect_intent
+from app.services.planner import parse_planner_response
+from app.services.planner_config import (
+    load_planner_max_plan_steps,
+    load_planner_trigger_intents,
+)
+from app.services.planner_context import (
+    build_enriched_run_context,
+    load_candidate_specialists,
+    render_planner_template,
+)
 from app.services.prompt_loader import PromptMeta, load_active_prompt
 from app.services.router_context import (
     build_run_context,
     load_question_types_list,
     render_router_template,
 )
+
+_logger = logging.getLogger(__name__)
+
+# Confidence threshold below which the planner skips its LLM call
+# entirely and short-circuits to a clarification outcome — mirrors
+# the v1 planner template's STEP 1 ("si confidence < 0.65 →
+# CLARIFICATION"). The threshold is duplicated here on purpose: the
+# orchestrator must apply it BEFORE invoking the LLM so a low-
+# confidence routing never burns a planner call. Keep the two values
+# aligned manually until promoted to platform_config in a later
+# commit.
+_PLANNER_CONFIDENCE_THRESHOLD: Final[float] = 0.65
+
+# Canonical clarification target. When the planner emits
+# `plan_type=clarification` the orchestrator routes through the
+# `ambiguous` intent — its aggregator is purpose-built for
+# disambiguation prompts. The string MUST match a row in
+# intent_specialists (seeded by migration 065).
+_AMBIGUOUS_INTENT: Final[str] = "ambiguous"
 
 # Persona-aligned thinking trace template (docs/10 §5). Phase 3-bis
 # may move this to prompt_bank once the trace itself becomes a
@@ -233,6 +264,186 @@ async def _invoke_specialist(
 
 
 # ---------------------------------------------------------------------------
+# Conditional planner — Phase 3-bis refinement of the C2 dispatch table.
+# Invoked only for the intents listed in
+# `platform_config.regalica_planner_trigger_intents` (migration 068) AND
+# only when router confidence ≥ _PLANNER_CONFIDENCE_THRESHOLD. On any
+# planner failure (config missing, prompt inactive, LLM error, unparseable
+# response, every step rejected) the orchestrator collapses to the
+# canonical candidate set from intent_grammar — the P1 fallback per
+# docs/10 §16.
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class _PlannerOutcome:
+    """Result of the maybe-invoke-planner step.
+
+    `specialist_ids` is the (possibly empty) ordered list of agent
+    ids the orchestrator should dispatch. `is_clarification` signals
+    that the planner asked for a clarifying response — the
+    orchestrator switches the active aggregator to the `ambiguous`
+    intent when this is True.
+    """
+
+    specialist_ids: list[str]
+    is_clarification: bool
+    planner_invoked: bool
+    fallback_activated: bool
+
+
+async def _maybe_invoke_planner(
+    *,
+    intent: str,
+    confidence: float,
+    message: str,
+    intent_spec: IntentSpec,
+    pool: asyncpg.Pool,
+    tenant_id: str,
+    llm_client: LLMClient,
+    current_run_id: str | None,
+    session_history: list[str] | None,
+) -> _PlannerOutcome:
+    """Decide whether to invoke the planner LLM and translate its plan."""
+    canonical_ids = list(intent_spec.specialist_ids)
+
+    # Step 0 — load tunables. Any failure surfaces as canonical
+    # dispatch so an operator misconfiguration (or a DB/test path
+    # that has not seeded migration 068) never blocks the chat
+    # path; the warning records why. We catch broadly because the
+    # DB layer raises asyncpg/StopAsyncIteration variants that do
+    # not subclass PlatformConfigError.
+    try:
+        trigger_intents = await load_planner_trigger_intents(pool)
+        max_plan_steps = await load_planner_max_plan_steps(pool)
+    except Exception as exc:
+        _logger.warning("planner config unavailable (%s); using canonical dispatch", exc)
+        return _PlannerOutcome(
+            specialist_ids=canonical_ids,
+            is_clarification=False,
+            planner_invoked=False,
+            fallback_activated=False,
+        )
+
+    # Step 1 — T3 trigger gate. Intents outside the trigger set go
+    # straight to canonical dispatch with no planner LLM call.
+    if intent not in trigger_intents:
+        return _PlannerOutcome(
+            specialist_ids=canonical_ids,
+            is_clarification=False,
+            planner_invoked=False,
+            fallback_activated=False,
+        )
+
+    # Step 2 — confidence gate. Mirrors the planner prompt's STEP 1
+    # ("si confidence < 0.65 → CLARIFICATION") so we save a round-
+    # trip when the router itself signalled ambiguity.
+    if confidence < _PLANNER_CONFIDENCE_THRESHOLD:
+        return _PlannerOutcome(
+            specialist_ids=[],
+            is_clarification=True,
+            planner_invoked=False,
+            fallback_activated=False,
+        )
+
+    # Step 3 — load planner prompt. No active prompt means the
+    # 4-eyes promotion has not run yet; canonical dispatch resumes.
+    planner_meta = await load_active_prompt(
+        pool=pool,
+        tenant_id=tenant_id,
+        agent_type=settings.chatbot_planner_agent_type,
+        function_name=settings.chatbot_planner_function_name,
+    )
+    if planner_meta is None:
+        _logger.info(
+            "planner prompt not active for %s/%s; using canonical dispatch",
+            settings.chatbot_planner_agent_type,
+            settings.chatbot_planner_function_name,
+        )
+        return _PlannerOutcome(
+            specialist_ids=canonical_ids,
+            is_clarification=False,
+            planner_invoked=False,
+            fallback_activated=False,
+        )
+
+    # Step 4 — build context. An empty candidate set means the
+    # intent_grammar table itself has no specialists to refine; the
+    # planner has nothing to do.
+    candidate_specialists = await load_candidate_specialists(pool=pool, intent=intent)
+    if not candidate_specialists:
+        return _PlannerOutcome(
+            specialist_ids=canonical_ids,
+            is_clarification=False,
+            planner_invoked=False,
+            fallback_activated=False,
+        )
+
+    enriched_ctx = await build_enriched_run_context(
+        pool=pool,
+        run_id=current_run_id,
+        tenant_id=tenant_id,
+        session_history=session_history,
+    )
+
+    rendered_prompt = render_planner_template(
+        planner_meta["template"],
+        intent=intent,
+        confidence=confidence,
+        message=message,
+        candidate_specialists=candidate_specialists,
+        run_context=enriched_ctx,
+        max_plan_steps=max_plan_steps,
+    )
+
+    request = LLMRequest(
+        prompt=message,
+        temperature=planner_meta["temperature"],
+        max_tokens=planner_meta["max_tokens"],
+        thinking_enabled=planner_meta["thinking_enabled"],
+        system_prompt=rendered_prompt,
+    )
+    try:
+        response = await llm_client.complete(request)
+    except Exception as exc:
+        _logger.warning("planner LLM call failed: %s; activating P1 fallback", exc)
+        return _PlannerOutcome(
+            specialist_ids=canonical_ids,
+            is_clarification=False,
+            planner_invoked=True,
+            fallback_activated=True,
+        )
+
+    valid_agent_ids = frozenset(intent_spec.specialist_ids)
+    plan = parse_planner_response(
+        response.content,
+        valid_agent_ids,
+        max_steps=max_plan_steps,
+    )
+
+    if plan.fallback_activated:
+        return _PlannerOutcome(
+            specialist_ids=canonical_ids,
+            is_clarification=False,
+            planner_invoked=True,
+            fallback_activated=True,
+        )
+    if plan.plan_type == "clarification":
+        return _PlannerOutcome(
+            specialist_ids=[],
+            is_clarification=True,
+            planner_invoked=True,
+            fallback_activated=False,
+        )
+    return _PlannerOutcome(
+        specialist_ids=[step.agent_id for step in plan.steps],
+        is_clarification=False,
+        planner_invoked=True,
+        fallback_activated=False,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Aggregator — composes the user-facing response from specialist outputs.
 # ---------------------------------------------------------------------------
 
@@ -296,8 +507,15 @@ async def orchestrate(
     fail_context: dict[str, Any] | None = None,
     rule_context: dict[str, Any] | None = None,
     current_run_id: str | None = None,
+    session_history: list[str] | None = None,
 ) -> OrchestratorResult:
-    """Run the full Phase 3-bis chat pipeline and return the canonical result."""
+    """Run the full Phase 3-bis chat pipeline and return the canonical result.
+
+    `session_history` is forwarded to the conditional planner so it
+    can extract entities (rubriques / annexes) from prior turns. The
+    chat route does not yet collect it; defaulting to None makes the
+    planner see an empty history, which is safe.
+    """
     start = time.monotonic()
 
     # 1. T0 agents — Phase 3-bis. The chat route does not (yet)
@@ -366,8 +584,35 @@ async def orchestrate(
 
     intent_spec = grammar.intents[intent]
 
+    # 2.5 Conditional planner refinement — see _maybe_invoke_planner.
+    # The planner may rewrite the candidate set (refinement), demand
+    # a clarifying response (switches the active intent to
+    # `ambiguous`), or decline (canonical dispatch resumes).
+    planner_outcome = await _maybe_invoke_planner(
+        intent=intent,
+        confidence=intent_result.confidence,
+        message=message,
+        intent_spec=intent_spec,
+        pool=pool,
+        tenant_id=tenant_id,
+        llm_client=llm_client,
+        current_run_id=current_run_id,
+        session_history=session_history,
+    )
+    if planner_outcome.is_clarification:
+        # Switch to the ambiguous aggregator if the grammar carries
+        # one (it normally does — seeded by migration 065). When the
+        # row is missing, fall through to the original intent_spec
+        # so the dispatch still produces a response.
+        ambiguous_spec = grammar.intents.get(_AMBIGUOUS_INTENT)
+        if ambiguous_spec is not None:
+            intent = _AMBIGUOUS_INTENT
+            intent_spec = ambiguous_spec
+        specialist_ids = list(intent_spec.specialist_ids)
+    else:
+        specialist_ids = planner_outcome.specialist_ids
+
     # 3. Specialists (parallel) + aggregator-prompt fetch (parallel).
-    specialist_ids = list(intent_spec.specialist_ids)
     ctx = _SpecialistContext(
         pool=pool,
         tenant_id=tenant_id,

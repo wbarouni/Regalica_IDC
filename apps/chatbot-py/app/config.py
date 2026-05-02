@@ -73,6 +73,14 @@ class Settings(BaseSettings):
     chatbot_router_agent_type: str = Field(alias="CHATBOT_ROUTER_AGENT_TYPE")
     chatbot_router_function_name: str = Field(alias="CHATBOT_ROUTER_FUNCTION_NAME")
 
+    # Phase 3-bis Regalica planner target — the prompt_bank entry
+    # invoked conditionally after the router for intents listed in
+    # platform_config.regalica_planner_trigger_intents (migration 068).
+    # Same env-driven indirection as the router so no agent key
+    # literal sits in source (Guard D-004).
+    chatbot_planner_agent_type: str = Field(alias="CHATBOT_PLANNER_AGENT_TYPE")
+    chatbot_planner_function_name: str = Field(alias="CHATBOT_PLANNER_FUNCTION_NAME")
+
     # T0 briefing prompt target loaded by /upload after the
     # deterministic agents have run. Same env-driven pattern as the
     # router target so no (agent_type, function_name) literal sits in

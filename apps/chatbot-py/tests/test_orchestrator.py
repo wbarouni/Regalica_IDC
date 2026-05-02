@@ -26,13 +26,24 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from app.llm.base import LLMResponse
 from app.services import intent_grammar as ig
+from app.services import platform_config as pc
 from app.services.orchestrator import OrchestratorResult, orchestrate
 
 
 @pytest.fixture(autouse=True)
 def _seed_intent_grammar_cache() -> Iterator[None]:
-    """Mirror the canonical seed from migrations 065 + 066 in-memory."""
+    """Mirror the canonical seed from migrations 065 + 066 in-memory.
+
+    Also pre-seeds platform_config with an EMPTY planner trigger list
+    so the conditional planner step (commit C10/2) never fires in
+    these specs — they exercise the canonical dispatch path that
+    pre-dates the planner. Planner-specific behaviour is covered by
+    test_orchestrator_planner.py.
+    """
     ig.reset_intent_grammar_cache()
+    pc.reset_platform_config_cache()
+    pc._CACHE["regalica_planner_trigger_intents"] = []
+    pc._CACHE["regalica_planner_max_plan_steps"] = 4
     ig._CACHE = ig.IntentGrammar(
         intents={
             "zoom": ig.IntentSpec(
@@ -126,6 +137,7 @@ def _seed_intent_grammar_cache() -> Iterator[None]:
     )
     yield
     ig.reset_intent_grammar_cache()
+    pc.reset_platform_config_cache()
 
 
 def _llm_response(content: str) -> LLMResponse:

@@ -29,6 +29,8 @@ _TEST_ENV_DEFAULTS: dict[str, str] = {
     "EMBEDDING_MODEL": "text-embedding-004",
     "CHATBOT_ROUTER_AGENT_TYPE": "regalica",
     "CHATBOT_ROUTER_FUNCTION_NAME": "router",
+    "CHATBOT_PLANNER_AGENT_TYPE": "regalica",
+    "CHATBOT_PLANNER_FUNCTION_NAME": "planner",
     # commit 41c — service-to-service config required by /upload
     "REGFLOW_API_URL": "http://api-test:3000",
     "JWT_SECRET": "test-jwt-secret-32-bytes-minimum-padding",
