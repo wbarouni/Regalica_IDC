@@ -47,8 +47,15 @@ describeIfDb('migration 069 — add prompt_bank.output_contract', () => {
       [tenantId, authorId, platformOwnerRoleId],
     );
 
-    // Apply migration 043 first so prompt_bank carries the 22 canonical
-    // rows that 069 will backfill.
+    // setupMigrationsSchema(69) runs every migration in order, but
+    // migration 043 self-skips when its session vars are unset (it
+    // only seeds the tenant + author + valid_from triple if all three
+    // are configured). We set them now and re-apply 043 so the 22
+    // canonical prompt_bank rows land for our test tenant. Then we
+    // re-apply 069's UPDATE so the convention-based backfill flips
+    // regalica/aggregate_* to 'string' on the freshly inserted rows
+    // (the 069 UPDATE during setupMigrationsSchema ran against an
+    // empty table).
     const seedSql = await readFile(join(MIGRATIONS_DIR, '043_seed_prompt_bank.sql'), 'utf8');
     const client = await ctx.testPool.connect();
     try {
@@ -57,6 +64,16 @@ describeIfDb('migration 069 — add prompt_bank.output_contract', () => {
       await client.query(`SET app.seed_author_user_id = '${authorId}'`);
       await client.query(`SET app.seed_valid_from = '2025-01-01'`);
       await client.query(seedSql);
+      // Re-apply the convention backfill on the rows we just inserted.
+      // The DEFAULT 'json' from migration 069 already landed every
+      // new row at 'json'; the UPDATE flips aggregator rows to 'string'.
+      await client.query(
+        `UPDATE prompt_bank
+            SET output_contract = 'string'
+          WHERE agent_type = 'regalica'
+            AND function_name LIKE 'aggregate\\_%' ESCAPE '\\'
+            AND output_contract <> 'string'`,
+      );
     } finally {
       client.release();
     }
@@ -122,12 +139,20 @@ describeIfDb('migration 069 — add prompt_bank.output_contract', () => {
   });
 
   it('rejects any output_contract value outside the enum', async () => {
+    // PostgreSQL has no UPDATE … LIMIT syntax — scope the update via
+    // a subquery so the only failure path is the CHECK constraint.
     await expect(
       ctx.testPool.query(
-        `UPDATE prompt_bank SET output_contract = 'xml'
-           WHERE tenant_id = $1 LIMIT 1`,
+        `UPDATE prompt_bank
+            SET output_contract = 'xml'
+          WHERE id = (
+            SELECT id FROM prompt_bank
+             WHERE tenant_id = $1
+             ORDER BY agent_type, function_name
+             LIMIT 1
+          )`,
         [tenantId],
       ),
-    ).rejects.toThrow(/output_contract|check/i);
+    ).rejects.toThrow(/prompt_bank_ck_output_contract|check/i);
   });
 });
