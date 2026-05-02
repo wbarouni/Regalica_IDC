@@ -138,7 +138,7 @@ def test_post_chat_message_dispatches_through_orchestrator_and_returns_200(
         {"id": "00000000-0000-0000-0000-0000000000bb"},  # _persist_message INSERT
     ]
     mock_llm.complete.side_effect = [
-        _llm_response(json.dumps({"intent_type": "general_help", "confidence": 0.7})),  # router
+        _llm_response(json.dumps({"intent": "general_help", "confidence": 0.7})),  # router
         _llm_response("Bonjour, je suis Regalica."),  # specialist (general_help path)
     ]
 

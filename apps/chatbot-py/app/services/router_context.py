@@ -156,12 +156,15 @@ def render_router_template(
     *,
     run_context: dict[str, Any] | None,
     question_types_list: list[str],
+    message: str,
 ) -> str:
-    """Inject `{run_context}` + `{question_types_list}` into the template.
+    """Inject `{run_context}` + `{question_types_list}` + `{message}` into the template.
 
     `run_context` is JSON-serialised (or `"{}"` when empty / None) so
     the LLM sees a structured block. `question_types_list` is joined
-    with `", "` to render as inline prose.
+    with `", "` to render as inline prose. `message` is the user's
+    free-form input substituted verbatim into the `{message}` slot at
+    the end of the router prompt.
     """
     rc = run_context if run_context else {}
     rendered = template.format_map(
@@ -169,6 +172,7 @@ def render_router_template(
             {
                 "run_context": json.dumps(rc, ensure_ascii=False),
                 "question_types_list": ", ".join(question_types_list),
+                "message": message,
             }
         )
     )

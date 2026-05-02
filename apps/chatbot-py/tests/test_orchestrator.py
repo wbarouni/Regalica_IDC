@@ -215,7 +215,7 @@ async def test_orchestrate_zoom_invokes_investigator_and_citation_then_aggregato
     llm = _build_llm(
         [
             # Router classifies as zoom_fail.
-            _llm_response(json.dumps({"intent_type": "zoom", "confidence": 0.95})),
+            _llm_response(json.dumps({"intent": "zoom", "confidence": 0.95})),
             # Investigator + Citation each emit JSON; order undefined.
             _llm_response(json.dumps({"cause_racine": "annexe 139 vide"})),
             _llm_response(json.dumps({"circulaire": "BCT 2018-06"})),
@@ -257,7 +257,7 @@ async def test_orchestrate_citation_invokes_only_citation_and_aggregator() -> No
     pool = _build_pool(prompts)
     llm = _build_llm(
         [
-            _llm_response(json.dumps({"intent_type": "citation", "confidence": 0.92})),
+            _llm_response(json.dumps({"intent": "citation", "confidence": 0.92})),
             _llm_response(json.dumps({"circulaire": "BCT 2018-06", "article": "7"})),
             _llm_response("Voir circulaire BCT 2018-06 article 7."),
         ]
@@ -292,7 +292,7 @@ async def test_orchestrate_historical_invokes_historical_and_aggregator() -> Non
     # stable fallback when empty (no LLM call inside the agent).
     llm = _build_llm(
         [
-            _llm_response(json.dumps({"intent_type": "historical", "confidence": 0.88})),
+            _llm_response(json.dumps({"intent": "historical", "confidence": 0.88})),
             # Aggregator only — Historical does not call LLM in this case.
             _llm_response("Tendance stable, pas de run précédent."),
         ]
@@ -323,7 +323,7 @@ async def test_orchestrate_plan_invokes_investigator_and_historical_in_parallel(
     pool = _build_pool(prompts)
     llm = _build_llm(
         [
-            _llm_response(json.dumps({"intent_type": "plan", "confidence": 0.85})),
+            _llm_response(json.dumps({"intent": "plan", "confidence": 0.85})),
             _llm_response(json.dumps({"cause_racine": "x"})),  # Investigator
             _llm_response("Plan recommandé : corriger l'annexe 47."),  # Aggregator
             # Historical does not call LLM since pool.fetch returns [] -> stable fallback.
@@ -352,7 +352,7 @@ async def test_orchestrate_general_help_skips_specialists_and_calls_aggregator_o
     pool = _build_pool(prompts)
     llm = _build_llm(
         [
-            _llm_response(json.dumps({"intent_type": "general_help", "confidence": 0.7})),
+            _llm_response(json.dumps({"intent": "general_help", "confidence": 0.7})),
             _llm_response("Bonjour, je suis Regalica."),
         ]
     )
@@ -398,7 +398,7 @@ async def test_orchestrate_returns_fallback_when_aggregator_prompt_inactive() ->
     pool = _build_pool(prompts)
     llm = _build_llm(
         [
-            _llm_response(json.dumps({"intent_type": "zoom", "confidence": 0.95})),
+            _llm_response(json.dumps({"intent": "zoom", "confidence": 0.95})),
             _llm_response(json.dumps({"x": 1})),
             _llm_response(json.dumps({"y": 2})),
         ]
@@ -426,7 +426,7 @@ async def test_orchestrate_specialist_prompt_inactive_does_not_block_aggregator(
     pool = _build_pool(prompts)
     llm = _build_llm(
         [
-            _llm_response(json.dumps({"intent_type": "zoom", "confidence": 0.95})),
+            _llm_response(json.dumps({"intent": "zoom", "confidence": 0.95})),
             # Only citation calls LLM (investigator load failed earlier).
             _llm_response(json.dumps({"circulaire": "BCT 2018-06"})),
             _llm_response("Réponse partielle : seule la citation est disponible."),
@@ -456,7 +456,7 @@ async def test_orchestrate_thinking_trace_follows_persona_template() -> None:
     pool = _build_pool(prompts)
     llm = _build_llm(
         [
-            _llm_response(json.dumps({"intent_type": "general_help", "confidence": 0.6})),
+            _llm_response(json.dumps({"intent": "general_help", "confidence": 0.6})),
             _llm_response("OK."),
         ]
     )
@@ -488,7 +488,7 @@ async def test_orchestrate_unknown_intent_falls_back_to_general_help() -> None:
     pool = _build_pool(prompts)
     llm = _build_llm(
         [
-            _llm_response(json.dumps({"intent_type": "made_up_intent_xyz", "confidence": 0.8})),
+            _llm_response(json.dumps({"intent": "made_up_intent_xyz", "confidence": 0.8})),
             _llm_response("Direct response."),
         ]
     )
@@ -546,7 +546,7 @@ async def test_orchestrate_injects_run_context_and_question_types_into_router_pr
     )
     llm = _build_llm(
         [
-            _llm_response(json.dumps({"intent_type": "general_help", "confidence": 0.6})),
+            _llm_response(json.dumps({"intent": "general_help", "confidence": 0.6})),
             _llm_response("Voici la synthèse."),
         ]
     )
@@ -579,7 +579,7 @@ async def test_orchestrate_router_prompt_omits_run_context_when_no_run_id() -> N
     pool = _build_pool(prompts, question_types=["zoom"])
     llm = _build_llm(
         [
-            _llm_response(json.dumps({"intent_type": "general_help", "confidence": 0.5})),
+            _llm_response(json.dumps({"intent": "general_help", "confidence": 0.5})),
             _llm_response("ok"),
         ]
     )

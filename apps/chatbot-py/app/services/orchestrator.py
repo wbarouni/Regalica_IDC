@@ -343,6 +343,7 @@ async def orchestrate(
         router_meta["template"],
         run_context=run_context,
         question_types_list=question_types_list,
+        message=message,
     )
 
     intent_result = await detect_intent(

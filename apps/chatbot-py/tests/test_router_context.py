@@ -133,6 +133,7 @@ def test_render_router_template_substitutes_run_context_and_question_types() -> 
         template,
         run_context={"primary_annexe_code": "RSM630", "total_fail_severe": 4},
         question_types_list=["zoom", "cluster"],
+        message="anything",
     )
     assert "Intents: zoom, cluster." in out
     parsed_run = json.loads(out.split("Run: ", 1)[1].rstrip("."))
@@ -141,7 +142,12 @@ def test_render_router_template_substitutes_run_context_and_question_types() -> 
 
 def test_render_router_template_serialises_empty_run_context_as_empty_object() -> None:
     template = "{run_context}"
-    out = render_router_template(template, run_context=None, question_types_list=[])
+    out = render_router_template(
+        template,
+        run_context=None,
+        question_types_list=[],
+        message="x",
+    )
     assert json.loads(out) == {}
 
 
@@ -152,6 +158,7 @@ def test_render_router_template_tolerates_template_without_placeholders() -> Non
         template,
         run_context={"x": 1},
         question_types_list=["zoom"],
+        message="hello",
     )
     assert out == "[REGALICA_ROUTER_V1]"
 
@@ -163,6 +170,38 @@ def test_render_router_template_returns_empty_for_unknown_placeholders() -> None
         template,
         run_context={},
         question_types_list=[],
+        message="x",
     )
     assert "Known: {}." in out
     assert "Unknown: ." in out
+
+
+def test_render_router_template_substitutes_message_placeholder() -> None:
+    """C-C wiring: `{message}` slot must surface the user's input verbatim.
+
+    This is the contract enforced by the new regalica/router v2 template
+    in apps/api/seeds/prompts.json — the MESSAGE UTILISATEUR section
+    relies on this single placeholder.
+    """
+    template = "User said: <<{message}>>."
+    out = render_router_template(
+        template,
+        run_context={},
+        question_types_list=[],
+        message="Pourquoi la règle 139/r3 a-t-elle échoué ?",
+    )
+    assert out == "User said: <<Pourquoi la règle 139/r3 a-t-elle échoué ?>>."
+
+
+def test_render_router_template_substitutes_message_alongside_other_placeholders() -> None:
+    """All three placeholders must coexist in the same template render."""
+    template = "List={question_types_list};Run={run_context};Msg={message}"
+    out = render_router_template(
+        template,
+        run_context={"k": "v"},
+        question_types_list=["a", "b"],
+        message="hi",
+    )
+    assert "List=a, b" in out
+    assert 'Run={"k": "v"}' in out
+    assert "Msg=hi" in out

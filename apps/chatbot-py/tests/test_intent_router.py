@@ -68,7 +68,7 @@ def _llm_with(content: str | Exception) -> MagicMock:
 @pytest.mark.asyncio
 async def test_detect_intent_accepts_each_canonical_value(label: str) -> None:
     """Every canonical intent emitted by the router LLM is parsed verbatim."""
-    payload = json.dumps({"intent_type": label, "confidence": 0.92})
+    payload = json.dumps({"intent": label, "confidence": 0.92})
     llm = _llm_with(payload)
     result = await detect_intent(
         message="anything",
@@ -84,7 +84,7 @@ async def test_detect_intent_accepts_each_canonical_value(label: str) -> None:
 
 @pytest.mark.asyncio
 async def test_detect_intent_extracts_confidence_as_float() -> None:
-    payload = json.dumps({"intent_type": "zoom", "confidence": 1})
+    payload = json.dumps({"intent": "zoom", "confidence": 1})
     llm = _llm_with(payload)
     result = await detect_intent(
         message="x", llm_client=llm, router_template="[T]", valid_intents=CANONICAL_INTENTS
@@ -97,7 +97,7 @@ async def test_detect_intent_extracts_confidence_as_float() -> None:
 async def test_detect_intent_extracts_optional_reasoning() -> None:
     payload = json.dumps(
         {
-            "intent_type": "cluster",
+            "intent": "cluster",
             "confidence": 0.81,
             "reasoning": "FAILs successifs sur la même annexe",
         }
@@ -122,7 +122,7 @@ async def test_detect_intent_falls_back_on_invalid_json() -> None:
 
 
 @pytest.mark.asyncio
-async def test_detect_intent_falls_back_when_intent_type_missing() -> None:
+async def test_detect_intent_falls_back_when_intent_key_missing() -> None:
     llm = _llm_with(json.dumps({"confidence": 0.99}))
     result = await detect_intent(
         message="x", llm_client=llm, router_template="[T]", valid_intents=CANONICAL_INTENTS
@@ -132,8 +132,39 @@ async def test_detect_intent_falls_back_when_intent_type_missing() -> None:
 
 
 @pytest.mark.asyncio
+async def test_detect_intent_reads_intent_key_not_intent_type() -> None:
+    """Router parser contract: only the `intent` key drives classification.
+
+    Doctrine alignment with the v2 regalica/router prompt — the LLM is
+    instructed to emit `{"intent": "...", "confidence": ...}`. A legacy
+    payload using the old `intent_type` key must NOT be accepted, even
+    if its value is a valid intent: that would mask a stale prompt
+    rev that still emits the pre-v2 schema.
+    """
+    legacy_payload = json.dumps({"intent_type": "zoom", "confidence": 0.95})
+    llm = _llm_with(legacy_payload)
+    result = await detect_intent(
+        message="x", llm_client=llm, router_template="[T]", valid_intents=CANONICAL_INTENTS
+    )
+    assert result.intent_type == FALLBACK_INTENT
+    assert result.confidence == 0.0
+
+
+@pytest.mark.asyncio
+async def test_detect_intent_accepts_intent_key_for_canonical_value() -> None:
+    """Mirror of the parametrized acceptance test, pinned on the `intent` key."""
+    payload = json.dumps({"intent": "citation", "confidence": 0.83})
+    llm = _llm_with(payload)
+    result = await detect_intent(
+        message="x", llm_client=llm, router_template="[T]", valid_intents=CANONICAL_INTENTS
+    )
+    assert result.intent_type == "citation"
+    assert result.confidence == pytest.approx(0.83)
+
+
+@pytest.mark.asyncio
 async def test_detect_intent_falls_back_on_intent_outside_provided_enum() -> None:
-    llm = _llm_with(json.dumps({"intent_type": "made_up_value", "confidence": 0.99}))
+    llm = _llm_with(json.dumps({"intent": "made_up_value", "confidence": 0.99}))
     result = await detect_intent(
         message="x", llm_client=llm, router_template="[T]", valid_intents=CANONICAL_INTENTS
     )
@@ -162,7 +193,7 @@ async def test_detect_intent_falls_back_when_payload_is_not_object() -> None:
 
 @pytest.mark.asyncio
 async def test_detect_intent_handles_non_numeric_confidence() -> None:
-    payload = json.dumps({"intent_type": "zoom", "confidence": "high"})
+    payload = json.dumps({"intent": "zoom", "confidence": "high"})
     llm = _llm_with(payload)
     result = await detect_intent(
         message="x", llm_client=llm, router_template="[T]", valid_intents=CANONICAL_INTENTS
@@ -173,7 +204,7 @@ async def test_detect_intent_handles_non_numeric_confidence() -> None:
 
 @pytest.mark.asyncio
 async def test_detect_intent_passes_template_as_system_prompt_with_temp_zero() -> None:
-    payload = json.dumps({"intent_type": "general_help", "confidence": 0.5})
+    payload = json.dumps({"intent": "general_help", "confidence": 0.5})
     llm = _llm_with(payload)
     await detect_intent(
         message="hello",
@@ -190,7 +221,7 @@ async def test_detect_intent_passes_template_as_system_prompt_with_temp_zero() -
 
 @pytest.mark.asyncio
 async def test_detect_intent_treats_empty_reasoning_as_none() -> None:
-    payload = json.dumps({"intent_type": "zoom", "confidence": 0.7, "reasoning": ""})
+    payload = json.dumps({"intent": "zoom", "confidence": 0.7, "reasoning": ""})
     llm = _llm_with(payload)
     result = await detect_intent(
         message="x", llm_client=llm, router_template="[T]", valid_intents=CANONICAL_INTENTS
@@ -201,7 +232,7 @@ async def test_detect_intent_treats_empty_reasoning_as_none() -> None:
 @pytest.mark.asyncio
 async def test_detect_intent_respects_caller_supplied_enum_subset() -> None:
     """If the caller passes a smaller enum, only those intents are accepted."""
-    payload = json.dumps({"intent_type": "zoom", "confidence": 0.9})
+    payload = json.dumps({"intent": "zoom", "confidence": 0.9})
     llm = _llm_with(payload)
     result = await detect_intent(
         message="x",

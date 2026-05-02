@@ -99,7 +99,7 @@ async def detect_intent(
     if not isinstance(parsed, dict):
         return _fallback_result()
 
-    intent_type = parsed.get("intent_type")
+    intent_type = parsed.get("intent")
     if not isinstance(intent_type, str) or intent_type not in valid_set:
         return _fallback_result()
 
