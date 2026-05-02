@@ -55,6 +55,11 @@ from app.services.intent_grammar import (
 )
 from app.services.intent_router import FALLBACK_INTENT, detect_intent
 from app.services.prompt_loader import PromptMeta, load_active_prompt
+from app.services.router_context import (
+    build_run_context,
+    load_question_types_list,
+    render_router_template,
+)
 
 # Persona-aligned thinking trace template (docs/10 §5). Phase 3-bis
 # may move this to prompt_bank once the trace itself becomes a
@@ -298,8 +303,17 @@ async def orchestrate(
     # 1. T0 agents — Phase 3-bis. The chat route does not (yet)
     # forward XML payloads, so this stage is intentionally a no-op.
 
-    # 2. Router prompt + intent grammar (parallel) + intent detection.
+    # 2. Router prompt + intent grammar + question_types + run_context
+    # (parallel) + intent detection. The four loads are independent
+    # so we await them as a fan-in instead of a serial chain.
     grammar_task = asyncio.create_task(load_intent_grammar(pool))
+    question_types_task = asyncio.create_task(load_question_types_list(pool))
+    run_context_task: asyncio.Task[dict[str, Any]] | None = None
+    if current_run_id is not None:
+        run_context_task = asyncio.create_task(
+            build_run_context(pool=pool, run_id=current_run_id, tenant_id=tenant_id)
+        )
+
     router_meta = await load_active_prompt(
         pool=pool,
         tenant_id=tenant_id,
@@ -307,19 +321,34 @@ async def orchestrate(
         function_name=settings.chatbot_router_function_name,
     )
     if router_meta is None:
-        # Drain the grammar task so the pool connection is released
+        # Drain the parallel tasks so pool connections release
         # cleanly even when we short-circuit.
         with contextlib.suppress(Exception):
             await grammar_task
+        with contextlib.suppress(Exception):
+            await question_types_task
+        if run_context_task is not None:
+            with contextlib.suppress(Exception):
+                await run_context_task
         return _build_no_router_result(message, start)
 
     grammar: IntentGrammar = await grammar_task
+    question_types_list = await question_types_task
+    run_context: dict[str, Any] | None = (
+        await run_context_task if run_context_task is not None else None
+    )
     valid_intents = grammar.intent_types
+
+    rendered_router_template = render_router_template(
+        router_meta["template"],
+        run_context=run_context,
+        question_types_list=question_types_list,
+    )
 
     intent_result = await detect_intent(
         message=message,
         llm_client=llm_client,
-        router_template=router_meta["template"],
+        router_template=rendered_router_template,
         valid_intents=valid_intents,
     )
     intent = intent_result.intent_type

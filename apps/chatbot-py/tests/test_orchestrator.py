@@ -152,21 +152,44 @@ def _prompt_row(template: str = "[TEMPLATE]") -> dict[str, Any]:
 
 def _build_pool(
     prompts: dict[tuple[str, str], dict[str, Any] | None] | None = None,
+    run_context_row: dict[str, Any] | None = None,
+    top_fails: list[dict[str, Any]] | None = None,
+    question_types: list[str] | None = None,
 ) -> MagicMock:
-    """Mock pool whose fetchrow returns prompt rows by (agent_type, function_name)."""
-    table = prompts or {}
+    """Mock pool whose fetchrow / fetch dispatch by query substring.
+
+    Supports three dispatch sources at once (any may be `None`):
+      * `prompts`: prompt_bank rows by (agent_type, function_name).
+      * `run_context_row`: validation_runs row returned to
+        `build_run_context`. None => the run is treated as absent.
+      * `top_fails`: validation_fail_details rows returned to
+        `build_run_context`. Defaults to [].
+      * `question_types`: list of fn_name strings returned to
+        `load_question_types_list`. Defaults to [].
+    """
+    prompt_table = prompts or {}
+    fails = top_fails or []
+    qt_rows = [{"fn_name": fn} for fn in (question_types or [])]
 
     async def fake_fetchrow(query: str, *args: Any) -> dict[str, Any] | None:
-        # load_active_prompt passes (tenant_id, agent_type, function_name).
         if "FROM prompt_bank" in query:
             agent_type = args[1] if len(args) > 1 else None
             function_name = args[2] if len(args) > 2 else None
-            return table.get((agent_type, function_name))
+            return prompt_table.get((agent_type, function_name))
+        if "FROM validation_runs" in query:
+            return run_context_row
         return None
+
+    async def fake_fetch(query: str, *args: Any) -> list[dict[str, Any]]:
+        if "FROM question_types" in query:
+            return qt_rows
+        if "FROM validation_fail_details" in query:
+            return fails
+        return []
 
     pool = MagicMock()
     pool.fetchrow = AsyncMock(side_effect=fake_fetchrow)
-    pool.fetch = AsyncMock(return_value=[])
+    pool.fetch = AsyncMock(side_effect=fake_fetch)
     return pool
 
 
@@ -477,3 +500,95 @@ async def test_orchestrate_unknown_intent_falls_back_to_general_help() -> None:
     )
     assert result.agents_called == ["regalica/aggregate_general_help"]
     assert "general_help" in result.thinking_trace
+
+
+# ---------------------------------------------------------------------------
+# C9 — router prompt enriched with run context + question_types list
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_orchestrate_injects_run_context_and_question_types_into_router_prompt() -> None:
+    """When current_run_id is provided, the router system_prompt must
+    contain the JSON-serialised run context AND the comma-joined
+    question_types list. The router LLM call is the first complete()
+    invocation; we read its system_prompt from the call args.
+    """
+    router_template = "Tu es le router. Intentions: {question_types_list}. Run: {run_context}."
+    prompts: dict[tuple[str, str], dict[str, Any] | None] = {
+        ("regalica", "router"): _prompt_row(router_template),
+        ("regalica", "aggregate_general_help"): _prompt_row("[REGALICA_AGGREGATE_GENERAL_HELP_V1]"),
+    }
+    pool = _build_pool(
+        prompts,
+        run_context_row={
+            "run_id": "00000000-0000-7000-8000-000000000010",
+            "status": "completed",
+            "primary_annexe_code": "RSM630",
+            "arrete_date": "2026-03-31",
+            "total_rules_evaluated": 1245,
+            "total_pass": 1240,
+            "total_fail_severe": 4,
+            "total_fail_rounding": 1,
+            "conformity_rate": "0.9960",
+        },
+        top_fails=[
+            {
+                "ax_term": "RSM630",
+                "num_regle": 7,
+                "severity": "severe",
+                "expected_value": "100",
+                "computed_value": "92",
+                "gap_absolute": "8",
+            }
+        ],
+        question_types=["zoom", "cluster", "plan"],
+    )
+    llm = _build_llm(
+        [
+            _llm_response(json.dumps({"intent_type": "general_help", "confidence": 0.6})),
+            _llm_response("Voici la synthèse."),
+        ]
+    )
+    await orchestrate(
+        message="Que dois-je faire ?",
+        tenant_id=_TENANT,
+        pool=pool,
+        llm_client=llm,
+        current_run_id="00000000-0000-7000-8000-000000000010",
+    )
+    router_request = llm.complete.call_args_list[0].args[0]
+    sys_prompt = router_request.system_prompt
+    # question_types list appears verbatim joined with ", "
+    assert "Intentions: zoom, cluster, plan" in sys_prompt
+    # run context fields appear inside the JSON-serialised block
+    assert '"primary_annexe_code": "RSM630"' in sys_prompt
+    assert '"total_fail_severe": 4' in sys_prompt
+    assert "RSM630" in sys_prompt  # also from top_fails
+    assert "severe" in sys_prompt
+
+
+@pytest.mark.asyncio
+async def test_orchestrate_router_prompt_omits_run_context_when_no_run_id() -> None:
+    """No current_run_id => the run_context placeholder gets `{}`."""
+    router_template = "Run: {run_context}. List: {question_types_list}."
+    prompts: dict[tuple[str, str], dict[str, Any] | None] = {
+        ("regalica", "router"): _prompt_row(router_template),
+        ("regalica", "aggregate_general_help"): _prompt_row("[REGALICA_AGGREGATE_GENERAL_HELP_V1]"),
+    }
+    pool = _build_pool(prompts, question_types=["zoom"])
+    llm = _build_llm(
+        [
+            _llm_response(json.dumps({"intent_type": "general_help", "confidence": 0.5})),
+            _llm_response("ok"),
+        ]
+    )
+    await orchestrate(
+        message="hello",
+        tenant_id=_TENANT,
+        pool=pool,
+        llm_client=llm,
+    )
+    sys_prompt = llm.complete.call_args_list[0].args[0].system_prompt
+    assert "Run: {}." in sys_prompt
+    assert "List: zoom." in sys_prompt
