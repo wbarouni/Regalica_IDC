@@ -203,12 +203,32 @@ def test_template_carries_low_confidence_prefix(
     assert "Source réglementaire indicative" in normalised_template
 
 
-@pytest.mark.parametrize("level", ['"high"', '"medium"', '"low"'])
-def test_template_documents_each_confidence_level_value(
-    citation_seed: dict[str, object], level: str
+@pytest.mark.parametrize(
+    "threshold",
+    ["confidence ≥ 0.65", "confidence ≥ 0.45", "confidence > 0.0"],
+)
+def test_template_documents_each_confidence_float_threshold(
+    citation_seed: dict[str, object], threshold: str
 ) -> None:
+    """V1 alignment with citation/find_regulatory_source v1 — confidence is
+    now a float ∈ [0.0, 0.75], no longer a 3-enum string. The aggregator
+    selects the prefix via float comparisons, not an enum match.
+    """
     template = str(citation_seed["template"])
-    assert level in template
+    assert threshold in template
+
+
+@pytest.mark.parametrize("legacy_enum_value", ['"high"', '"medium"', '"low"'])
+def test_template_does_not_carry_legacy_string_enum_confidence_value(
+    citation_seed: dict[str, object], legacy_enum_value: str
+) -> None:
+    """Cross-prompt coherence with citation/find_regulatory_source v1 —
+    the legacy string-enum confidence values must NOT appear anywhere
+    in the template (would cause the LLM to look for a string field
+    that the specialist no longer emits).
+    """
+    template = str(citation_seed["template"])
+    assert legacy_enum_value not in template
 
 
 # ---------------------------------------------------------------------------
