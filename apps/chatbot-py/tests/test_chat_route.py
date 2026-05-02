@@ -17,8 +17,56 @@ import pytest
 from app.llm.base import LLMResponse
 from app.main import app
 from app.routes.chat import get_llm_client, get_pool
+from app.services import intent_grammar as ig
 from fastapi import status
 from fastapi.testclient import TestClient
+
+
+@pytest.fixture(autouse=True)
+def _seed_intent_grammar_cache() -> Iterator[None]:
+    """Pre-populate the intent grammar cache (mirror migration 065 + 066).
+
+    The orchestrator now loads the dispatch grammar from
+    `v_intent_specialists_active` + `v_intent_specialist_bearers_active`
+    via `intent_grammar.load_intent_grammar`. Without this fixture the
+    loader would hit `mock_pool.fetch` (returns `[]` by default) and
+    every chat turn would short-circuit to the no-router fallback.
+    Seeding the cache mirrors the production state and keeps the spec
+    bodies focused on the orchestrator pipeline.
+    """
+    ig.reset_intent_grammar_cache()
+    ig._CACHE = ig.IntentGrammar(
+        intents={
+            "general_help": ig.IntentSpec(
+                intent_type="general_help",
+                aggregator_agent_type="regalica",
+                aggregator_function_name="aggregate_general_help",
+                specialist_ids=(),
+                ordinal=8,
+            ),
+            "zoom": ig.IntentSpec(
+                intent_type="zoom",
+                aggregator_agent_type="regalica",
+                aggregator_function_name="aggregate_zoom_fail",
+                specialist_ids=("investigator", "citation"),
+                ordinal=1,
+            ),
+        },
+        bearers={
+            "investigator": ig.SpecialistBearer(
+                specialist_id="investigator",
+                agent_type="investigator",
+                function_name="analyze_fail",
+            ),
+            "citation": ig.SpecialistBearer(
+                specialist_id="citation",
+                agent_type="citation",
+                function_name="find_regulatory_source",
+            ),
+        },
+    )
+    yield
+    ig.reset_intent_grammar_cache()
 
 
 def _llm_response(content: str) -> LLMResponse:

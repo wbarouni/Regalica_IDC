@@ -7,17 +7,125 @@ The pool fixture matches prompt_bank rows by (agent_type,
 function_name) instead of relying on call order, because the
 orchestrator now launches the aggregator-prompt fetch and the
 specialist-prompt fetches concurrently via asyncio.gather.
+
+Since commit C8 the intent grammar (intent → aggregator + specialist
+list, plus specialist_id → bearer) is loaded from the DB at runtime
+through `intent_grammar.load_intent_grammar`. The autouse fixture
+below pre-populates that cache with the canonical seed (migration
+065 + 066) so the spec bodies stay focused on the orchestrator
+pipeline.
 """
 
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from app.llm.base import LLMResponse
+from app.services import intent_grammar as ig
 from app.services.orchestrator import OrchestratorResult, orchestrate
+
+
+@pytest.fixture(autouse=True)
+def _seed_intent_grammar_cache() -> Iterator[None]:
+    """Mirror the canonical seed from migrations 065 + 066 in-memory."""
+    ig.reset_intent_grammar_cache()
+    ig._CACHE = ig.IntentGrammar(
+        intents={
+            "zoom": ig.IntentSpec(
+                intent_type="zoom",
+                aggregator_agent_type="regalica",
+                aggregator_function_name="aggregate_zoom_fail",
+                specialist_ids=("investigator", "citation"),
+                ordinal=1,
+            ),
+            "cluster": ig.IntentSpec(
+                intent_type="cluster",
+                aggregator_agent_type="regalica",
+                aggregator_function_name="aggregate_grappe_cause_racine",
+                specialist_ids=("investigator",),
+                ordinal=2,
+            ),
+            "historical": ig.IntentSpec(
+                intent_type="historical",
+                aggregator_agent_type="regalica",
+                aggregator_function_name="aggregate_historique_recurrence",
+                specialist_ids=("historical",),
+                ordinal=3,
+            ),
+            "citation": ig.IntentSpec(
+                intent_type="citation",
+                aggregator_agent_type="regalica",
+                aggregator_function_name="aggregate_citation_reglementaire",
+                specialist_ids=("citation",),
+                ordinal=4,
+            ),
+            "simulation": ig.IntentSpec(
+                intent_type="simulation",
+                aggregator_agent_type="regalica",
+                aggregator_function_name="aggregate_simulation_impact",
+                specialist_ids=(),
+                ordinal=5,
+            ),
+            "sanction": ig.IntentSpec(
+                intent_type="sanction",
+                aggregator_agent_type="regalica",
+                aggregator_function_name="aggregate_estimation_sanction",
+                specialist_ids=(),
+                ordinal=6,
+            ),
+            "plan": ig.IntentSpec(
+                intent_type="plan",
+                aggregator_agent_type="regalica",
+                aggregator_function_name="aggregate_plan_optimal",
+                specialist_ids=("investigator", "historical"),
+                ordinal=7,
+            ),
+            "general_help": ig.IntentSpec(
+                intent_type="general_help",
+                aggregator_agent_type="regalica",
+                aggregator_function_name="aggregate_general_help",
+                specialist_ids=(),
+                ordinal=8,
+            ),
+            "out_of_scope": ig.IntentSpec(
+                intent_type="out_of_scope",
+                aggregator_agent_type="regalica",
+                aggregator_function_name="aggregate_out_of_scope",
+                specialist_ids=(),
+                ordinal=9,
+            ),
+            "ambiguous": ig.IntentSpec(
+                intent_type="ambiguous",
+                aggregator_agent_type="regalica",
+                aggregator_function_name="aggregate_ambiguous",
+                specialist_ids=(),
+                ordinal=10,
+            ),
+        },
+        bearers={
+            "investigator": ig.SpecialistBearer(
+                specialist_id="investigator",
+                agent_type="investigator",
+                function_name="analyze_fail",
+            ),
+            "citation": ig.SpecialistBearer(
+                specialist_id="citation",
+                agent_type="citation",
+                function_name="find_regulatory_source",
+            ),
+            "historical": ig.SpecialistBearer(
+                specialist_id="historical",
+                agent_type="historical",
+                function_name="compare_runs_history",
+            ),
+        },
+    )
+    yield
+    ig.reset_intent_grammar_cache()
 
 
 def _llm_response(content: str) -> LLMResponse:
@@ -72,8 +180,8 @@ _TENANT = "00000000-0000-0000-0000-000000000001"
 
 
 @pytest.mark.asyncio
-async def test_orchestrate_zoom_fail_invokes_investigator_and_citation_then_aggregator() -> None:
-    """zoom_fail intent → Investigator + Citation in parallel, then aggregator."""
+async def test_orchestrate_zoom_invokes_investigator_and_citation_then_aggregator() -> None:
+    """zoom intent → Investigator + Citation in parallel, then aggregator."""
     prompts: dict[tuple[str, str], dict[str, Any] | None] = {
         ("regalica", "router"): _prompt_row("[REGALICA_ROUTER_V1]"),
         ("regalica", "aggregate_zoom_fail"): _prompt_row("[REGALICA_AGGREGATE_ZOOM_FAIL_V1]"),
@@ -84,7 +192,7 @@ async def test_orchestrate_zoom_fail_invokes_investigator_and_citation_then_aggr
     llm = _build_llm(
         [
             # Router classifies as zoom_fail.
-            _llm_response(json.dumps({"intent_type": "zoom_fail", "confidence": 0.95})),
+            _llm_response(json.dumps({"intent_type": "zoom", "confidence": 0.95})),
             # Investigator + Citation each emit JSON; order undefined.
             _llm_response(json.dumps({"cause_racine": "annexe 139 vide"})),
             _llm_response(json.dumps({"circulaire": "BCT 2018-06"})),
@@ -106,7 +214,7 @@ async def test_orchestrate_zoom_fail_invokes_investigator_and_citation_then_aggr
         "regalica/aggregate_zoom_fail",
     ]
     assert "annexe 139 vide" in result.response_markdown
-    assert "zoom_fail" in result.thinking_trace
+    assert "zoom" in result.thinking_trace
     assert "investigator" in result.thinking_trace
     assert "citation" in result.thinking_trace
     # 1 router + 2 specialists + 1 aggregator = 4 LLM calls.
@@ -114,7 +222,7 @@ async def test_orchestrate_zoom_fail_invokes_investigator_and_citation_then_aggr
 
 
 @pytest.mark.asyncio
-async def test_orchestrate_citation_reglementaire_invokes_only_citation_and_aggregator() -> None:
+async def test_orchestrate_citation_invokes_only_citation_and_aggregator() -> None:
     """citation_reglementaire → 1 specialist + aggregator."""
     prompts: dict[tuple[str, str], dict[str, Any] | None] = {
         ("regalica", "router"): _prompt_row("[REGALICA_ROUTER_V1]"),
@@ -126,9 +234,7 @@ async def test_orchestrate_citation_reglementaire_invokes_only_citation_and_aggr
     pool = _build_pool(prompts)
     llm = _build_llm(
         [
-            _llm_response(
-                json.dumps({"intent_type": "citation_reglementaire", "confidence": 0.92})
-            ),
+            _llm_response(json.dumps({"intent_type": "citation", "confidence": 0.92})),
             _llm_response(json.dumps({"circulaire": "BCT 2018-06", "article": "7"})),
             _llm_response("Voir circulaire BCT 2018-06 article 7."),
         ]
@@ -148,7 +254,7 @@ async def test_orchestrate_citation_reglementaire_invokes_only_citation_and_aggr
 
 
 @pytest.mark.asyncio
-async def test_orchestrate_historique_recurrence_invokes_historical_and_aggregator() -> None:
+async def test_orchestrate_historical_invokes_historical_and_aggregator() -> None:
     """historique_recurrence → Historical + aggregator.
     No previous run -> stable fallback inside agent."""
     prompts: dict[tuple[str, str], dict[str, Any] | None] = {
@@ -163,7 +269,7 @@ async def test_orchestrate_historique_recurrence_invokes_historical_and_aggregat
     # stable fallback when empty (no LLM call inside the agent).
     llm = _build_llm(
         [
-            _llm_response(json.dumps({"intent_type": "historique_recurrence", "confidence": 0.88})),
+            _llm_response(json.dumps({"intent_type": "historical", "confidence": 0.88})),
             # Aggregator only — Historical does not call LLM in this case.
             _llm_response("Tendance stable, pas de run précédent."),
         ]
@@ -183,7 +289,7 @@ async def test_orchestrate_historique_recurrence_invokes_historical_and_aggregat
 
 
 @pytest.mark.asyncio
-async def test_orchestrate_plan_optimal_invokes_investigator_and_historical_in_parallel() -> None:
+async def test_orchestrate_plan_invokes_investigator_and_historical_in_parallel() -> None:
     """plan_optimal → Investigator + Historical parallel, then aggregator."""
     prompts: dict[tuple[str, str], dict[str, Any] | None] = {
         ("regalica", "router"): _prompt_row("[REGALICA_ROUTER_V1]"),
@@ -194,7 +300,7 @@ async def test_orchestrate_plan_optimal_invokes_investigator_and_historical_in_p
     pool = _build_pool(prompts)
     llm = _build_llm(
         [
-            _llm_response(json.dumps({"intent_type": "plan_optimal", "confidence": 0.85})),
+            _llm_response(json.dumps({"intent_type": "plan", "confidence": 0.85})),
             _llm_response(json.dumps({"cause_racine": "x"})),  # Investigator
             _llm_response("Plan recommandé : corriger l'annexe 47."),  # Aggregator
             # Historical does not call LLM since pool.fetch returns [] -> stable fallback.
@@ -262,14 +368,14 @@ async def test_orchestrate_returns_fallback_when_aggregator_prompt_inactive() ->
     agents_called still includes labels."""
     prompts: dict[tuple[str, str], dict[str, Any] | None] = {
         ("regalica", "router"): _prompt_row("[REGALICA_ROUTER_V1]"),
-        # aggregate_zoom_fail intentionally missing.
+        # aggregate_zoom intentionally missing.
         ("investigator", "analyze_fail"): _prompt_row("[INVESTIGATOR_ANALYZE_FAIL_V1]"),
         ("citation", "find_regulatory_source"): _prompt_row("[CITATION_FIND_REGULATORY_SOURCE_V1]"),
     }
     pool = _build_pool(prompts)
     llm = _build_llm(
         [
-            _llm_response(json.dumps({"intent_type": "zoom_fail", "confidence": 0.95})),
+            _llm_response(json.dumps({"intent_type": "zoom", "confidence": 0.95})),
             _llm_response(json.dumps({"x": 1})),
             _llm_response(json.dumps({"y": 2})),
         ]
@@ -297,7 +403,7 @@ async def test_orchestrate_specialist_prompt_inactive_does_not_block_aggregator(
     pool = _build_pool(prompts)
     llm = _build_llm(
         [
-            _llm_response(json.dumps({"intent_type": "zoom_fail", "confidence": 0.95})),
+            _llm_response(json.dumps({"intent_type": "zoom", "confidence": 0.95})),
             # Only citation calls LLM (investigator load failed earlier).
             _llm_response(json.dumps({"circulaire": "BCT 2018-06"})),
             _llm_response("Réponse partielle : seule la citation est disponible."),

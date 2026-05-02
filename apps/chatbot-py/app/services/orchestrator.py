@@ -5,33 +5,37 @@ End-to-end flow per docs/10 §2 (5-step pipeline):
   1. (Phase 3-bis) Run T0 agents when the request carries an XML
      payload. The chat route does not yet forward XML uploads, so
      this stage is intentionally a no-op.
-  2. Load `regalica/router` from `prompt_bank` and ask the LLM to
-     classify the user's intent into one of the 10 enum values
-     defined in `intent_router.VALID_INTENTS` (docs/10 §3).
+  2. Load `regalica/router` from `prompt_bank` AND the intent
+     grammar from `intent_specialists` (commit C7+C8 — DB-driven
+     replacement of the prior frozen Python dicts). Ask the LLM
+     to classify the user's intent into one of the IntentGrammar
+     values.
   3. Look up the specialists to invoke for that intent in the
-     protocol-grammar constant `_SPECIALISTS_BY_INTENT`
-     (docs/10 §15). Specialists run in parallel via
+     loaded grammar. Specialists run in parallel via
      `asyncio.gather`. Their prompts are loaded from `prompt_bank`
      concurrently with the aggregator prompt.
-  4. Aggregator step — load `regalica/aggregate_<intent>` from
-     `prompt_bank` (function_name derived by convention, no static
-     map) and ask the LLM to compose the user-facing French
-     response from the specialists' JSON outputs.
+  4. Aggregator step — load
+     `<aggregator_agent_type>/<aggregator_function_name>` from
+     `prompt_bank` (both fields come from the intent_specialists
+     row, no convention) and ask the LLM to compose the user-
+     facing French response from the specialists' JSON outputs.
   5. Build the canonical `OrchestratorResult` with a thinking
      trace consistent with the Regalica persona contract:
        « L'utilisateur demande … . Mais je pense … . Donc je vais … . »
 
-Zero hardcoded keywords / prompts: routing is the router LLM's
-job, prompts come from `prompt_bank`. The intent → specialists
-table and the (agent_id → bearer / invoker) tables are protocol
-grammar — same doctrine as the FSM enum
-`Settings.env: development|test|production` (docs/10 §15 says
-explicitly to keep the dispatch table hardcoded for determinism).
+Zero hardcoded keywords / prompts / dispatch tables: the routing
+LLM and the prompts come from `prompt_bank`; the intent →
+specialists + aggregator mapping AND the specialist_id → bearer
+table both come from `intent_specialists` / `intent_specialist_bearers`
+via `intent_grammar.load_intent_grammar`. The only thing that
+remains in source is the (specialist_id → Python invoker callable)
+table — handlers are code, not values.
 """
 
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import time
 from collections.abc import Awaitable, Callable
@@ -44,33 +48,13 @@ from app.agents.base import AgentResult
 from app.agents.t2 import CitationAgent, HistoricalAgent, InvestigatorAgent
 from app.config import settings
 from app.llm.base import LLMClient, LLMRequest
+from app.services.intent_grammar import (
+    IntentGrammar,
+    SpecialistBearer,
+    load_intent_grammar,
+)
 from app.services.intent_router import FALLBACK_INTENT, detect_intent
 from app.services.prompt_loader import PromptMeta, load_active_prompt
-
-# Specialists per intent — protocol grammar per docs/10 §15.
-# Keys are the 10 router enum values; values are ordered lists of
-# specialist agent IDs to invoke in parallel via asyncio.gather.
-# Empty list = no specialist; the aggregator runs alone (typical
-# of `general_help`, `ambiguous`, `out_of_scope`).
-_SPECIALISTS_BY_INTENT: dict[str, list[str]] = {
-    "zoom_fail": ["investigator", "citation"],
-    "grappe_cause_racine": ["investigator"],
-    "historique_recurrence": ["historical"],
-    "citation_reglementaire": ["citation"],
-    "simulation_impact": [],
-    "estimation_sanction": [],
-    "plan_optimal": ["investigator", "historical"],
-    "ambiguous": [],
-    "out_of_scope": [],
-    "general_help": [],
-}
-
-# Aggregator bearer namespace — protocol grammar (Regalica is the
-# sole aggregator persona per docs/10 §1). Used as the
-# `agent_type` argument when looking up `aggregate_<intent>`
-# prompts in `prompt_bank`. The `function_name` is derived by
-# convention so the orchestrator never needs a side table.
-_AGGREGATOR_BEARER_NS: str = "regalica"
 
 # Persona-aligned thinking trace template (docs/10 §5). Phase 3-bis
 # may move this to prompt_bank once the trace itself becomes a
@@ -88,11 +72,10 @@ _NO_ROUTER_PROMPT_MESSAGE = (
 )
 
 
-def _no_aggregator_prompt_message(function_name: str) -> str:
+def _no_aggregator_prompt_message(agent_type: str, function_name: str) -> str:
     """User-facing fallback when the aggregator prompt is missing."""
     return (
-        f"Aucun prompt actif pour {_AGGREGATOR_BEARER_NS}/{function_name} — "
-        "une promotion 4-yeux est requise."
+        f"Aucun prompt actif pour {agent_type}/{function_name} — une promotion 4-yeux est requise."
     )
 
 
@@ -131,16 +114,15 @@ class _SpecialistOutcome:
     error: str | None = None
 
 
-def _aggregator_function_name(intent: str) -> str:
-    """Derive the aggregator prompt function_name by convention."""
-    return f"aggregate_{intent}"
-
-
 # ---------------------------------------------------------------------------
 # Specialist invokers — table dispatch, no if/elif on agent_id values.
 # Each invoker takes the loaded PromptMeta + the shared context and returns
-# the agent's `AgentResult`. The (id → bearer) and (id → invoker) tables
-# stay in sync; an entry must exist in BOTH or the orchestrator skips.
+# the agent's `AgentResult`. The (specialist_id → bearer) mapping is loaded
+# from `intent_specialist_bearers` (commit C7); the (specialist_id → invoker)
+# table below stays in source because handlers are code, not values. Both
+# tables must agree on the keys at runtime — a specialist_id present in the
+# DB but absent from `_SPECIALIST_INVOKERS` surfaces as a clear error in
+# `_invoke_specialist`.
 # ---------------------------------------------------------------------------
 
 
@@ -180,14 +162,10 @@ async def _call_historical(meta: PromptMeta, ctx: _SpecialistContext) -> AgentRe
     )
 
 
-# (specialist_id) -> (agent_type, function_name) for prompt_bank lookup.
-_SPECIALIST_BEARERS: dict[str, tuple[str, str]] = {
-    "investigator": ("investigator", "analyze_fail"),
-    "citation": ("citation", "find_regulatory_source"),
-    "historical": ("historical", "compare_runs_history"),
-}
-
 # (specialist_id) -> async callable that does (load+run) the agent.
+# This is the ONLY in-source dispatch table that survives commit C8 —
+# every other key list (intent enum, specialists per intent, bearer
+# (agent_type, function_name)) is loaded from the DB grammar.
 _SPECIALIST_INVOKERS: dict[
     str, Callable[[PromptMeta, _SpecialistContext], Awaitable[AgentResult]]
 ] = {
@@ -197,29 +175,40 @@ _SPECIALIST_INVOKERS: dict[
 }
 
 
-async def _invoke_specialist(specialist_id: str, ctx: _SpecialistContext) -> _SpecialistOutcome:
-    """Load the specialist's prompt, invoke it, normalise the outcome."""
-    bearer = _SPECIALIST_BEARERS.get(specialist_id)
+async def _invoke_specialist(
+    specialist_id: str,
+    ctx: _SpecialistContext,
+    bearer: SpecialistBearer | None,
+) -> _SpecialistOutcome:
+    """Load the specialist's prompt, invoke it, normalise the outcome.
+
+    `bearer` is fetched by the caller from `IntentGrammar.bearers` so
+    this function does no DB-dependent lookup itself. None means the
+    DB grammar lacks an entry for the specialist_id (drift between
+    intent_specialists.specialist_ids and intent_specialist_bearers).
+    """
     invoker = _SPECIALIST_INVOKERS.get(specialist_id)
     if bearer is None or invoker is None:
-        # Defensive path; reachable only if _SPECIALISTS_BY_INTENT
-        # references an id absent from the bearer/invoker tables.
-        label = f"unknown/{specialist_id}"
+        # Defensive path; reachable only if intent_specialists.specialist_ids
+        # references an id absent from intent_specialist_bearers
+        # (DB drift) OR from `_SPECIALIST_INVOKERS` (Python handler
+        # missing). Both are operator misconfiguration; surface a
+        # clear error rather than crashing.
+        reason = "no DB bearer" if bearer is None else "no Python invoker"
         return _SpecialistOutcome(
-            bearer_label=label,
+            bearer_label=f"unknown/{specialist_id}",
             output={},
             success=False,
-            error=f"Unknown specialist id: {specialist_id}",
+            error=f"Unknown specialist id {specialist_id!r}: {reason}",
         )
 
-    agent_type, function_name = bearer
-    bearer_label = f"{agent_type}/{function_name}"
+    bearer_label = f"{bearer.agent_type}/{bearer.function_name}"
 
     meta = await load_active_prompt(
         pool=ctx.pool,
         tenant_id=ctx.tenant_id,
-        agent_type=agent_type,
-        function_name=function_name,
+        agent_type=bearer.agent_type,
+        function_name=bearer.function_name,
     )
     if meta is None:
         return _SpecialistOutcome(
@@ -309,9 +298,8 @@ async def orchestrate(
     # 1. T0 agents — Phase 3-bis. The chat route does not (yet)
     # forward XML payloads, so this stage is intentionally a no-op.
 
-    # 2. Router prompt + intent detection. The router bearer is
-    # env-driven (settings.chatbot_router_*) so no agent key is
-    # baked into source.
+    # 2. Router prompt + intent grammar (parallel) + intent detection.
+    grammar_task = asyncio.create_task(load_intent_grammar(pool))
     router_meta = await load_active_prompt(
         pool=pool,
         tenant_id=tenant_id,
@@ -319,22 +307,37 @@ async def orchestrate(
         function_name=settings.chatbot_router_function_name,
     )
     if router_meta is None:
+        # Drain the grammar task so the pool connection is released
+        # cleanly even when we short-circuit.
+        with contextlib.suppress(Exception):
+            await grammar_task
         return _build_no_router_result(message, start)
+
+    grammar: IntentGrammar = await grammar_task
+    valid_intents = grammar.intent_types
 
     intent_result = await detect_intent(
         message=message,
         llm_client=llm_client,
         router_template=router_meta["template"],
+        valid_intents=valid_intents,
     )
     intent = intent_result.intent_type
-    if intent not in _SPECIALISTS_BY_INTENT:
+    if intent not in grammar.intents:
         # Defensive: detect_intent already maps unknown values to
         # FALLBACK_INTENT, but we re-anchor here so the rest of the
-        # pipeline never indexes the table with a stranger.
+        # pipeline never indexes the grammar with a stranger.
         intent = FALLBACK_INTENT
+    if intent not in grammar.intents:
+        # FALLBACK_INTENT is a documented contract — if even that row
+        # is missing the operator misconfigured the catalogue. Surface
+        # the no-router fallback message as the best we can do.
+        return _build_no_router_result(message, start)
+
+    intent_spec = grammar.intents[intent]
 
     # 3. Specialists (parallel) + aggregator-prompt fetch (parallel).
-    specialist_ids = _SPECIALISTS_BY_INTENT[intent]
+    specialist_ids = list(intent_spec.specialist_ids)
     ctx = _SpecialistContext(
         pool=pool,
         tenant_id=tenant_id,
@@ -344,8 +347,7 @@ async def orchestrate(
         current_run_id=current_run_id,
     )
 
-    aggregator_function = _aggregator_function_name(intent)
-    aggregator_label = f"{_AGGREGATOR_BEARER_NS}/{aggregator_function}"
+    aggregator_label = f"{intent_spec.aggregator_agent_type}/{intent_spec.aggregator_function_name}"
     # Kick off the aggregator-prompt load concurrently with the
     # specialists so the latency is bounded by max(specialists,
     # aggregator-fetch) rather than their sum.
@@ -353,13 +355,15 @@ async def orchestrate(
         load_active_prompt(
             pool=pool,
             tenant_id=tenant_id,
-            agent_type=_AGGREGATOR_BEARER_NS,
-            function_name=aggregator_function,
+            agent_type=intent_spec.aggregator_agent_type,
+            function_name=intent_spec.aggregator_function_name,
         )
     )
     if specialist_ids:
         specialist_outcomes: list[_SpecialistOutcome] = list(
-            await asyncio.gather(*(_invoke_specialist(sid, ctx) for sid in specialist_ids))
+            await asyncio.gather(
+                *(_invoke_specialist(sid, ctx, grammar.bearers.get(sid)) for sid in specialist_ids)
+            )
         )
     else:
         specialist_outcomes = []
@@ -377,7 +381,10 @@ async def orchestrate(
                 specialist_ids=specialist_ids,
                 aggregator_label=aggregator_label,
             ),
-            response_markdown=_no_aggregator_prompt_message(aggregator_function),
+            response_markdown=_no_aggregator_prompt_message(
+                intent_spec.aggregator_agent_type,
+                intent_spec.aggregator_function_name,
+            ),
             agents_called=agents_called,
             tokens_input=0,
             tokens_output=0,
