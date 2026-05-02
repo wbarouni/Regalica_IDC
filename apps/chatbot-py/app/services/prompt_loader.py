@@ -1,11 +1,20 @@
 """Active-prompt loader for the prompt_bank table.
 
 Returns the operative `(template, temperature, max_tokens,
-thinking_enabled, target_model)` tuple for a given
-(tenant_id, agent_type, function_name) where status='active'.
-Returns None when no active row exists — the caller must handle
-the "no active prompt" case explicitly (a 4-yeux promotion is
-required to move a prompt from draft to active per migration 023).
+thinking_enabled, target_model, output_contract)` tuple for a
+given (tenant_id, agent_type, function_name) where
+status='active'. Returns None when no active row exists — the
+caller must handle the "no active prompt" case explicitly (a
+4-yeux promotion is required to move a prompt from draft to
+active per migration 023).
+
+`output_contract` is a per-prompt operator-controlled discriminant
+seeded by migration 069. Two values are allowed:
+  * `string` — the LLM emits free-form markdown / text consumed
+    raw by downstream code (used by all `regalica/aggregate_*`
+    prompts).
+  * `json`   — the LLM emits a structured JSON envelope parsed
+    against `output_schema` (used by every other prompt).
 
 Zero hardcoding: nothing in this file references a specific agent
 key or template; the inputs come from the route handler which
@@ -27,6 +36,7 @@ class PromptMeta(TypedDict):
     max_tokens: int
     thinking_enabled: bool
     target_model: str
+    output_contract: str
 
 
 async def load_active_prompt(
@@ -38,7 +48,8 @@ async def load_active_prompt(
     """Return the active prompt for the (tenant, agent, function) triple, or None."""
     row = await pool.fetchrow(
         """
-        SELECT template, temperature, max_tokens, thinking_enabled, target_model
+        SELECT template, temperature, max_tokens, thinking_enabled, target_model,
+               output_contract
           FROM prompt_bank
          WHERE tenant_id = $1::uuid
            AND agent_type = $2
@@ -59,4 +70,5 @@ async def load_active_prompt(
         max_tokens=int(row["max_tokens"]),
         thinking_enabled=bool(row["thinking_enabled"]),
         target_model=str(row["target_model"]),
+        output_contract=str(row["output_contract"]),
     )

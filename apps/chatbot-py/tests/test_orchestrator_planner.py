@@ -103,6 +103,13 @@ def _prompt_row(template: str = "[TEMPLATE]") -> dict[str, Any]:
         "max_tokens": 4096,
         "thinking_enabled": False,
         "target_model": "gemini-2.5-flash",
+        # Planner specs exercise router + planner + aggregator paths;
+        # the aggregator paths in those specs go through canonical
+        # dispatch where output_contract = "string" (migration 069
+        # backfill). For non-aggregator prompts (router, planner,
+        # specialists) the value is harmless — _invoke_aggregator
+        # only reads it when composing the final response.
+        "output_contract": "string",
     }
 
 

@@ -159,6 +159,11 @@ def _prompt_row(template: str = "[TEMPLATE]") -> dict[str, Any]:
         "max_tokens": 4096,
         "thinking_enabled": False,
         "target_model": "gemini-2.5-flash",
+        # Default mirrors migration 069 backfill: every prompt seeded
+        # before the planner refactor was a JSON-contract one. Aggregator
+        # specs that need the new "string" contract override at the
+        # call site.
+        "output_contract": "json",
     }
 
 

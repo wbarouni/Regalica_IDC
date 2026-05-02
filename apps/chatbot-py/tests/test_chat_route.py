@@ -99,6 +99,11 @@ def _prompt_row(template: str = "[TEMPLATE]") -> dict[str, object]:
         "max_tokens": 4096,
         "thinking_enabled": True,
         "target_model": "gemini-2.5-flash",
+        # Aggregator default per migration 069 backfill convention
+        # (regalica/aggregate_* → string). Tests that exercise non-
+        # aggregator prompts (router, investigator, …) override below
+        # via _prompt_row_json.
+        "output_contract": "string",
     }
 
 

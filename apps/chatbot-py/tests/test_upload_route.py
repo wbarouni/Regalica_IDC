@@ -292,6 +292,7 @@ def test_upload_renders_briefing_when_prompt_active(
             "max_tokens": 1024,
             "thinking_enabled": False,
             "target_model": "gemini-2.5-flash",
+            "output_contract": "string",
         },
     ]
     mock_llm.complete.return_value = _llm_response("Réception confirmée pour RSM630.")
@@ -440,6 +441,7 @@ def test_upload_persists_briefing_when_conversation_id_supplied(
             "max_tokens": 1024,
             "thinking_enabled": False,
             "target_model": "gemini-2.5-flash",
+            "output_contract": "string",
         },
     ]
     mock_llm.complete.return_value = _llm_response("Réception confirmée pour RSM630.")
@@ -478,6 +480,7 @@ def test_upload_skips_persist_when_no_conversation_id(
             "max_tokens": 1024,
             "thinking_enabled": False,
             "target_model": "gemini-2.5-flash",
+            "output_contract": "string",
         },
     ]
     mock_llm.complete.return_value = _llm_response("ok")

@@ -447,6 +447,41 @@ async def _maybe_invoke_planner(
 # Aggregator — composes the user-facing response from specialist outputs.
 # ---------------------------------------------------------------------------
 
+# Aggregator prompts whose seed declares `output_contract = "string"` emit
+# free-form markdown, not a JSON envelope. With `thinking_enabled=true`
+# Gemini 2.5 Flash occasionally leaks pre-announcement lines from its
+# internal reasoning into the visible content (mémoire #30 — observed in
+# pre-prod traces). The lines start with explicit handover phrases that
+# the operator-controlled filter strips. Filter is applied only when the
+# seed's output_contract is "string" — JSON-contract prompts must NEVER
+# be touched (any modification would break the parser).
+_THOUGHT_LEAKAGE_PREFIXES: Final[tuple[str, ...]] = (
+    "Je retourne",
+    "I return",
+    "Je vais retourner",
+    "Je vais composer",
+    "Voici ma réponse",
+    "Réponse finale",
+    "THOUGHT:",
+)
+
+
+def _clean_thought_leakage(text: str) -> str:
+    """Drop Gemini thinking-trace pre-announcement lines from the visible output.
+
+    Filter is whole-line, prefix-matched, after stripping leading
+    whitespace. Empty input returns empty. Output is right-stripped so a
+    trailing newline introduced by the filter does not propagate.
+    """
+    if not text:
+        return text
+    cleaned_lines = [
+        line
+        for line in text.splitlines()
+        if not any(line.lstrip().startswith(prefix) for prefix in _THOUGHT_LEAKAGE_PREFIXES)
+    ]
+    return "\n".join(cleaned_lines).strip()
+
 
 async def _invoke_aggregator(
     *,
@@ -486,8 +521,18 @@ async def _invoke_aggregator(
             "tokens_output": 0,
             "tokens_thinking": 0,
         }
+
+    # The filter is gated on output_contract — never on thinking_enabled —
+    # so JSON-contract aggregators (none today, future-proofing) keep
+    # their parser-bound payload intact even with thinking on.
+    raw_content = response.content
+    if aggregator_meta.get("output_contract") == "string":
+        response_markdown = _clean_thought_leakage(raw_content)
+    else:
+        response_markdown = raw_content
+
     return {
-        "response_markdown": response.content,
+        "response_markdown": response_markdown,
         "tokens_input": response.tokens_input,
         "tokens_output": response.tokens_output,
         "tokens_thinking": response.tokens_thinking,
