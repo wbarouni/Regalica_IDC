@@ -1,13 +1,20 @@
 """LLM-based intent router for Regalica.
 
 The router LLM reads the user's free-form message and emits a JSON
-object `{intent_type, confidence, reasoning?}` whose `intent_type`
-must belong to the closed enum loaded from `intent_specialists`
-(commit C7, table) via `intent_grammar.load_intent_grammar`. The
-function returns an `IntentResult` dataclass; on any decode error
-or out-of-enum value, it returns the conservative `general_help`
-fallback with `confidence = 0.0` so the downstream orchestrator
-always has a defined branch.
+object `{intent, confidence}` whose `intent` value must belong to the
+closed enum loaded from `intent_specialists` (commit C7, table) via
+`intent_grammar.load_intent_grammar`. The function returns an
+`IntentResult` dataclass; on any decode error or out-of-enum value, it
+returns the conservative `general_help` fallback with `confidence = 0.0`
+so the downstream orchestrator always has a defined branch.
+
+Strict output contract — only `intent` and `confidence` are read. The
+v2 router prompt forbids extra keys (`additionalProperties: false` in
+the seed `output_schema`); a verbose model that emits e.g. `reasoning`,
+`explanation`, or `chain_of_thought` is logged at WARNING level and the
+extra value is dropped on the floor. Parsing does not fail — defence in
+depth lets a slightly out-of-spec model still be useful while making
+the drift visible in logs.
 
 Zero hardcoding: the closed intent-type set comes from the DB
 grammar (commit C8 wires the loader into the orchestrator), NOT a
@@ -23,6 +30,7 @@ Doctrine reference: docs/10-ORCHESTRATION-REGALICA.md §15
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Final
@@ -41,12 +49,19 @@ FALLBACK_INTENT: Final[str] = "general_help"
 # Router LLM is deterministic per docs/05 §7 (temperature=0.0).
 _ROUTER_TEMPERATURE: Final[float] = 0.0
 
-# Router output is short — a single JSON object with at most three
-# keys. 64 tokens fits the closed enum for `intent_type`, a float
-# `confidence`, and a brief `reasoning` string. Long reasoning is
-# truncated by the LLM; a truncated JSON makes `detect_intent` fall
-# back to FALLBACK_INTENT via the JSONDecodeError branch — safe.
+# Router output is short — a single JSON object with exactly two keys
+# (`intent` + `confidence`). 64 tokens fits the closed enum value plus
+# the float; a truncated JSON makes `detect_intent` fall back to
+# FALLBACK_INTENT via the JSONDecodeError branch — safe.
 _ROUTER_MAX_TOKENS: Final[int] = 64
+
+# Closed allow-list of keys the parser will read from the LLM payload.
+# Keys outside this set are tolerated (the response is not rejected)
+# but logged at WARNING level so contract drift on the upstream prompt
+# or model is observable.
+_ALLOWED_OUTPUT_KEYS: Final[frozenset[str]] = frozenset({"intent", "confidence"})
+
+_logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -55,11 +70,10 @@ class IntentResult:
 
     intent_type: str
     confidence: float
-    reasoning: str | None = None
 
 
 def _fallback_result() -> IntentResult:
-    return IntentResult(intent_type=FALLBACK_INTENT, confidence=0.0, reasoning=None)
+    return IntentResult(intent_type=FALLBACK_INTENT, confidence=0.0)
 
 
 async def detect_intent(
@@ -99,6 +113,13 @@ async def detect_intent(
     if not isinstance(parsed, dict):
         return _fallback_result()
 
+    # Mirror the `additionalProperties: false` clause of the seed
+    # `output_schema`. Extra keys are dropped, never consumed; warnings
+    # surface drift without breaking on a verbose model.
+    extra_keys = set(parsed.keys()) - _ALLOWED_OUTPUT_KEYS
+    if extra_keys:
+        _logger.warning("router LLM emitted unexpected output keys: %s", sorted(extra_keys))
+
     intent_type = parsed.get("intent")
     if not isinstance(intent_type, str) or intent_type not in valid_set:
         return _fallback_result()
@@ -109,11 +130,7 @@ async def detect_intent(
     else:
         confidence = float(raw_confidence)
 
-    raw_reasoning = parsed.get("reasoning")
-    reasoning = raw_reasoning if isinstance(raw_reasoning, str) and raw_reasoning else None
-
     return IntentResult(
         intent_type=intent_type,
         confidence=confidence,
-        reasoning=reasoning,
     )

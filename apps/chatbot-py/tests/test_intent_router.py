@@ -79,7 +79,6 @@ async def test_detect_intent_accepts_each_canonical_value(label: str) -> None:
     assert isinstance(result, IntentResult)
     assert result.intent_type == label
     assert result.confidence == pytest.approx(0.92)
-    assert result.reasoning is None
 
 
 @pytest.mark.asyncio
@@ -94,23 +93,6 @@ async def test_detect_intent_extracts_confidence_as_float() -> None:
 
 
 @pytest.mark.asyncio
-async def test_detect_intent_extracts_optional_reasoning() -> None:
-    payload = json.dumps(
-        {
-            "intent": "cluster",
-            "confidence": 0.81,
-            "reasoning": "FAILs successifs sur la même annexe",
-        }
-    )
-    llm = _llm_with(payload)
-    result = await detect_intent(
-        message="x", llm_client=llm, router_template="[T]", valid_intents=CANONICAL_INTENTS
-    )
-    assert result.intent_type == "cluster"
-    assert result.reasoning == "FAILs successifs sur la même annexe"
-
-
-@pytest.mark.asyncio
 async def test_detect_intent_falls_back_on_invalid_json() -> None:
     llm = _llm_with("not a json blob at all")
     result = await detect_intent(
@@ -118,7 +100,6 @@ async def test_detect_intent_falls_back_on_invalid_json() -> None:
     )
     assert result.intent_type == FALLBACK_INTENT
     assert result.confidence == 0.0
-    assert result.reasoning is None
 
 
 @pytest.mark.asyncio
@@ -220,16 +201,6 @@ async def test_detect_intent_passes_template_as_system_prompt_with_temp_zero() -
 
 
 @pytest.mark.asyncio
-async def test_detect_intent_treats_empty_reasoning_as_none() -> None:
-    payload = json.dumps({"intent": "zoom", "confidence": 0.7, "reasoning": ""})
-    llm = _llm_with(payload)
-    result = await detect_intent(
-        message="x", llm_client=llm, router_template="[T]", valid_intents=CANONICAL_INTENTS
-    )
-    assert result.reasoning is None
-
-
-@pytest.mark.asyncio
 async def test_detect_intent_respects_caller_supplied_enum_subset() -> None:
     """If the caller passes a smaller enum, only those intents are accepted."""
     payload = json.dumps({"intent": "zoom", "confidence": 0.9})
@@ -241,3 +212,102 @@ async def test_detect_intent_respects_caller_supplied_enum_subset() -> None:
         valid_intents=frozenset({"general_help"}),  # zoom NOT included
     )
     assert result.intent_type == FALLBACK_INTENT
+
+
+# ---------------------------------------------------------------------------
+# Strict output contract — only `intent` + `confidence` are read; extras are
+# logged at WARNING and dropped (never propagated, never raised).
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_detect_intent_silently_drops_reasoning_field(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """B2-RETRAIT — `reasoning` must be ignored, not exposed on IntentResult.
+
+    The v2 router prompt forbids extras; a verbose model that still
+    emits `reasoning` should not crash the parser, must not surface
+    the value downstream, and must trigger a WARNING so the drift is
+    visible in production logs.
+    """
+    payload = json.dumps(
+        {
+            "intent": "zoom",
+            "confidence": 0.87,
+            "reasoning": "Le message mentionne la rubrique RSM630",
+        }
+    )
+    llm = _llm_with(payload)
+    with caplog.at_level("WARNING", logger="app.services.intent_router"):
+        result = await detect_intent(
+            message="x",
+            llm_client=llm,
+            router_template="[T]",
+            valid_intents=CANONICAL_INTENTS,
+        )
+
+    assert isinstance(result, IntentResult)
+    assert result.intent_type == "zoom"
+    assert result.confidence == pytest.approx(0.87)
+    # Drift surfaced in logs.
+    assert any(
+        record.levelname == "WARNING" and "reasoning" in record.getMessage()
+        for record in caplog.records
+    )
+    # The reasoning value is not exposed on the dataclass.
+    assert not hasattr(result, "reasoning")
+
+
+@pytest.mark.asyncio
+async def test_detect_intent_warns_on_arbitrary_unknown_key(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """C-B contract — any key outside {intent, confidence} triggers a WARNING.
+
+    The parser stays liberal in what it accepts (no rejection, no
+    fallback) but the unexpected key name appears in the warning so
+    the operator can correlate the drift with the responsible model
+    revision.
+    """
+    payload = json.dumps(
+        {
+            "intent": "citation",
+            "confidence": 0.91,
+            "unexpected_field": "valeur arbitraire",
+        }
+    )
+    llm = _llm_with(payload)
+    with caplog.at_level("WARNING", logger="app.services.intent_router"):
+        result = await detect_intent(
+            message="x",
+            llm_client=llm,
+            router_template="[T]",
+            valid_intents=CANONICAL_INTENTS,
+        )
+
+    assert result.intent_type == "citation"
+    assert result.confidence == pytest.approx(0.91)
+    warning_msgs = [r.getMessage() for r in caplog.records if r.levelname == "WARNING"]
+    assert any("unexpected_field" in msg for msg in warning_msgs)
+
+
+@pytest.mark.asyncio
+async def test_detect_intent_does_not_warn_on_canonical_payload(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """C-C-3 non-regression — a clean {intent, confidence} payload emits no warning."""
+    payload = json.dumps({"intent": "plan", "confidence": 0.78})
+    llm = _llm_with(payload)
+    with caplog.at_level("WARNING", logger="app.services.intent_router"):
+        result = await detect_intent(
+            message="x",
+            llm_client=llm,
+            router_template="[T]",
+            valid_intents=CANONICAL_INTENTS,
+        )
+
+    assert result.intent_type == "plan"
+    assert result.confidence == pytest.approx(0.78)
+    # No drift warning for a contract-conformant payload.
+    assert not any(record.levelname == "WARNING" for record in caplog.records)
