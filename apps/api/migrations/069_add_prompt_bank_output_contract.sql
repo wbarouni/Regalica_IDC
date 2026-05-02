@@ -30,21 +30,25 @@
 -- Idempotent: ADD COLUMN IF NOT EXISTS + the UPDATE is naturally
 -- re-runnable.
 
+-- DEFAULT 'json' guarantees that any pre-069 INSERT site that does not
+-- mention the column (migration 058, the legacy 023_prompt_bank.test.ts
+-- INSERTs, the workspace.test.ts INSERT, and any future non-aggregator
+-- prompt) lands the conservative non-aggregator contract. The
+-- subsequent UPDATE only flips the regalica/aggregate_* rows to
+-- 'string'. This way new aggregator prompts must declare
+-- `output_contract: "string"` explicitly while every other call site
+-- keeps working without modification.
 ALTER TABLE prompt_bank
-  ADD COLUMN IF NOT EXISTS output_contract VARCHAR(16);
+  ADD COLUMN IF NOT EXISTS output_contract VARCHAR(16) NOT NULL DEFAULT 'json';
 
 -- Backfill existing rows from the naming convention. The seed JSON file
 -- (apps/api/seeds/prompts.json) declares the same value as a documentary
 -- mirror; tests assert mirror equality.
 UPDATE prompt_bank
-   SET output_contract = CASE
-     WHEN agent_type = 'regalica' AND function_name LIKE 'aggregate\_%' ESCAPE '\' THEN 'string'
-     ELSE 'json'
-   END
- WHERE output_contract IS NULL;
-
-ALTER TABLE prompt_bank
-  ALTER COLUMN output_contract SET NOT NULL;
+   SET output_contract = 'string'
+ WHERE agent_type = 'regalica'
+   AND function_name LIKE 'aggregate\_%' ESCAPE '\'
+   AND output_contract <> 'string';
 
 ALTER TABLE prompt_bank
   ADD CONSTRAINT prompt_bank_ck_output_contract
@@ -52,13 +56,14 @@ ALTER TABLE prompt_bank
 
 DO $$
 DECLARE
-  v_count INTEGER;
+  v_string_count INTEGER;
+  v_json_count   INTEGER;
 BEGIN
-  SELECT COUNT(*) INTO v_count
-    FROM prompt_bank
-   WHERE output_contract IS NULL;
-  IF v_count > 0 THEN
-    RAISE EXCEPTION 'migration 069: % rows still NULL after backfill', v_count;
-  END IF;
-  RAISE NOTICE 'migration 069: prompt_bank.output_contract added + backfilled';
+  SELECT COUNT(*) INTO v_string_count
+    FROM prompt_bank WHERE output_contract = 'string';
+  SELECT COUNT(*) INTO v_json_count
+    FROM prompt_bank WHERE output_contract = 'json';
+  RAISE NOTICE
+    'migration 069: prompt_bank.output_contract added + backfilled (% string, % json)',
+    v_string_count, v_json_count;
 END $$;
