@@ -49,6 +49,7 @@ from app.agents.base import AgentResult
 from app.agents.t2 import CitationAgent, HistoricalAgent, InvestigatorAgent
 from app.config import settings
 from app.llm.base import LLMClient, LLMRequest
+from app.services import clarification as _clarification
 from app.services.intent_grammar import (
     IntentGrammar,
     IntentSpec,
@@ -490,9 +491,19 @@ async def _invoke_aggregator(
     specialist_outcomes: list[_SpecialistOutcome],
     aggregator_meta: PromptMeta,
     llm_client: LLMClient,
+    clarification_reason: str | None = None,
 ) -> dict[str, Any]:
-    """Call the aggregator LLM and return tokens + response_markdown."""
-    payload = {
+    """Call the aggregator LLM and return tokens + response_markdown.
+
+    `clarification_reason` is the origin tag for the
+    regalica/aggregate_ambiguous prompt — required when intent is
+    `ambiguous`, ignored otherwise. The two valid values come from
+    `app.services.clarification`; the seed JSON Schema enum mirrors
+    them. Sending the field for a non-ambiguous intent is harmless
+    (other prompts ignore unknown payload keys) but the orchestrator
+    only sets it for `ambiguous` to keep the payload minimal.
+    """
+    payload: dict[str, Any] = {
         "user_message": message,
         "intent_type": intent,
         "specialist_outputs": [
@@ -505,6 +516,8 @@ async def _invoke_aggregator(
             for outcome in specialist_outcomes
         ],
     }
+    if clarification_reason is not None:
+        payload["clarification_reason"] = clarification_reason
     request = LLMRequest(
         prompt=json.dumps(payload, ensure_ascii=False),
         temperature=aggregator_meta["temperature"],
@@ -712,12 +725,28 @@ async def orchestrate(
             latency_ms=int((time.monotonic() - start) * 1000),
         )
 
+    # Bifurcate the clarification-reason payload tag for the ambiguous
+    # aggregator. Two paths route here: (a) the router LLM emitted
+    # `ambiguous` directly because confidence was too low to classify;
+    # (b) the planner returned `plan_type="clarification"` and the
+    # orchestrator switched the active intent to `ambiguous` above.
+    # The seed enum is mirrored in app.services.clarification so the
+    # orchestrator never carries the literal strings.
+    clarification_reason: str | None = None
+    if intent == _AMBIGUOUS_INTENT:
+        clarification_reason = (
+            _clarification.PLANNER_CLARIFICATION
+            if planner_outcome.is_clarification
+            else _clarification.ROUTER_LOW_CONFIDENCE
+        )
+
     aggregator_outcome = await _invoke_aggregator(
         message=message,
         intent=intent,
         specialist_outcomes=specialist_outcomes,
         aggregator_meta=aggregator_meta,
         llm_client=llm_client,
+        clarification_reason=clarification_reason,
     )
 
     # 5. Compose Regalica response.
