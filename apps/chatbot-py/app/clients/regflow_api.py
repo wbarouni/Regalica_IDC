@@ -35,12 +35,13 @@ response — the engine persistence is best-effort augmentation).
 from __future__ import annotations
 
 import time
-from typing import Any
+from typing import Any, TypedDict
 
 import httpx
 import jwt
 
 from app.config import settings
+from app.exceptions import EvaluationError, EvaluationTimeoutError
 
 
 class RegflowApiError(Exception):
@@ -51,6 +52,51 @@ class RegflowApiError(Exception):
         self.status_code = status_code
         self.body = body
         self.endpoint = endpoint
+
+
+# ---------------------------------------------------------------------------
+# /evaluate response envelope (mirrors the C14 EngineEvaluateResponse).
+#
+# `pass` is a Python reserved word so the totals dict aliases it as
+# `pass_`. The conversion happens in evaluate_run() below.
+# Decimal columns (lhs / rhs / gap) arrive as strings to preserve the
+# 38-digit precision contract end-to-end (CLAUDE.md §2). gap_relative
+# arrives as a number — ratios fit safely in JS / Python doubles.
+# ---------------------------------------------------------------------------
+
+
+class EvaluateRunTotals(TypedDict):
+    pass_: int
+    fail_severe: int
+    fail_rounding: int
+    skipped_missing_annexe: int
+    skipped_missing_rubrique: int
+    skipped_missing_colonne: int
+    skipped_missing_data: int
+    skipped_conditional: int
+    skipped_unsupported_op: int
+    skipped_literal_text: int
+    rules_applicable_total: int
+
+
+class MappedVerdict(TypedDict):
+    ax_term: str
+    num_regle: int
+    status: str
+    severity: str | None
+    lhs: str | None
+    rhs: str | None
+    gap: str | None
+    gap_relative: float | None
+
+
+class EvaluateRunResult(TypedDict):
+    run_id: str
+    arrete_date: str
+    evaluated_at: str
+    duration_ms: int
+    verdicts: list[MappedVerdict]
+    totals: EvaluateRunTotals
 
 
 def _sign_engine_jwt(tenant_id: str) -> str:
@@ -145,17 +191,27 @@ class RegflowApiClient:
             body["run_id"] = run_id
         return await self._post(endpoint, body, tenant_id)
 
+    def _engine_auth_headers(self, tenant_id: str) -> dict[str, str]:
+        """Build the engine-JWT auth headers for a given tenant.
+
+        Extracted from `_post` so `evaluate_run` can reuse the same
+        header construction without duplicating the JWT signing logic.
+        Caller-controlled tenant_id flows into the JWT `tenant_id`
+        claim that the API's engineAuthMiddleware validates.
+        """
+        token = _sign_engine_jwt(tenant_id)
+        return {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        }
+
     async def _post(
         self,
         endpoint: str,
         body: dict[str, Any],
         tenant_id: str,
     ) -> dict[str, Any]:
-        token = _sign_engine_jwt(tenant_id)
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        }
+        headers = self._engine_auth_headers(tenant_id)
         response = await self._client.post(endpoint, json=body, headers=headers)
         if response.status_code // 100 != 2:
             raise RegflowApiError(
@@ -171,3 +227,98 @@ class RegflowApiClient:
                 endpoint=endpoint,
             )
         return parsed
+
+    async def evaluate_run(
+        self,
+        run_id: str,
+        tenant_id: str,
+        arrete_date: str,
+        timeout_seconds: float = 30.0,
+    ) -> EvaluateRunResult:
+        """POST /api/engine/runs/<run>/evaluate — drive the RDG engine.
+
+        The C14 route reads the XMLs from xml_uploads in DB by run_id +
+        tenant_id; the caller does NOT pass any XML payload here.
+        Only `arrete_date` (ISO YYYY-MM-DD) is sent in the body so the
+        engine can pick the correct rule version via loadRules().
+
+        Args:
+            run_id: validation_runs.id whose attached uploads will be
+                evaluated.
+            tenant_id: tenant the run belongs to. Required to sign the
+                engine JWT (the API enforces tenant_id claim equality
+                with the row's tenant_id).
+            arrete_date: ISO YYYY-MM-DD date used both as the rule
+                applicability cut-off (loadRules) and as a passthrough
+                in the response.
+            timeout_seconds: per-request timeout. Defaults to 30s
+                (engine p95 < 3s on a standard XML batch; 30s covers
+                the heavy historical batches without blocking the
+                chat path).
+
+        Returns:
+            EvaluateRunResult — verdicts already mapped to the REGFlow
+            BLOQUANT/MAJEUR/MINEUR taxonomy, totals with the 11 keys
+            of EvaluationTotals (pass aliased as pass_).
+
+        Raises:
+            EvaluationTimeoutError: the route did not respond within
+                `timeout_seconds`.
+            EvaluationError: the route returned a non-2xx response;
+                the original status_code is preserved on the exception.
+        """
+        endpoint = f"/runs/{run_id}/evaluate"
+        payload = {"arrete_date": arrete_date}
+        headers = self._engine_auth_headers(tenant_id)
+
+        try:
+            response = await self._client.post(
+                endpoint,
+                json=payload,
+                headers=headers,
+                timeout=httpx.Timeout(timeout_seconds),
+            )
+            response.raise_for_status()
+        except httpx.TimeoutException as exc:
+            raise EvaluationTimeoutError(
+                run_id=run_id,
+                timeout_seconds=timeout_seconds,
+            ) from exc
+        except httpx.HTTPStatusError as exc:
+            status_code = exc.response.status_code
+            try:
+                error_body = exc.response.json()
+                message = error_body.get("error", {}).get("message", str(exc))
+            except (ValueError, AttributeError):
+                message = str(exc)
+            raise EvaluationError(
+                message=f"evaluate_run HTTP {status_code} pour run {run_id}: {message}",
+                status_code=status_code,
+            ) from exc
+
+        body = response.json()
+        data = body["data"]
+        raw_totals = data["totals"]
+
+        totals: EvaluateRunTotals = {
+            "pass_": raw_totals["pass"],
+            "fail_severe": raw_totals["fail_severe"],
+            "fail_rounding": raw_totals["fail_rounding"],
+            "skipped_missing_annexe": raw_totals["skipped_missing_annexe"],
+            "skipped_missing_rubrique": raw_totals["skipped_missing_rubrique"],
+            "skipped_missing_colonne": raw_totals["skipped_missing_colonne"],
+            "skipped_missing_data": raw_totals["skipped_missing_data"],
+            "skipped_conditional": raw_totals["skipped_conditional"],
+            "skipped_unsupported_op": raw_totals["skipped_unsupported_op"],
+            "skipped_literal_text": raw_totals["skipped_literal_text"],
+            "rules_applicable_total": raw_totals["rules_applicable_total"],
+        }
+
+        return EvaluateRunResult(
+            run_id=str(data["run_id"]),
+            arrete_date=str(data["arrete_date"]),
+            evaluated_at=str(data["evaluated_at"]),
+            duration_ms=int(data["duration_ms"]),
+            verdicts=list(data["verdicts"]),
+            totals=totals,
+        )
