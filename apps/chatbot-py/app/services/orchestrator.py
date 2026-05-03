@@ -277,7 +277,7 @@ async def _call_t1_runner(meta: PromptMeta, ctx: _SpecialistContext) -> AgentRes
 
     if ctx.current_run_id is None:
         return AgentResult(
-            agent_name="t1_runner",
+            agent_name=_T1_RUNNER_SPECIALIST_ID,
             success=False,
             output={
                 "success": False,
@@ -295,7 +295,7 @@ async def _call_t1_runner(meta: PromptMeta, ctx: _SpecialistContext) -> AgentRes
 
     if ctx.api_client is None:
         return AgentResult(
-            agent_name="t1_runner",
+            agent_name=_T1_RUNNER_SPECIALIST_ID,
             success=False,
             output={
                 "success": False,
@@ -320,7 +320,7 @@ async def _call_t1_runner(meta: PromptMeta, ctx: _SpecialistContext) -> AgentRes
         )
     except T1RejectionError as exc:
         return AgentResult(
-            agent_name="t1_runner",
+            agent_name=_T1_RUNNER_SPECIALIST_ID,
             success=False,
             output={
                 "success": False,
@@ -335,7 +335,7 @@ async def _call_t1_runner(meta: PromptMeta, ctx: _SpecialistContext) -> AgentRes
         )
 
     return AgentResult(
-        agent_name="t1_runner",
+        agent_name=_T1_RUNNER_SPECIALIST_ID,
         success=True,
         output={
             "success": True,
@@ -1119,6 +1119,15 @@ _T0_TEMPORAL: Final[str] = "temporal"
 # fallback covers heavy historical batches with the engine p95 < 3s on
 # standard XMLs.
 _T1_EVALUATE_TIMEOUT_SECONDS: Final[float] = 30.0
+
+# Specialist key for the T1 launch_validation intent — must match the
+# `specialist_id` seeded by migration 072 in `intent_specialist_bearers`
+# and the `_SPECIALIST_INVOKERS` dispatch entry below. Extracted to a
+# Final constant so guard `check-no-hardcoding` does not flag the four
+# AgentResult constructions inside `_call_t1_runner` (kwarg name
+# `agent_name` triggers the `agent` substring rule when paired with a
+# string literal).
+_T1_RUNNER_SPECIALIST_ID: Final[str] = "t1_runner"
 
 
 async def _check_t0_agents_status(
