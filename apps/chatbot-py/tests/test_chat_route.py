@@ -104,6 +104,11 @@ def _prompt_row(template: str = "[TEMPLATE]") -> dict[str, object]:
         # aggregator prompts (router, investigator, …) override below
         # via _prompt_row_json.
         "output_contract": "string",
+        # Migration 070 fields — None / 'standard' default mirrors what
+        # load_active_prompt sees when the row was seeded by 043 and
+        # not yet touched by 070-B/C.
+        "static_response": None,
+        "model_tier": "standard",
     }
 
 

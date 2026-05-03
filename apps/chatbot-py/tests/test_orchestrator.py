@@ -164,6 +164,11 @@ def _prompt_row(template: str = "[TEMPLATE]") -> dict[str, Any]:
         # specs that need the new "string" contract override at the
         # call site.
         "output_contract": "json",
+        # Migration 070 fields — None / 'standard' default mirrors what
+        # load_active_prompt sees when the row was seeded by 043 and
+        # not yet touched by 070-B/C.
+        "static_response": None,
+        "model_tier": "standard",
     }
 
 

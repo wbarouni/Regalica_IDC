@@ -110,6 +110,11 @@ def _prompt_row(template: str = "[TEMPLATE]") -> dict[str, Any]:
         # specialists) the value is harmless — _invoke_aggregator
         # only reads it when composing the final response.
         "output_contract": "string",
+        # Migration 070 fields — None / 'standard' default mirrors what
+        # load_active_prompt sees when the row was seeded by 043 and
+        # not yet touched by 070-B/C.
+        "static_response": None,
+        "model_tier": "standard",
     }
 
 

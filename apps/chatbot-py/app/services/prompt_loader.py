@@ -29,7 +29,14 @@ import asyncpg
 
 
 class PromptMeta(TypedDict):
-    """Parameters of an active prompt loaded from prompt_bank."""
+    """Parameters of an active prompt loaded from prompt_bank.
+
+    Fields seeded by migration 023 (template, temperature, max_tokens,
+    thinking_enabled, target_model), migration 069 (output_contract) and
+    migration 070 (static_response, model_tier). The two newest fields
+    are nullable / default-stamped so a row missing them surfaces as
+    `static_response=None` / `model_tier='standard'`.
+    """
 
     template: str
     temperature: float
@@ -37,6 +44,8 @@ class PromptMeta(TypedDict):
     thinking_enabled: bool
     target_model: str
     output_contract: str
+    static_response: str | None
+    model_tier: str
 
 
 async def load_active_prompt(
@@ -49,7 +58,7 @@ async def load_active_prompt(
     row = await pool.fetchrow(
         """
         SELECT template, temperature, max_tokens, thinking_enabled, target_model,
-               output_contract
+               output_contract, static_response, model_tier
           FROM prompt_bank
          WHERE tenant_id = $1::uuid
            AND agent_type = $2
@@ -64,6 +73,7 @@ async def load_active_prompt(
     )
     if row is None:
         return None
+    raw_static = row["static_response"]
     return PromptMeta(
         template=str(row["template"]),
         temperature=float(row["temperature"]),
@@ -71,4 +81,6 @@ async def load_active_prompt(
         thinking_enabled=bool(row["thinking_enabled"]),
         target_model=str(row["target_model"]),
         output_contract=str(row["output_contract"]),
+        static_response=str(raw_static) if raw_static is not None else None,
+        model_tier=str(row["model_tier"]),
     )

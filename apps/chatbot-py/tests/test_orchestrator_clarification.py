@@ -95,6 +95,8 @@ def _prompt_row(template: str = "[TEMPLATE]") -> dict[str, Any]:
         "thinking_enabled": False,
         "target_model": "gemini-2.5-flash",
         "output_contract": "string",
+        "static_response": None,
+        "model_tier": "standard",
     }
 
 

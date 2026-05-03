@@ -48,6 +48,7 @@ import asyncpg
 from app.agents.base import AgentResult
 from app.agents.t2 import CitationAgent, HistoricalAgent, InvestigatorAgent
 from app.config import settings
+from app.exceptions import SpecialistParsingError
 from app.llm.base import LLMClient, LLMRequest
 from app.services import clarification as _clarification
 from app.services.intent_grammar import (
@@ -73,6 +74,7 @@ from app.services.router_context import (
     load_question_types_list,
     render_router_template,
 )
+from app.utils.json_helpers import extract_first_json, is_static_response
 
 _logger = logging.getLogger(__name__)
 
@@ -255,12 +257,119 @@ async def _invoke_specialist(
             error=f"Aucun prompt actif pour {bearer_label}",
         )
 
+    # Static-response short-circuit — when the prompt row carries a
+    # non-empty static_response (migration 070), surface it verbatim and
+    # skip the LLM call entirely. Currently a no-op for the 3 T2
+    # specialists (none of them have static_response seeded), but the
+    # branch is in place so a Phase 4 prompt update lands cost-free.
+    if is_static_response(meta):
+        return _SpecialistOutcome(
+            bearer_label=bearer_label,
+            output={"static_response": meta["static_response"]},
+            success=True,
+            error=None,
+        )
+
     agent_result = await invoker(meta, ctx)
     return _SpecialistOutcome(
         bearer_label=bearer_label,
         output=agent_result.output,
         success=agent_result.success,
         error=agent_result.error,
+    )
+
+
+# ---------------------------------------------------------------------------
+# JSON-contract specialist runner — used by the 6 new specialists wired
+# in C17 (reporter / visualizer / diff / referential_ingestor /
+# rule_form_assist). The 3 T2 specialists already in production
+# (citation, investigator, historical) keep their own json.loads in
+# their AgentResult-returning methods; they will migrate to this helper
+# in Phase 4 once the dispatch table is updated to consume JSON dicts
+# directly. Splitting C13 (the helper) from C17 (the call sites) keeps
+# the diff for each commit small and reversible.
+# ---------------------------------------------------------------------------
+
+
+_JSON_RETRY_PROMPT: Final[str] = (
+    "Votre réponse précédente n'était pas un JSON valide. "
+    "Produisez uniquement un objet JSON conforme au schéma. "
+    "Aucun texte avant ou après. Aucun backtick."
+)
+
+
+def _render_specialist_prompt(template: str, payload: dict[str, Any]) -> str:
+    """Serialise the payload into the user-facing prompt body.
+
+    The aggregator prompts use the same `json.dumps(..., ensure_ascii=
+    False, indent=2)` convention so a future merge with `_invoke_aggregator`'s
+    payload renderer is mechanical. `template` is unused at this layer
+    (it lives in `system_prompt` of the LLM request); it stays in the
+    signature so callers do not need to know which side of the request
+    consumes it.
+    """
+    del template  # consumed via system_prompt by the caller
+    return json.dumps(payload, ensure_ascii=False, indent=2)
+
+
+async def _invoke_specialist_json(
+    meta: PromptMeta,
+    llm_client: LLMClient,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    """Invoke a JSON-contract specialist and return the parsed output.
+
+    Pipeline:
+      1. static_response short-circuit — if the prompt row carries a
+         pre-canned response, try to parse it as JSON. If it parses
+         (rare but valid for fully-canned envelope responses), return
+         the parsed dict. Otherwise wrap it under a `static_response`
+         key so the caller still has access to the raw text.
+      2. LLM call — temperature/max_tokens/thinking_enabled inherited
+         from the prompt row.
+      3. extract_first_json — recovers the dict from any prose wrapper
+         the LLM may have leaked.
+      4. Retry once with a corrective prompt if the first pass fails.
+      5. Raise SpecialistParsingError if the retry also fails — the
+         orchestrator catches this and degrades the user-facing
+         response gracefully.
+
+    Used by the 6 new C17 specialists; the existing T2 specialists
+    keep their per-class json.loads pending the Phase 4 migration.
+    """
+    if is_static_response(meta):
+        canned: str = str(meta["static_response"])
+        parsed_canned = extract_first_json(canned)
+        if parsed_canned is not None:
+            return parsed_canned
+        return {"static_response": canned}
+
+    request = LLMRequest(
+        prompt=_render_specialist_prompt(meta["template"], payload),
+        temperature=meta["temperature"],
+        max_tokens=meta["max_tokens"],
+        thinking_enabled=meta["thinking_enabled"],
+        system_prompt=meta["template"],
+    )
+    response = await llm_client.complete(request)
+    parsed = extract_first_json(response.content)
+    if parsed is not None:
+        return parsed
+
+    retry_request = LLMRequest(
+        prompt=_JSON_RETRY_PROMPT,
+        temperature=0.0,
+        max_tokens=meta["max_tokens"],
+        thinking_enabled=False,
+        system_prompt=meta["template"],
+    )
+    retry_response = await llm_client.complete(retry_request)
+    retry_parsed = extract_first_json(retry_response.content)
+    if retry_parsed is not None:
+        return retry_parsed
+
+    raise SpecialistParsingError(
+        "JSON-contract specialist returned an unparseable payload after one retry."
     )
 
 
@@ -503,6 +612,19 @@ async def _invoke_aggregator(
     (other prompts ignore unknown payload keys) but the orchestrator
     only sets it for `ambiguous` to keep the payload minimal.
     """
+    # Static-response short-circuit — when the aggregator prompt row
+    # carries a non-empty static_response (migration 070, applies today
+    # to regalica/aggregate_out_of_scope), surface it verbatim and skip
+    # the Gemini round-trip entirely. Token counters report zero so the
+    # downstream cost reporter records the savings.
+    if is_static_response(aggregator_meta):
+        return {
+            "response_markdown": aggregator_meta["static_response"],
+            "tokens_input": 0,
+            "tokens_output": 0,
+            "tokens_thinking": 0,
+        }
+
     payload: dict[str, Any] = {
         "user_message": message,
         "intent_type": intent,
