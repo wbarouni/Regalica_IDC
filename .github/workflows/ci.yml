@@ -234,7 +234,11 @@ jobs:
       - working-directory: apps/chatbot-py
         run: uv sync
       - working-directory: apps/chatbot-py
-        run: uv run pytest --cov=app --cov-report=term-missing
+        # Excludes GAUNTLET golden recette tests (run manually via
+        # `uv run pytest -m gauntlet_golden`) — they assert ground truth
+        # captured by the operator from BCT submissions and live in the
+        # tenant-001 fixtures, not in the chatbot-py codebase.
+        run: uv run pytest --cov=app --cov-report=term-missing -m "not gauntlet_golden"
 
   test-bct-xml-parser:
     name: Test @regflow/bct-xml-parser (Jest)
