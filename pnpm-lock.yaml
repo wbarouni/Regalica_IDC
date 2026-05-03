@@ -29,6 +29,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@regflow/evaluator':
+        specifier: workspace:*
+        version: link:../../packages/evaluator
       cors:
         specifier: ^2.8.5
         version: 2.8.6

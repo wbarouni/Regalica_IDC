@@ -11,6 +11,11 @@ module.exports = {
   // ts-jest CJS preset.
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
+    // Workspace package aliases — pre-built dist artifacts are not required
+    // for test/typecheck because we resolve directly to the source tree
+    // (mirrors packages/evaluator/jest.config.cjs).
+    '^@regflow/evaluator$': '<rootDir>/../../packages/evaluator/src/index.ts',
+    '^@regflow/bct-xml-parser$': '<rootDir>/../../packages/bct-xml-parser/src/index.ts',
   },
   collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts', '!src/index.ts'],
   coverageDirectory: 'coverage',

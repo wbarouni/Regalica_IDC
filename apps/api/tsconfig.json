@@ -4,8 +4,12 @@
     "module": "CommonJS",
     "moduleResolution": "Node",
     "outDir": "./dist",
-    "rootDir": ".",
-    "types": ["node", "jest"]
+    "types": ["node", "jest"],
+    "baseUrl": ".",
+    "paths": {
+      "@regflow/evaluator": ["../../packages/evaluator/src/index.ts"],
+      "@regflow/bct-xml-parser": ["../../packages/bct-xml-parser/src/index.ts"]
+    }
   },
   "include": ["src/**/*", "test/**/*"],
   "exclude": ["node_modules", "dist", "coverage"]

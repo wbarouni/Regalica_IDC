@@ -1,15 +1,31 @@
+import { gunzipSync } from 'node:zlib';
+
+import {
+  loadRules,
+  parseBatch,
+  runEvaluation,
+  type EvaluationResult,
+  type Verdict,
+} from '@regflow/evaluator';
 import { Router, type IRouter, type Request, type Response } from 'express';
 import type { Pool } from 'pg';
 import { z } from 'zod';
 
 import { handleDbError } from '../db/errors.js';
 import { emitAgentStep } from '../lib/runEventBus.js';
+import {
+  PlatformConfigMissingError,
+  PlatformConfigTypeError,
+  getPlatformConfigNumber,
+} from '../lib/platformConfig.js';
 import { engineAuthMiddleware } from '../middleware/engineAuth.js';
 import { withConnection } from '../db/withConnection.js';
+import { logger } from '../logger.js';
 import {
   HTTP_BAD_REQUEST,
   HTTP_CREATED,
   HTTP_FORBIDDEN,
+  HTTP_INTERNAL_SERVER_ERROR,
   HTTP_NOT_FOUND,
   HTTP_OK,
 } from '../lib/http.js';
@@ -80,6 +96,153 @@ const messageBody = z.object({
   metadata: z.record(z.unknown()).optional(),
   produced_by_agent: z.string().max(50).optional(),
 });
+
+const evaluateBody = z.object({
+  arrete_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+});
+
+// ---------------------------------------------------------------------------
+// Severity classification — pure helper, no DB.
+//
+// The evaluator engine emits Verdict.severity in {'severe','rounding',null}
+// (cf. packages/evaluator/src/types.ts). The HTTP route maps that 3-value
+// enum to the REGFlow front-facing {'BLOQUANT','MAJEUR','MINEUR',null}
+// taxonomy using a per-deployment threshold seeded in platform_config
+// (see migration 071 + loadSeverityThreshold below).
+//
+// Rule:
+//   severity=null              -> null
+//   severity='rounding'        -> 'MINEUR'
+//   severity='severe' AND
+//     |gap_relative| > T       -> 'BLOQUANT'   (strictly greater)
+//   severity='severe' AND
+//     |gap_relative| <= T      -> 'MAJEUR'
+// ---------------------------------------------------------------------------
+
+export function mapSeverity(
+  severity: 'severe' | 'rounding' | null,
+  gapRelative: number | null,
+  threshold: number,
+): 'BLOQUANT' | 'MAJEUR' | 'MINEUR' | null {
+  if (severity === null) return null;
+  if (severity === 'rounding') return 'MINEUR';
+  return Math.abs(gapRelative ?? 0) > threshold ? 'BLOQUANT' : 'MAJEUR';
+}
+
+// Documented fallback used when the platform_config row is missing or
+// holds an unparseable value — every divergence is logged so an
+// operator notices the misconfiguration. The doctrine source of
+// truth stays platform_config (migration 071 default).
+const SEVERITY_THRESHOLD_FALLBACK = 0.1;
+
+export async function loadSeverityThreshold(pool: Pool): Promise<number> {
+  try {
+    return await getPlatformConfigNumber(pool, 'severity_gap_relative_threshold');
+  } catch (err) {
+    if (err instanceof PlatformConfigMissingError || err instanceof PlatformConfigTypeError) {
+      logger.warn(
+        { err: err.message, fallback: SEVERITY_THRESHOLD_FALLBACK },
+        'severity_gap_relative_threshold unavailable in platform_config; using documented fallback',
+      );
+      return SEVERITY_THRESHOLD_FALLBACK;
+    }
+    throw err;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// HTTP response shape for POST /api/engine/runs/:runId/evaluate.
+//
+// Decimal columns of the Verdict are surfaced as strings to preserve
+// the 38-digit precision contract (cf. CLAUDE.md §2 — decimal.js /
+// Decimal stdlib). gap_relative stays a number because percentages
+// fit safely in JS doubles.
+// ---------------------------------------------------------------------------
+
+interface MappedVerdict {
+  ax_term: string;
+  num_regle: number;
+  status: string;
+  severity: 'BLOQUANT' | 'MAJEUR' | 'MINEUR' | null;
+  lhs: string | null;
+  rhs: string | null;
+  gap: string | null;
+  gap_relative: number | null;
+}
+
+interface EngineEvaluateTotals {
+  pass: number;
+  fail_severe: number;
+  fail_rounding: number;
+  skipped_missing_annexe: number;
+  skipped_missing_rubrique: number;
+  skipped_missing_colonne: number;
+  skipped_missing_data: number;
+  skipped_conditional: number;
+  skipped_unsupported_op: number;
+  skipped_literal_text: number;
+  rules_applicable_total: number;
+}
+
+interface XmlUploadRow {
+  content_compressed: Buffer;
+  compression_algo: string;
+  encoding_detected: string;
+  file_name: string;
+}
+
+function decompressXmlRow(row: XmlUploadRow): string {
+  const blob = row.content_compressed;
+  const encoding = row.encoding_detected !== '' ? row.encoding_detected : 'utf-8';
+  let raw: Buffer;
+  if (row.compression_algo === 'gzip') {
+    raw = gunzipSync(blob);
+  } else if (row.compression_algo === 'raw') {
+    raw = blob;
+  } else {
+    throw new Error(`unsupported compression_algo '${row.compression_algo}' in xml_uploads`);
+  }
+  return raw.toString(encoding as BufferEncoding);
+}
+
+function mapTotals(result: EvaluationResult): EngineEvaluateTotals {
+  const t = result.totals;
+  return {
+    pass: t.pass,
+    fail_severe: t.failSevere,
+    fail_rounding: t.failRounding,
+    skipped_missing_annexe: t.skippedMissingAnnexe,
+    skipped_missing_rubrique: t.skippedMissingRubrique,
+    skipped_missing_colonne: t.skippedMissingColonne,
+    skipped_missing_data: t.skippedMissingData,
+    skipped_conditional: t.skippedConditional,
+    skipped_unsupported_op: t.skippedUnsupportedOp,
+    skipped_literal_text: t.skippedLiteralText,
+    rules_applicable_total: t.rulesApplicableTotal,
+  };
+}
+
+function mapVerdict(v: Verdict, threshold: number): MappedVerdict {
+  return {
+    ax_term: v.annexeCode,
+    num_regle: v.numRegle,
+    status: v.status,
+    severity: mapSeverity(
+      v.severity,
+      v.gap !== null && v.rhs !== null && !v.rhs.isZero()
+        ? v.gap.dividedBy(v.rhs).toNumber()
+        : null,
+      threshold,
+    ),
+    lhs: v.lhs !== null ? v.lhs.toString() : null,
+    rhs: v.rhs !== null ? v.rhs.toString() : null,
+    gap: v.gap !== null ? v.gap.toString() : null,
+    gap_relative:
+      v.gap !== null && v.rhs !== null && !v.rhs.isZero()
+        ? v.gap.dividedBy(v.rhs).toNumber()
+        : null,
+  };
+}
 
 interface AgentStepRow {
   id: string;
@@ -422,6 +585,147 @@ export function engineRouter(pool: Pool): IRouter {
     } catch (err) {
       handleDbError(err, res);
     }
+  });
+
+  // -------------------------------------------------------------------
+  // POST /runs/:runId/evaluate
+  //
+  // Drive the full RDG validation pipeline for a run:
+  //   1. Load every XML attached to the run (validation_run_uploads).
+  //   2. Decompress and feed parseBatch() (Phase A of the engine).
+  //   3. Load active rules for the arrete_date via loadRules().
+  //   4. Run the evaluator engine.
+  //   5. Map the result to the HTTP envelope (Decimal -> string,
+  //      severity -> BLOQUANT/MAJEUR/MINEUR via the platform_config
+  //      threshold).
+  //
+  // No persistence happens here: the caller (chatbot-py) writes
+  // fail-details and totals through the existing dedicated routes.
+  // -------------------------------------------------------------------
+  router.post('/runs/:runId/evaluate', async (req: Request, res: Response) => {
+    const runId = req.params['runId'];
+    const tenantId = res.locals['enginePayloadTenantId'] as string | undefined;
+    if (typeof runId !== 'string' || !UUID_RE.test(runId)) {
+      res.status(HTTP_BAD_REQUEST).json({
+        error: { code: 'INVALID_RUN_ID', message: 'runId must be a UUID' },
+      });
+      return;
+    }
+    if (typeof tenantId !== 'string' || !UUID_RE.test(tenantId)) {
+      res.status(HTTP_BAD_REQUEST).json({
+        error: {
+          code: 'MISSING_TENANT_CLAIM',
+          message: 'JWT payload must include a UUID `tenant_id` claim',
+        },
+      });
+      return;
+    }
+    const parsed = evaluateBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(HTTP_BAD_REQUEST).json({
+        error: {
+          code: 'INVALID_ARRETE_DATE',
+          message: 'arrete_date must match ISO YYYY-MM-DD',
+        },
+      });
+      return;
+    }
+
+    const arreteDate = parsed.data.arrete_date;
+
+    let rows: XmlUploadRow[];
+    try {
+      rows = await withConnection(pool, { tenantId, userId: tenantId }, async (client) => {
+        const r = await client.query<XmlUploadRow>(
+          `SELECT u.content_compressed, u.compression_algo,
+                  u.encoding_detected, u.file_name
+             FROM xml_uploads u
+             JOIN validation_run_uploads vru ON vru.xml_upload_id = u.id
+            WHERE vru.validation_run_id = $1::uuid
+              AND u.tenant_id = $2::uuid
+              AND u.deleted_at IS NULL`,
+          [runId, tenantId],
+        );
+        return r.rows;
+      });
+    } catch (err) {
+      handleDbError(err, res);
+      return;
+    }
+    if (rows.length === 0) {
+      res.status(HTTP_NOT_FOUND).json({
+        error: {
+          code: 'RUN_XML_NOT_FOUND',
+          message: 'no xml uploads attached to this run for tenant',
+        },
+      });
+      return;
+    }
+
+    let xmlStrings: string[];
+    try {
+      xmlStrings = rows.map((row) => decompressXmlRow(row));
+    } catch (err) {
+      logger.error({ err, runId }, 'xml decompression failed');
+      res.status(HTTP_INTERNAL_SERVER_ERROR).json({
+        error: {
+          code: 'XML_DECOMPRESSION_ERROR',
+          message: 'failed to decompress one or more xml uploads',
+        },
+      });
+      return;
+    }
+
+    let result: EvaluationResult;
+    let threshold: number;
+    try {
+      threshold = await loadSeverityThreshold(pool);
+      const phaseA = parseBatch(xmlStrings);
+      // ParsedXml does not carry a filename property — keys are derived
+      // from the matching xml_uploads row when available, falling back
+      // to a synthetic xml-N identifier (the engine does not interpret
+      // the key, only its uniqueness matters for deduplication).
+      const parsedXmlsMap = new Map(
+        phaseA.parsedXmls.map((p, idx) => [rows[idx]?.file_name ?? `xml-${idx}`, p]),
+      );
+      const rules = await loadRules({
+        pool,
+        tenantId,
+        arreteDate: new Date(arreteDate),
+        statuses: ['active'],
+      });
+      result = await runEvaluation({
+        tenantId,
+        arreteDate,
+        parsedXmls: parsedXmlsMap,
+        mergedCells: phaseA.mergedCells,
+        rules,
+      });
+    } catch (err) {
+      logger.error({ err, runId, arreteDate }, 'runEvaluation failed');
+      res.status(HTTP_INTERNAL_SERVER_ERROR).json({
+        error: {
+          code: 'EVALUATION_ENGINE_ERROR',
+          message: 'evaluator engine raised — see server logs for details',
+        },
+      });
+      return;
+    }
+
+    const verdicts = result.verdicts.map((v) => mapVerdict(v, threshold));
+    const totals = mapTotals(result);
+
+    res.status(HTTP_OK).json({
+      data: {
+        run_id: runId,
+        arrete_date: arreteDate,
+        evaluated_at: new Date().toISOString(),
+        duration_ms: result.durationMs,
+        verdicts,
+        totals,
+      },
+      meta: { ts: new Date().toISOString(), version: '1' },
+    });
   });
 
   return router;
