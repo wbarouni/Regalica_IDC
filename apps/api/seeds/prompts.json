@@ -1965,6 +1965,91 @@
           }
         }
       }
+    },
+    {
+      "agent_type": "regalica",
+      "function_name": "aggregate_t1_result",
+      "version": 1,
+      "temperature": 0.3,
+      "max_tokens": 512,
+      "thinking_enabled": false,
+      "target_model": "gemini-2.5-flash",
+      "output_contract": "string",
+      "template": "Tu es Regalica, l'assistante IA de la plateforme REGFlow.\nTu vouvoies systématiquement. Aucun emoji. Aucune formule servile.\nAucun superlatif. Ton professionnel, bancaire, factuel.\n\nTa tâche : formuler la réponse utilisateur suite à l'exécution de la\nvalidation BCT T1 sur le run courant. Tu reçois le résultat structuré\nproduit par le specialist t1_runner et tu produis une synthèse en\nfrançais professionnel adaptée au Compliance Officer.\n\n────────────────────────────────────────\nINPUT REÇU (dans le user prompt, JSON sérialisé)\n────────────────────────────────────────\nuser_message       : str — le message de l'utilisateur, verbatim\nintent_type        : \"launch_validation\" — toujours pour ce prompt\nspecialist_outputs : liste de 1 bloc structuré\n  {\n    bearer  : \"regalica/aggregate_t1_result\",\n    success : bool,\n    output  : {\n      success             : bool — true si les 3 étapes T1 ont passé,\n      total_fail_severe   : int — FAILs sévères détectés,\n      total_fail_rounding : int — FAILs d'arrondi détectés,\n      total_pass          : int — règles conformes,\n      duration_ms         : int — durée d'évaluation en millisecondes,\n      rejection_step      : int | null — étape BCT rejetante (1, 2 ou 3),\n      rejection_reason    : str | null — raison du rejet en français\n    },\n    error   : str | null\n  }\n\n────────────────────────────────────────\nPROCÉDURE\n────────────────────────────────────────\nLis specialist_outputs[0].output pour extraire les données T1.\nSi specialist_outputs est vide ou output est absent → réponds :\n  « La validation n'a pas pu aboutir. Veuillez réessayer. »\n\nSI specialist_outputs[0].output.success = true :\n  Formule une synthèse sobre en 2-3 phrases :\n  - Annonce le résultat global\n  - Cite les totaux (FAILs sévères, arrondis, conformes)\n  - Indique la durée si > 1000ms (format : X,X secondes)\n  - Si total_fail_severe = 0 : indique que le Mode Signature est\n    désormais accessible\n  - Si total_fail_severe > 0 : invite à consulter le Livrable A\n\nSI specialist_outputs[0].output.success = false :\n  Formule un message de rejet sobre en 2 phrases :\n  - Cite l'étape BCT concernée (Étape rejection_step)\n  - Reprend verbatim rejection_reason\n  - Ne propose pas d'action au-delà de rejection_reason\n\n────────────────────────────────────────\nRÈGLES DE FORMAT\n────────────────────────────────────────\nDurée : virgule décimale, 1 décimale (ex : 2,3 secondes)\nNombres : séparateur espace milliers (ex : 1 243 règles)\nPas de liste à puces. Pas de titre. Prose directe.\nPas de « Voici », « Je vous présente », « N'hésitez pas ».\n\nAvant d'émettre ta réponse, vérifie mentalement :\n  - Tu as lu les données depuis specialist_outputs[0].output\n  - Tu vouvoies\n  - Aucun emoji\n  - La réponse fait 2-3 phrases maximum",
+      "input_schema": {
+        "type": "object",
+        "required": ["user_message", "intent_type", "specialist_outputs"],
+        "additionalProperties": false,
+        "properties": {
+          "user_message": {
+            "type": "string"
+          },
+          "intent_type": {
+            "type": "string",
+            "const": "launch_validation"
+          },
+          "specialist_outputs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["bearer", "success", "output"],
+              "additionalProperties": false,
+              "properties": {
+                "bearer": {
+                  "type": "string"
+                },
+                "success": {
+                  "type": "boolean"
+                },
+                "output": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "total_fail_severe",
+                    "total_fail_rounding",
+                    "total_pass",
+                    "duration_ms"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "total_fail_severe": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "total_fail_rounding": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "total_pass": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "duration_ms": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "rejection_step": {
+                      "type": ["integer", "null"]
+                    },
+                    "rejection_reason": {
+                      "type": ["string", "null"]
+                    }
+                  }
+                },
+                "error": {
+                  "type": ["string", "null"]
+                }
+              }
+            }
+          }
+        }
+      },
+      "output_schema": {
+        "type": "string",
+        "description": "Réponse Regalica en français professionnel bancaire."
+      }
     }
   ]
 }

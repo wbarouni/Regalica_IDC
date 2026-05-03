@@ -259,6 +259,97 @@ async def _call_rule_form_assist(meta: PromptMeta, ctx: _SpecialistContext) -> A
     return await RuleFormAssistAgent().execute(ctx, meta)
 
 
+async def _call_t1_runner(meta: PromptMeta, ctx: _SpecialistContext) -> AgentResult:
+    """Specialist for the launch_validation intent (C17b).
+
+    Bypasses the LLM entirely — calls _run_t1_validation in process to
+    drive the 3-step BCT pipeline. The shared `meta` (the regalica/
+    aggregate_t1_result prompt) is loaded by _invoke_specialist as a
+    bearer formality but unused here; the aggregator step downstream
+    re-loads the same prompt and invokes the LLM with the canonical
+    payload (user_message, intent_type, specialist_outputs[0]).
+
+    Returns an AgentResult whose `output` carries the 7-key T1 result
+    block expected by the aggregator's input_schema (success / totals /
+    duration_ms / rejection_step / rejection_reason).
+    """
+    del meta  # Not used — see docstring.
+
+    if ctx.current_run_id is None:
+        return AgentResult(
+            agent_name="t1_runner",
+            success=False,
+            output={
+                "success": False,
+                "total_fail_severe": 0,
+                "total_fail_rounding": 0,
+                "total_pass": 0,
+                "duration_ms": 0,
+                "rejection_step": None,
+                "rejection_reason": (
+                    "Aucun run actif. Veuillez d'abord charger vos fichiers XML via l'interface."
+                ),
+            },
+            error="no_active_run",
+        )
+
+    if ctx.api_client is None:
+        return AgentResult(
+            agent_name="t1_runner",
+            success=False,
+            output={
+                "success": False,
+                "total_fail_severe": 0,
+                "total_fail_rounding": 0,
+                "total_pass": 0,
+                "duration_ms": 0,
+                "rejection_step": None,
+                "rejection_reason": (
+                    "Le client moteur n'est pas configuré. Contactez votre administrateur."
+                ),
+            },
+            error="no_api_client",
+        )
+
+    try:
+        result = await _run_t1_validation(
+            pool=ctx.pool,
+            run_id=ctx.current_run_id,
+            tenant_id=ctx.tenant_id,
+            api_client=ctx.api_client,
+        )
+    except T1RejectionError as exc:
+        return AgentResult(
+            agent_name="t1_runner",
+            success=False,
+            output={
+                "success": False,
+                "total_fail_severe": 0,
+                "total_fail_rounding": 0,
+                "total_pass": 0,
+                "duration_ms": 0,
+                "rejection_step": exc.step,
+                "rejection_reason": exc.reason,
+            },
+            error=f"t1_rejected_step_{exc.step}",
+        )
+
+    return AgentResult(
+        agent_name="t1_runner",
+        success=True,
+        output={
+            "success": True,
+            "total_fail_severe": result["totals"]["fail_severe"],
+            "total_fail_rounding": result["totals"]["fail_rounding"],
+            "total_pass": result["totals"]["pass_"],
+            "duration_ms": result["duration_ms"],
+            "rejection_step": None,
+            "rejection_reason": None,
+        },
+        error=None,
+    )
+
+
 # (specialist_id) -> async callable that does (load+run) the agent.
 # This is the ONLY in-source dispatch table that survives commit C8 —
 # every other key list (intent enum, specialists per intent, bearer
@@ -279,6 +370,7 @@ _SPECIALIST_INVOKERS: dict[
     "diff_narrate": _call_diff_narrate,
     "referential_ingestor_pdf": _call_referential_ingestor_pdf,
     "rule_form_assist": _call_rule_form_assist,
+    "t1_runner": _call_t1_runner,
 }
 
 
