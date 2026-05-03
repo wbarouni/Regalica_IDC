@@ -18,6 +18,16 @@ COPY packages/ui/package.json ./packages/ui/
 
 RUN pnpm install --filter @regflow/api...
 
+# Copy + build every workspace package the API depends on. tsconfig.build.json
+# clears the dev-time `paths` so tsc resolves @regflow/* via node_modules
+# (i.e. the workspace symlinks pointing at the freshly built dist of each
+# package). The dev-time tsconfig.json keeps the paths so local typecheck
+# / ts-jest do not need a pre-built dist.
+COPY packages/bct-xml-parser ./packages/bct-xml-parser
+COPY packages/evaluator ./packages/evaluator
+RUN pnpm --filter @regflow/bct-xml-parser build && \
+    pnpm --filter @regflow/evaluator build
+
 COPY apps/api ./apps/api
 
 RUN pnpm --filter @regflow/api build && \
