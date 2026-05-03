@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "test": "jest",
     "test:golden": "jest --testPathPattern=golden",
     "test:golden:capture": "REGFLOW_GOLDEN_MODE=capture jest --testPathPattern=golden",
