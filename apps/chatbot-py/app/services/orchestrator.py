@@ -47,8 +47,14 @@ import asyncpg
 
 from app.agents.base import AgentResult
 from app.agents.t2 import CitationAgent, HistoricalAgent, InvestigatorAgent
+from app.clients.regflow_api import EvaluateRunResult, RegflowApiClient
 from app.config import settings
-from app.exceptions import SpecialistParsingError
+from app.exceptions import (
+    EvaluationError,
+    EvaluationTimeoutError,
+    SpecialistParsingError,
+    T1RejectionError,
+)
 from app.llm.base import LLMClient, LLMRequest
 from app.services import clarification as _clarification
 from app.services.intent_grammar import (
@@ -933,3 +939,210 @@ def _build_no_router_result(message: str, start: float) -> OrchestratorResult:
         tokens_thinking=0,
         latency_ms=int((time.monotonic() - start) * 1000),
     )
+
+
+# ---------------------------------------------------------------------------
+# T1 dispatch — pure helpers exported for the launch-validation entry point.
+#
+# C16 ships these as standalone functions, NOT wired into the conversational
+# flow. C17 will add the conversational entry (intent + specialist) so a
+# Compliance Officer can trigger T1 from the chat. The pure-function shape
+# keeps E2E tests (C18) trivial: build a pool/mock, build an api_client/mock,
+# call _run_t1_validation directly.
+# ---------------------------------------------------------------------------
+
+# Doctrinal T0 markers used to map run_agent_steps rows back to the three
+# booleans the T1 dispatcher checks. Identical to the keys of upload.py
+# `_DISPATCH` (the source of truth for T0 dispatch) and to migration 057's
+# T0 seed in `workflow_steps`. Hardcoded here strictly for the post-DB-fetch
+# bool mapping; the SQL itself filters T0 rows via `workflow_steps.phase`,
+# never via these strings.
+_T0_INGESTOR: Final[str] = "ingestor_xml"
+_T0_DEPENDENCY: Final[str] = "dependency"
+_T0_TEMPORAL: Final[str] = "temporal"
+
+# Engine call timeout — operator-tunable in a future commit; today the
+# fallback covers heavy historical batches with the engine p95 < 3s on
+# standard XMLs.
+_T1_EVALUATE_TIMEOUT_SECONDS: Final[float] = 30.0
+
+
+async def _check_t0_agents_status(
+    pool: asyncpg.Pool,
+    run_id: str,
+    tenant_id: str,
+) -> tuple[bool, bool, bool]:
+    """Return (ingestor_done, dependency_done, temporal_done) for a run.
+
+    Reads `run_agent_steps` JOINed against `workflow_steps` to filter the
+    T0 phase via the `phase` column (no hardcoded agent_type set in SQL).
+    Each boolean is True iff the matching row reports `status='done'`;
+    'pending'/'current'/'error'/absent all map to False.
+
+    The post-fetch mapping uses the canonical T0 marker constants
+    above; if a T0 row has been renamed in workflow_steps (no agent_type
+    matches one of the constants), its boolean stays False — the operator
+    must update the constants alongside the rename.
+    """
+    rows = await pool.fetch(
+        """
+        SELECT ras.agent_type,
+               ras.function_name,
+               ras.status
+          FROM run_agent_steps ras
+          JOIN workflow_steps ws
+            ON ws.agent_type    = ras.agent_type
+           AND ws.function_name = ras.function_name
+         WHERE ras.run_id    = $1::uuid
+           AND ras.tenant_id = $2::uuid
+           AND ras.deleted_at IS NULL
+           AND ws.phase      = 'T0'
+           AND ws.is_active  = TRUE
+           AND ws.deleted_at IS NULL
+        """,
+        run_id,
+        tenant_id,
+    )
+
+    statuses: dict[str, str] = {str(row["agent_type"]): str(row["status"]) for row in rows}
+
+    return (
+        statuses.get(_T0_INGESTOR) == "done",
+        statuses.get(_T0_DEPENDENCY) == "done",
+        statuses.get(_T0_TEMPORAL) == "done",
+    )
+
+
+async def _get_run_arrete_date(
+    pool: asyncpg.Pool,
+    run_id: str,
+    tenant_id: str,
+) -> str | None:
+    """Read the validation_runs.arrete_date for a run as ISO YYYY-MM-DD.
+
+    Returns None when the run does not exist for the tenant — the caller
+    surfaces a T1RejectionError step=3 in that case. asyncpg returns
+    `datetime.date` for DATE columns; `.isoformat()` produces the
+    canonical YYYY-MM-DD shape that evaluate_run() expects.
+    """
+    row = await pool.fetchrow(
+        """
+        SELECT arrete_date
+          FROM validation_runs
+         WHERE id        = $1::uuid
+           AND tenant_id = $2::uuid
+        """,
+        run_id,
+        tenant_id,
+    )
+    if row is None:
+        return None
+    arrete = row["arrete_date"]
+    if hasattr(arrete, "isoformat"):
+        return str(arrete.isoformat())
+    return str(arrete)
+
+
+async def _run_t1_validation(
+    pool: asyncpg.Pool,
+    run_id: str,
+    tenant_id: str,
+    api_client: RegflowApiClient,
+) -> EvaluateRunResult:
+    """T1 — three-step BCT validation pipeline (doctrine doc 04).
+
+    Step 1: XSD structure — `ingestor_xml` must be `done` in run_agent_steps.
+    Step 2: embedded controls — `dependency` AND `temporal` must be `done`.
+    Step 3: RDG quality — call `evaluate_run()` on the engine route (C14/C15).
+
+    Each step rejects definitively via T1RejectionError carrying the BCT
+    step number and a French-professional reason string suitable for direct
+    Regalica display. No automatic retry inside T1; the user re-launches
+    via the conversational entry that C17 will wire.
+
+    Args:
+        pool: asyncpg pool used by the two T0/run lookups.
+        run_id: validation_runs.id to evaluate.
+        tenant_id: tenant the run belongs to (RLS + JWT signing).
+        api_client: shared RegflowApiClient instance (the caller owns its
+            lifecycle; T1 does not aclose it).
+
+    Returns:
+        EvaluateRunResult — verdicts + 11-key totals.
+
+    Raises:
+        T1RejectionError: any of the three steps rejects.
+    """
+    ingestor_done, dependency_done, temporal_done = await _check_t0_agents_status(
+        pool, run_id, tenant_id
+    )
+
+    if not ingestor_done:
+        raise T1RejectionError(
+            step=1,
+            reason=(
+                "La structure XSD du fichier n'a pas pu être validée. "
+                "L'agent d'ingestion XML n'a pas terminé avec succès. "
+                "Veuillez vérifier le format de votre fichier et le "
+                "soumettre à nouveau."
+            ),
+        )
+
+    if not dependency_done:
+        raise T1RejectionError(
+            step=2,
+            reason=(
+                "Les annexes compagnes requises n'ont pas été vérifiées. "
+                "L'agent de dépendance inter-annexes n'a pas terminé avec "
+                "succès. Veuillez vérifier que toutes les annexes requises "
+                "ont été chargées avant de relancer."
+            ),
+        )
+
+    if not temporal_done:
+        raise T1RejectionError(
+            step=2,
+            reason=(
+                "La cohérence temporelle entre les fichiers n'a pas pu être "
+                "vérifiée. L'agent temporal n'a pas terminé avec succès. "
+                "Veuillez vérifier que tous vos fichiers partagent la même "
+                "date d'arrêté."
+            ),
+        )
+
+    arrete_date = await _get_run_arrete_date(pool, run_id, tenant_id)
+    if arrete_date is None:
+        raise T1RejectionError(
+            step=3,
+            reason=(
+                "Le run demandé est introuvable ou la date d'arrêté n'est "
+                "pas renseignée. Impossible de lancer l'évaluation RDG."
+            ),
+        )
+
+    try:
+        return await api_client.evaluate_run(
+            run_id=run_id,
+            tenant_id=tenant_id,
+            arrete_date=arrete_date,
+            timeout_seconds=_T1_EVALUATE_TIMEOUT_SECONDS,
+        )
+    except EvaluationTimeoutError as exc:
+        raise T1RejectionError(
+            step=3,
+            reason=(
+                f"Le moteur d'évaluation RDG n'a pas répondu dans le délai "
+                f"imparti ({int(_T1_EVALUATE_TIMEOUT_SECONDS)} secondes). "
+                f"Veuillez réessayer dans quelques instants. Si le problème "
+                f"persiste, contactez votre administrateur."
+            ),
+        ) from exc
+    except EvaluationError as exc:
+        raise T1RejectionError(
+            step=3,
+            reason=(
+                f"Le moteur d'évaluation RDG a retourné une erreur "
+                f"(code {exc.status_code}). Veuillez contacter votre "
+                f"administrateur si le problème persiste."
+            ),
+        ) from exc

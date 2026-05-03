@@ -45,3 +45,22 @@ class EvaluationTimeoutError(EvaluationError):
         )
         self.run_id = run_id
         self.timeout_seconds = timeout_seconds
+
+
+class T1RejectionError(Exception):
+    """Raised when one of the three T1 validation steps definitively
+    rejects a run.
+
+    Attributes:
+        step:   BCT-doctrine step that rejected (1 = XSD structure,
+                2 = embedded controls, 3 = RDG quality).
+        reason: French-professional message destined to Regalica for
+                user-facing display. The string is composed at the
+                rejection site so the orchestrator does not need to
+                map step numbers back to messages.
+    """
+
+    def __init__(self, step: int, reason: str) -> None:
+        self.step = step
+        self.reason = reason
+        super().__init__(f"T1 rejeté étape {step}: {reason}")
