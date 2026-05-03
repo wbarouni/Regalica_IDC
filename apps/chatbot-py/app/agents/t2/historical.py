@@ -23,12 +23,17 @@ from __future__ import annotations
 
 import json
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import asyncpg
 
 from app.agents.base import AgentResult
+from app.agents.base_specialist import BaseSpecialistAgent
 from app.llm.base import LLMClient, LLMRequest
+
+if TYPE_CHECKING:
+    from app.services.orchestrator import _SpecialistContext
+    from app.services.prompt_loader import PromptMeta
 
 # Maximum number of previous runs included in the comparison window.
 # The doctrine (doc 09 §14) accepts up to 24 runs by default; Phase 3
@@ -42,10 +47,27 @@ _MAX_PREVIOUS_RUNS: int = 5
 _STABLE_TREND: str = "stable"
 
 
-class HistoricalAgent:
+class HistoricalAgent(BaseSpecialistAgent):
     """Compare the current run with prior runs of the same tenant."""
 
     name: str = "t2_historical"
+
+    async def execute(
+        self,
+        context: _SpecialistContext,
+        meta: PromptMeta,
+    ) -> AgentResult:
+        """Delegate to compare — see BaseSpecialistAgent docstring."""
+        return await self.compare(
+            current_run_id=context.current_run_id or "",
+            tenant_id=context.tenant_id,
+            pool=context.pool,
+            llm_client=context.llm_client,
+            prompt_template=meta["template"],
+            temperature=meta["temperature"],
+            max_tokens=meta["max_tokens"],
+            thinking_enabled=meta["thinking_enabled"],
+        )
 
     async def compare(
         self,

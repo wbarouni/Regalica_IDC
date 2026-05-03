@@ -22,16 +22,36 @@ from __future__ import annotations
 
 import json
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from app.agents.base import AgentResult
+from app.agents.base_specialist import BaseSpecialistAgent
 from app.llm.base import LLMClient, LLMRequest
 
+if TYPE_CHECKING:
+    from app.services.orchestrator import _SpecialistContext
+    from app.services.prompt_loader import PromptMeta
 
-class CitationAgent:
+
+class CitationAgent(BaseSpecialistAgent):
     """Resolve the regulatory source for a single rule."""
 
     name: str = "t2_citation"
+
+    async def execute(
+        self,
+        context: _SpecialistContext,
+        meta: PromptMeta,
+    ) -> AgentResult:
+        """Delegate to find_source — see BaseSpecialistAgent docstring."""
+        return await self.find_source(
+            rule=context.rule_context or {},
+            llm_client=context.llm_client,
+            prompt_template=meta["template"],
+            temperature=meta["temperature"],
+            max_tokens=meta["max_tokens"],
+            thinking_enabled=meta["thinking_enabled"],
+        )
 
     async def find_source(
         self,

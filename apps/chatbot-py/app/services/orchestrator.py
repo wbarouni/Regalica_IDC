@@ -139,7 +139,14 @@ class OrchestratorResult:
 
 @dataclass(frozen=True)
 class _SpecialistContext:
-    """Inputs forwarded to every specialist invoker."""
+    """Inputs forwarded to every specialist invoker.
+
+    `api_client` is the engine HTTP client that specialists may need
+    when they call back into the API surface — currently the C17b
+    `t1_runner` specialist is the only consumer. Default None keeps
+    every existing call site valid without modification; specialists
+    that do not need it ignore the field.
+    """
 
     pool: asyncpg.Pool
     tenant_id: str
@@ -147,6 +154,7 @@ class _SpecialistContext:
     fail_context: dict[str, Any] | None
     rule_context: dict[str, Any] | None
     current_run_id: str | None
+    api_client: RegflowApiClient | None = None
 
 
 @dataclass(frozen=True)
@@ -207,16 +215,70 @@ async def _call_historical(meta: PromptMeta, ctx: _SpecialistContext) -> AgentRe
     )
 
 
+# Library specialists — wired in C17a. Each invoker imports its concrete
+# class lazily to avoid bloating the orchestrator import graph; the
+# import cost is paid once per process and amortised across every
+# invocation.
+
+
+async def _call_reporter_docx(meta: PromptMeta, ctx: _SpecialistContext) -> AgentResult:
+    from app.agents.library.reporter_docx import ReporterDocxAgent
+
+    return await ReporterDocxAgent().execute(ctx, meta)
+
+
+async def _call_reporter_pdf(meta: PromptMeta, ctx: _SpecialistContext) -> AgentResult:
+    from app.agents.library.reporter_pdf import ReporterPdfAgent
+
+    return await ReporterPdfAgent().execute(ctx, meta)
+
+
+async def _call_visualizer_chart(meta: PromptMeta, ctx: _SpecialistContext) -> AgentResult:
+    from app.agents.library.visualizer_chart import VisualizerChartAgent
+
+    return await VisualizerChartAgent().execute(ctx, meta)
+
+
+async def _call_diff_narrate(meta: PromptMeta, ctx: _SpecialistContext) -> AgentResult:
+    from app.agents.library.diff_narrate import DiffNarrateAgent
+
+    return await DiffNarrateAgent().execute(ctx, meta)
+
+
+async def _call_referential_ingestor_pdf(meta: PromptMeta, ctx: _SpecialistContext) -> AgentResult:
+    from app.agents.library.referential_ingestor_pdf import (
+        ReferentialIngestorPdfAgent,
+    )
+
+    return await ReferentialIngestorPdfAgent().execute(ctx, meta)
+
+
+async def _call_rule_form_assist(meta: PromptMeta, ctx: _SpecialistContext) -> AgentResult:
+    from app.agents.library.rule_form_assist import RuleFormAssistAgent
+
+    return await RuleFormAssistAgent().execute(ctx, meta)
+
+
 # (specialist_id) -> async callable that does (load+run) the agent.
 # This is the ONLY in-source dispatch table that survives commit C8 —
 # every other key list (intent enum, specialists per intent, bearer
-# (agent_type, function_name)) is loaded from the DB grammar.
+# (agent_type, function_name)) is loaded from the DB grammar. The
+# six C17a entries (reporter_*, visualizer_*, diff_*, ...) match the
+# specialist_id column that migration 072 (C17b) will add to
+# intent_specialist_bearers; until that migration lands, these
+# entries are reachable only through direct test invocation.
 _SPECIALIST_INVOKERS: dict[
     str, Callable[[PromptMeta, _SpecialistContext], Awaitable[AgentResult]]
 ] = {
     "investigator": _call_investigator,
     "citation": _call_citation,
     "historical": _call_historical,
+    "reporter_docx": _call_reporter_docx,
+    "reporter_pdf": _call_reporter_pdf,
+    "visualizer_chart": _call_visualizer_chart,
+    "diff_narrate": _call_diff_narrate,
+    "referential_ingestor_pdf": _call_referential_ingestor_pdf,
+    "rule_form_assist": _call_rule_form_assist,
 }
 
 
