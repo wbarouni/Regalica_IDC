@@ -1,0 +1,57 @@
+# Canonical docker-compose override — VERSIONED (S1 reproducibility).
+#
+# This file is committed to the repo and applied automatically by
+# `docker compose up`. Its purpose is twofold:
+#
+# 1. Pin chatbot-py + api to the Docker `postgres` service so a fresh
+#    clone yields a working stack out of the box. The base
+#    docker-compose.yml already does this via the env-substituted
+#    DATABASE_URL; the override re-asserts the wiring without
+#    substitution so a stray ${POSTGRES_PASSWORD} mismatch in a
+#    developer's .env cannot silently route us elsewhere.
+#
+# 2. Hold dev-time conveniences (extra hosts entries, in-container
+#    log levels, pgAdmin profile, ...) that a fresh-machine setup
+#    benefits from but production never sees. Profile-gated so the
+#    canonical `docker compose up` stays minimal.
+#
+# Per-developer customisations (ports remap, host PG routing,
+# alternative DSN) belong in docker-compose.local.yml — that file is
+# gitignored so each dev can keep a personal extension without
+# polluting the canonical setup. Docker Compose merges all three
+# files in declaration order: base -> override (this file) -> local.
+#
+# References: docs/adr/0006-s1-reproducibility.md, docs/DEV-SETUP.md.
+
+services:
+  postgres:
+    # Re-affirm the canonical credentials so a developer's .env that
+    # accidentally drops POSTGRES_PASSWORD cannot bring up postgres
+    # with an empty password (which would in turn lock api/chatbot-py
+    # into authentication failures). The defaults here mirror the base
+    # compose substitutions and the .env.example values verbatim.
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-regalica_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_in_local_env}
+      POSTGRES_DB: ${POSTGRES_DB:-regalica}
+
+  api:
+    # Wait for the postgres healthcheck before booting; the base
+    # compose already declares depends_on but we re-state it here so
+    # any future tweak to the base does not silently relax the
+    # ordering guarantee.
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  chatbot-py:
+    # Single source of truth for the DSN: the Docker postgres service.
+    # The base compose substitutes ${POSTGRES_*} into the same string;
+    # restating it here without substitution is the structural guard
+    # that prevents an accidental host PG routing from sneaking in via
+    # an env override.
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-regalica_app}:${POSTGRES_PASSWORD:-change_me_in_local_env}@postgres:5432/${POSTGRES_DB:-regalica}
+    depends_on:
+      postgres:
+        condition: service_healthy
