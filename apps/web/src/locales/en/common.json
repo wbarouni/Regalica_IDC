@@ -200,6 +200,20 @@
     "configMissing": "Configuration required",
     "invalid_xml_format": "Invalid format — only XML files are accepted.",
     "engineErrorTitle": "Validation engine error",
+    "launchErrorTitle": "Validation launch failed",
+    "launch": {
+      "MISSING_TENANT_ID": "Institution identifier missing in frontend config (VITE_TENANT_ID).",
+      "MISSING_API_URL": "API URL missing in frontend config (VITE_API_URL).",
+      "MISSING_USER_ID": "User identifier missing in frontend config (VITE_USER_ID).",
+      "INVALID_BODY": "Invalid request body — check the selected upload and reporting date.",
+      "PRIMARY_NOT_IN_LIST": "The primary upload is not in the list sent to the server.",
+      "UPLOAD_NOT_OWNED": "The selected file does not belong to your institution.",
+      "TABLE_NOT_IMPLEMENTED": "Database schema incomplete — pending migrations. Contact your administrator.",
+      "COLUMN_NOT_FOUND": "Database schema out of sync — missing migration. Contact your administrator.",
+      "INTERNAL": "Internal server error. Please retry in a few moments.",
+      "HTTP_ERROR": "Network error on the server side. Please retry.",
+      "unknown": "Unexpected launch error. Please refer to the technical code below."
+    },
     "engine": {
       "t0_xsd_invalid": "Invalid XSD structure. The XML file does not conform to the BCT schema.",
       "t0_embedded_fail": "BCT embedded controls failed (missing companion annexes or inconsistent totals).",

@@ -86,9 +86,23 @@ describe('useStartRun', () => {
       ).rejects.toBeInstanceOf(ApiFetchError);
     });
     await waitFor(() => {
-      expect(result.current.error).toBe('UPLOAD_NOT_OWNED');
+      // Tranche 1.1 — error shape is { code, message } so callers can
+      // render both the canonical machine-readable code and the raw
+      // server message for support tickets.
+      expect(result.current.error).toEqual({ code: 'UPLOAD_NOT_OWNED', message: 'nope' });
       expect(result.current.starting).toBe(false);
     });
+  });
+
+  it('exposes UNKNOWN with the raw message when a non-Api error reaches the catch', async () => {
+    fetchApiMock.mockRejectedValueOnce(new Error('boom'));
+    const { result } = renderHook(() => useStartRun());
+    await act(async () => {
+      await result.current
+        .start({ upload_ids: ['x'], primary_upload_id: 'x', arrete_date: '2026-03-31' })
+        .catch(() => undefined);
+    });
+    expect(result.current.error).toEqual({ code: 'UNKNOWN', message: 'boom' });
   });
 
   it('reset clears error state', async () => {
@@ -100,7 +114,7 @@ describe('useStartRun', () => {
         .start({ upload_ids: ['x'], primary_upload_id: 'x', arrete_date: '2026-03-31' })
         .catch(() => undefined);
     });
-    expect(result.current.error).toBe('BOOM');
+    expect(result.current.error).toEqual({ code: 'BOOM', message: 'x' });
     act(() => {
       result.current.reset();
     });

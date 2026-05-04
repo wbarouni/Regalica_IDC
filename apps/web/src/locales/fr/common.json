@@ -200,6 +200,20 @@
     "configMissing": "Configuration requise",
     "invalid_xml_format": "Format invalide — seuls les fichiers XML sont acceptés.",
     "engineErrorTitle": "Erreur moteur de validation",
+    "launchErrorTitle": "Échec du lancement de la validation",
+    "launch": {
+      "MISSING_TENANT_ID": "Identifiant établissement absent côté frontend (VITE_TENANT_ID).",
+      "MISSING_API_URL": "URL de l'API absente côté frontend (VITE_API_URL).",
+      "MISSING_USER_ID": "Identifiant utilisateur absent côté frontend (VITE_USER_ID).",
+      "INVALID_BODY": "Données envoyées invalides — vérifiez l'upload sélectionné et l'arrêté.",
+      "PRIMARY_NOT_IN_LIST": "L'upload primaire n'est pas dans la liste transmise au serveur.",
+      "UPLOAD_NOT_OWNED": "Le fichier sélectionné n'appartient pas à votre établissement.",
+      "TABLE_NOT_IMPLEMENTED": "Schéma base de données incomplet — migrations en attente. Contactez votre administrateur.",
+      "COLUMN_NOT_FOUND": "Schéma base de données désynchronisé — migration manquante. Contactez votre administrateur.",
+      "INTERNAL": "Erreur interne serveur. Veuillez réessayer dans quelques instants.",
+      "HTTP_ERROR": "Erreur réseau côté serveur. Veuillez réessayer.",
+      "unknown": "Erreur inattendue lors du lancement. Veuillez consulter le code technique ci-dessous."
+    },
     "engine": {
       "t0_xsd_invalid": "Structure XSD invalide. Le fichier XML ne respecte pas le schéma BCT.",
       "t0_embedded_fail": "Contrôles embarqués BCT échoués (annexes compagnes manquantes ou totaux incohérents).",

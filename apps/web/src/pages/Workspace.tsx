@@ -9,6 +9,7 @@ import { DaySeparator } from '../components/DaySeparator';
 import { Dock } from '../components/Dock';
 import { EngineErrorArtefact } from '../components/EngineErrorArtefact';
 import { FailsTable } from '../components/FailsTable';
+import { LaunchErrorArtefact } from '../components/LaunchErrorArtefact';
 import { SuggestionChips } from '../components/SuggestionChips';
 import { LanguageSwitcher } from '../components/primitives/LanguageSwitcher';
 import { PersonaSidebar } from '../components/layout/PersonaSidebar';
@@ -412,7 +413,10 @@ export default function Workspace() {
         upload.reset();
       })
       .catch(() => {
-        // useStartRun stored the error code.
+        // No silent swallow: useStartRun stored {code, message} in
+        // state and <LaunchErrorArtefact> renders it inside the chat
+        // thread (Tranche 1.1). Local catch only prevents the
+        // unhandled-rejection warning.
       });
   }, [pendingUpload, conversationId, startRun, upload]);
 
@@ -464,6 +468,10 @@ export default function Workspace() {
 
             {engineError !== null && (
               <EngineErrorArtefact code={engineError.code} message={engineError.message} />
+            )}
+
+            {startRun.error !== null && (
+              <LaunchErrorArtefact code={startRun.error.code} message={startRun.error.message} />
             )}
 
             {runLoading && <LoadingState />}
@@ -529,15 +537,11 @@ export default function Workspace() {
           </div>
         </div>
 
-        {(upload.uploading ||
-          pendingUpload !== null ||
-          upload.error !== null ||
-          startRun.error !== null) && (
+        {(upload.uploading || pendingUpload !== null || upload.error !== null) && (
           <UploadStagedRow
             uploading={upload.uploading}
             progress={upload.progress}
             uploadError={upload.error}
-            startError={startRun.error}
             starting={startRun.starting}
             pending={pendingUpload}
             onLaunch={handleLaunchRun}
@@ -702,7 +706,6 @@ function UploadStagedRow({
   uploading,
   progress,
   uploadError,
-  startError,
   starting,
   pending,
   onLaunch,
@@ -711,14 +714,19 @@ function UploadStagedRow({
   uploading: boolean;
   progress: number;
   uploadError: string | null;
-  startError: string | null;
   starting: boolean;
   pending: UploadDto | null;
   onLaunch: () => void;
   onCancel: () => void;
 }) {
+  // Tranche 1.1 — startRun.error is no longer surfaced here; it lives
+  // in the chat thread via <LaunchErrorArtefact> so it stays visible
+  // even while the user keeps `pending` in the staged row (the bug
+  // this row used to silently mask). Upload errors keep their
+  // local row-level treatment because the staged file is the only
+  // contextual anchor for them.
   const { t } = useTranslation();
-  const error = uploadError ?? startError;
+  const error = uploadError;
   return (
     <div
       className="border-t border-stone-200 bg-paper px-4 py-3 flex items-center gap-3"

@@ -10,6 +10,39 @@ import { ApiConfigError, ApiFetchError, fetchApi } from '../lib/fetchApi';
  * The optional conversation_id is forwarded to chatbot-py /upload by
  * the API so the T0 briefing can be persisted into the right chat
  * thread (commit A3).
+ *
+ * Tranche 1.1 (close silent-swallow): `error` was a bare `string |
+ * null` exposing only the dotted code. Callers (Workspace +
+ * UploadStagedRow) had no human-readable message to render. The
+ * `error` field is now `{ code, message } | null`. The code is the
+ * canonical machine-readable identifier (see CODE TABLE below); the
+ * message is whatever the failing layer surfaces verbatim — useful
+ * for operator support tickets and never surfaced as primary UI copy.
+ *
+ * CODE TABLE (audited from apps/web/src/lib/fetchApi.ts +
+ * apps/api/src/routes/runs.ts + apps/api/src/db/errors.ts):
+ *
+ *   Config (this hook + fetchApi):
+ *     MISSING_TENANT_ID, MISSING_API_URL, MISSING_USER_ID
+ *
+ *   Backend POST /api/tenants/:tenantId/runs:
+ *     INVALID_BODY            (400, zod parse failure)
+ *     PRIMARY_NOT_IN_LIST     (400, primary_upload_id ∉ upload_ids)
+ *     UPLOAD_NOT_OWNED        (403, ≥1 upload not owned by tenant)
+ *     TABLE_NOT_IMPLEMENTED   (501, schema gap — missing migration)
+ *     COLUMN_NOT_FOUND        (501, schema gap — missing column)
+ *     INTERNAL                (500, catch-all)
+ *
+ *   Generic transport (fetchApi):
+ *     HTTP_ERROR              (non-2xx with no parseable body)
+ *
+ *   Catch-all (this hook):
+ *     UNKNOWN                 (non-Api error reached the catch)
+ *
+ * Any new code added in apps/api/src/routes/runs.ts must be added
+ * here AND in apps/web/src/locales/{fr,en,ar}/common.json under
+ * `error.launch.<code>`. The keys-coverage test enforces the i18n
+ * contract; this docblock is the human-readable mirror.
  */
 
 export interface StartRunPayload {
@@ -24,16 +57,21 @@ interface CreateRunResponse {
   status: string;
 }
 
+export interface StartRunError {
+  code: string;
+  message: string;
+}
+
 export interface UseStartRunResult {
   starting: boolean;
-  error: string | null;
+  error: StartRunError | null;
   start: (payload: StartRunPayload) => Promise<CreateRunResponse>;
   reset: () => void;
 }
 
 export function useStartRun(): UseStartRunResult {
   const [starting, setStarting] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<StartRunError | null>(null);
 
   const reset = useCallback((): void => {
     setStarting(false);
@@ -42,9 +80,12 @@ export function useStartRun(): UseStartRunResult {
 
   const start = useCallback(async (payload: StartRunPayload): Promise<CreateRunResponse> => {
     if (TENANT_ID === undefined || TENANT_ID.length === 0) {
-      const code = 'MISSING_TENANT_ID';
-      setError(code);
-      throw new ApiConfigError(code, 'VITE_TENANT_ID is not set');
+      const err: StartRunError = {
+        code: 'MISSING_TENANT_ID',
+        message: 'VITE_TENANT_ID is not set',
+      };
+      setError(err);
+      throw new ApiConfigError(err.code, err.message);
     }
     setStarting(true);
     setError(null);
@@ -56,9 +97,12 @@ export function useStartRun(): UseStartRunResult {
       return r.data;
     } catch (e: unknown) {
       if (e instanceof ApiFetchError || e instanceof ApiConfigError) {
-        setError(e.code);
+        setError({ code: e.code, message: e.message });
       } else {
-        setError('UNKNOWN');
+        setError({
+          code: 'UNKNOWN',
+          message: e instanceof Error ? e.message : String(e),
+        });
       }
       throw e;
     } finally {
