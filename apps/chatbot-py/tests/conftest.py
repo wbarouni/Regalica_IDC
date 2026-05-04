@@ -37,6 +37,10 @@ _TEST_ENV_DEFAULTS: dict[str, str] = {
     # commit 41c — briefing prompt target loaded by /upload after T0
     "CHATBOT_BRIEFING_AGENT_TYPE": "regalica",
     "CHATBOT_BRIEFING_FUNCTION_NAME": "xml_received",
+    # Tranche 1.2 — T1 synthesis aggregator target invoked by /upload
+    # after the auto-chained T1 pipeline. Mirrors the chat path bearer.
+    "CHATBOT_T1_AGGREGATOR_AGENT_TYPE": "regalica",
+    "CHATBOT_T1_AGGREGATOR_FUNCTION_NAME": "aggregate_t1_result",
     # commit C3 — engine JWT role claim, must match the API's
     # REGFLOW_ENGINE_ROLE_CLAIM verbatim (both apps read the same env).
     "REGFLOW_ENGINE_ROLE_CLAIM": "regflow_engine",

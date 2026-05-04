@@ -460,8 +460,8 @@ async def _render_t1_synthesis(
     meta = await load_active_prompt(
         pool=pool,
         tenant_id=tenant_id,
-        agent_type="regalica",
-        function_name="aggregate_t1_result",
+        agent_type=settings.chatbot_t1_aggregator_agent_type,
+        function_name=settings.chatbot_t1_aggregator_function_name,
     )
     if meta is None:
         log.info(
@@ -734,10 +734,13 @@ async def post_upload(
                             content=synthesis_markdown,
                             role="assistant",
                             metadata={
-                                "agents_triggered": ["regalica/aggregate_t1_result"],
+                                "agents_triggered": [
+                                    f"{settings.chatbot_t1_aggregator_agent_type}/"
+                                    f"{settings.chatbot_t1_aggregator_function_name}",
+                                ],
                                 "run_id": payload.run_id,
                             },
-                            produced_by_agent="regalica",
+                            produced_by_agent=settings.chatbot_t1_aggregator_agent_type,
                             run_id=payload.run_id,
                         )
                     except (RegflowApiError, httpx.HTTPError) as err:

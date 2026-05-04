@@ -88,6 +88,15 @@ class Settings(BaseSettings):
     chatbot_briefing_agent_type: str = Field(alias="CHATBOT_BRIEFING_AGENT_TYPE")
     chatbot_briefing_function_name: str = Field(alias="CHATBOT_BRIEFING_FUNCTION_NAME")
 
+    # T1 synthesis aggregator target invoked by /upload at the end of
+    # the auto-chained T1 pipeline (Tranche 1.2). Mirrors the chat
+    # path's regalica/aggregate_t1_result bearer (seeded by 072-C +
+    # promoted by 072-B). Env-driven so no agent literal sits in
+    # source (Guard D-004) and operators can swap to a different
+    # aggregator without a code change.
+    chatbot_t1_aggregator_agent_type: str = Field(alias="CHATBOT_T1_AGGREGATOR_AGENT_TYPE")
+    chatbot_t1_aggregator_function_name: str = Field(alias="CHATBOT_T1_AGGREGATOR_FUNCTION_NAME")
+
     # CORS allow-list for the chatbot HTTP boundary. Comma-separated list
     # of origins authorised to call /chat/*. Empty/unset disables
     # cross-origin entirely (same-origin callers still work).
