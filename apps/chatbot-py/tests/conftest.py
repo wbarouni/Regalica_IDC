@@ -40,6 +40,13 @@ _TEST_ENV_DEFAULTS: dict[str, str] = {
     # commit C3 — engine JWT role claim, must match the API's
     # REGFLOW_ENGINE_ROLE_CLAIM verbatim (both apps read the same env).
     "REGFLOW_ENGINE_ROLE_CLAIM": "regflow_engine",
+    # Tranche 1.2 — disable the auto T0→T1 chain in tests. Production
+    # default is true (single-click LANCER pipeline). The few tests
+    # that exercise the chain set this back to "true" via fixture +
+    # mock the engine.evaluate_run / engine.finalize_run calls
+    # explicitly so the assertions stay scoped to the route's own
+    # branching logic.
+    "CHATBOT_AUTO_T1_AFTER_T0": "false",
 }
 
 for _name, _value in _TEST_ENV_DEFAULTS.items():

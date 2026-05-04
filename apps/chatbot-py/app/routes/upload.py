@@ -41,9 +41,15 @@ from app.agents.t0_temporal import TemporalAgent
 from app.clients.regflow_api import RegflowApiClient, RegflowApiError
 from app.config import settings
 from app.domain.error_resolver import ErrorResolver
+from app.exceptions import T1RejectionError
 from app.llm.base import LLMClient, LLMRequest
 from app.logger import get_logger
 from app.routes.chat import get_error_resolver, get_llm_client, get_pool
+from app.services.orchestrator import (
+    _build_finalize_payload_completed,
+    _build_finalize_payload_failed,
+    _run_t1_validation,
+)
 from app.services.prompt_loader import load_active_prompt
 
 router = APIRouter()
@@ -587,7 +593,95 @@ async def post_upload(
                         error=str(err),
                     )
 
-        final_status = "t0_complete" if all(r.success for r in reports) else "t0_failed"
+        # Tranche 1.2 — auto-chain T0 → T1 → /finalize so a successful
+        # T0 always produces verdicts and KPIs without requiring the
+        # operator to type "lance la validation" in the chat. The chat-
+        # driven path (router LLM → launch_validation intent) remains
+        # available as a manual override; this block makes the LANCER
+        # button a single-click end-to-end action.
+        #
+        # Gated by CHATBOT_AUTO_T1_AFTER_T0 (default true): tests opt
+        # out via fixture so existing T0-only assertions stay valid.
+        #
+        # Failure handling:
+        #   - T1RejectionError (engine missed required T0 step OR
+        #     /evaluate timed out) → /finalize with status='failed' and
+        #     the appropriate error_code from the resolver.
+        #   - Any other exception (network, JSON, etc.) → /finalize with
+        #     status='failed' + error_code='t1_engine_exception'.
+        # Both paths ensure the run row leaves status='running' so the
+        # workspace ribbon stops showing an indefinite spinner.
+        t1_status: str | None = None
+        if settings.chatbot_auto_t1_after_t0 and all(r.success for r in reports):
+            try:
+                t1_result = await _run_t1_validation(
+                    pool=pool,
+                    run_id=payload.run_id,
+                    tenant_id=payload.tenant_id,
+                    api_client=engine,
+                )
+                finalize_payload = _build_finalize_payload_completed(t1_result)
+                await engine.finalize_run(
+                    run_id=payload.run_id,
+                    tenant_id=payload.tenant_id,
+                    payload=finalize_payload,
+                    correlation_id=getattr(request.state, "correlation_id", None),
+                )
+                t1_status = "completed"
+            except T1RejectionError as exc:
+                error_code = (
+                    error_resolver.from_t1_exception(exc)
+                    if error_resolver is not None
+                    else "t1_engine_exception"
+                )
+                try:
+                    await engine.finalize_run(
+                        run_id=payload.run_id,
+                        tenant_id=payload.tenant_id,
+                        payload=_build_finalize_payload_failed(error_code),
+                        correlation_id=getattr(request.state, "correlation_id", None),
+                    )
+                except Exception as err:
+                    log.warning(
+                        "finalize_t1_rejection_post_failed",
+                        run_id=payload.run_id,
+                        error=str(err),
+                    )
+                t1_status = f"failed:{error_code}"
+                log.warning(
+                    "t1_rejected",
+                    run_id=payload.run_id,
+                    step=exc.step,
+                    reason=exc.reason,
+                )
+            except Exception as exc:
+                error_code = (
+                    error_resolver.from_t1_exception(exc)
+                    if error_resolver is not None
+                    else "t1_engine_exception"
+                )
+                try:
+                    await engine.finalize_run(
+                        run_id=payload.run_id,
+                        tenant_id=payload.tenant_id,
+                        payload=_build_finalize_payload_failed(error_code),
+                        correlation_id=getattr(request.state, "correlation_id", None),
+                    )
+                except Exception as err:
+                    log.warning(
+                        "finalize_t1_exception_post_failed",
+                        run_id=payload.run_id,
+                        error=str(err),
+                    )
+                t1_status = f"failed:{error_code}"
+                log.warning("t1_engine_exception", run_id=payload.run_id, error=str(exc))
+
+        if t1_status is not None:
+            final_status = f"t0_complete_t1_{t1_status}"
+        elif all(r.success for r in reports):
+            final_status = "t0_complete"
+        else:
+            final_status = "t0_failed"
         return UploadResponse(
             status=final_status,
             run_id=payload.run_id,

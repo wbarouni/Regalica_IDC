@@ -117,5 +117,13 @@ class Settings(BaseSettings):
     # REGFLOW_ENGINE_ROLE_CLAIM. Required, no default.
     regflow_engine_role_claim: str = Field(alias="REGFLOW_ENGINE_ROLE_CLAIM")
 
+    # Tranche 1.2 — when true, /upload chains T0 → T1 → /finalize
+    # automatically after T0 success so the LANCER button delivers a
+    # completed run with KPIs in a single click. Disabled by tests so
+    # the existing T0-only assertions stay valid (tests opt into T1
+    # chaining via dedicated fixtures). Default true matches the
+    # production-facing UX contract.
+    chatbot_auto_t1_after_t0: bool = Field(default=True, alias="CHATBOT_AUTO_T1_AFTER_T0")
+
 
 settings = Settings()
