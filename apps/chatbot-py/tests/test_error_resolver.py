@@ -78,9 +78,7 @@ class TestT1ExceptionMapping:
         exc = T1RejectionError(step=2, reason="embedded KO")
         assert resolver.from_t1_exception(exc) == T0_EMBEDDED_FAIL
 
-    def test_t1_rejection_step_3_maps_to_t1_engine_exception(
-        self, resolver: ErrorResolver
-    ) -> None:
+    def test_t1_rejection_step_3_maps_to_t1_engine_exception(self, resolver: ErrorResolver) -> None:
         exc = T1RejectionError(step=3, reason="rdg KO")
         assert resolver.from_t1_exception(exc) == T1_ENGINE_EXCEPTION
 
