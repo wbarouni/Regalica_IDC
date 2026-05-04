@@ -7,6 +7,7 @@ import remarkGfm from 'remark-gfm';
 import { Artefact } from '../components/Artefact';
 import { DaySeparator } from '../components/DaySeparator';
 import { Dock } from '../components/Dock';
+import { FailsTable } from '../components/FailsTable';
 import { SuggestionChips } from '../components/SuggestionChips';
 import { LanguageSwitcher } from '../components/primitives/LanguageSwitcher';
 import { PersonaSidebar } from '../components/layout/PersonaSidebar';
@@ -455,6 +456,15 @@ export default function Workspace() {
             {summary !== null && summary.run.status === 'completed' && (
               <T1Deliverables run={summary.run} annexes={summary.annexes} />
             )}
+            {summary !== null &&
+              summary.run.status === 'completed' &&
+              currentRunId !== null &&
+              (summary.run.total_fail_severe ?? 0) + (summary.run.total_fail_rounding ?? 0) > 0 && (
+                /* Tranche 0.5 W2.2 — surface validation_fail_details
+                   rows persisted by /finalize so the user actually sees
+                   the verdict beyond the KPI grid. */
+                <FailsTable runId={currentRunId} filter="all" />
+              )}
             {summary !== null && summary.run.status === 'completed' && (
               <T3LockBanner totalFailSevere={summary.run.total_fail_severe ?? 0} />
             )}
@@ -524,23 +534,33 @@ function T1Deliverables({
   const { t } = useTranslation();
   const synthesis = run.synthesis_artifact ?? null;
   const deliverableC = run.deliverable_c_artifact ?? null;
-  const synthesisText =
-    typeof synthesis === 'string'
-      ? synthesis
-      : synthesis !== null
-        ? JSON.stringify(synthesis, null, 2)
-        : null;
-  const deliverableCText =
-    typeof deliverableC === 'string'
-      ? deliverableC
-      : deliverableC !== null
-        ? JSON.stringify(deliverableC, null, 2)
-        : null;
+  // Tranche 0.5 W2.3 — when /finalize stores the aggregator's
+  // markdown response in synthesis_artifact (object form
+  // {markdown, totals}) or as a raw string, render via ReactMarkdown
+  // so headings, lists, bold etc. are styled. Fall back to JSON
+  // pretty-print for any other shape (debug surface).
+  const synthesisMarkdown = extractMarkdownFromArtifact(synthesis);
+  const deliverableCMarkdown = extractMarkdownFromArtifact(deliverableC);
+  const synthesisRawJson =
+    synthesisMarkdown === null && synthesis !== null ? JSON.stringify(synthesis, null, 2) : null;
+  const deliverableCRawJson =
+    deliverableCMarkdown === null && deliverableC !== null
+      ? JSON.stringify(deliverableC, null, 2)
+      : null;
   return (
     <>
-      {synthesisText !== null && (
+      {synthesisMarkdown !== null && (
         <Artefact type="livrable_a" state="standard">
-          <pre className="text-sm font-mono whitespace-pre-wrap break-words">{synthesisText}</pre>
+          <div className="text-sm prose prose-stone prose-sm max-w-none">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{synthesisMarkdown}</ReactMarkdown>
+          </div>
+        </Artefact>
+      )}
+      {synthesisRawJson !== null && (
+        <Artefact type="livrable_a" state="standard">
+          <pre className="text-sm font-mono whitespace-pre-wrap break-words">
+            {synthesisRawJson}
+          </pre>
         </Artefact>
       )}
       {annexes.length > 0 && (
@@ -563,15 +583,49 @@ function T1Deliverables({
           </ul>
         </Artefact>
       )}
-      {deliverableCText !== null && (
+      {deliverableCMarkdown !== null && (
+        <Artefact type="livrable_c" state="standard">
+          <div className="text-sm prose prose-stone prose-sm max-w-none">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{deliverableCMarkdown}</ReactMarkdown>
+          </div>
+        </Artefact>
+      )}
+      {deliverableCRawJson !== null && (
         <Artefact type="livrable_c" state="standard">
           <pre className="text-sm font-mono whitespace-pre-wrap break-words">
-            {deliverableCText}
+            {deliverableCRawJson}
           </pre>
         </Artefact>
       )}
     </>
   );
+}
+
+/**
+ * Extract a markdown string from a synthesis_artifact / deliverable_c
+ * column value. Supported shapes:
+ *   - string                              → returned as-is
+ *   - { markdown: "..." }                 → returned (`markdown` key)
+ *   - anything else (incl. null)          → null (caller falls back to
+ *                                            raw JSON pretty-print)
+ *
+ * Tranche 0 chatbot-py only writes `null` to these columns today; a
+ * future tranche will populate `synthesis_artifact = { markdown: aggregator_response }`
+ * via /finalize.
+ */
+function extractMarkdownFromArtifact(value: unknown): string | null {
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (
+    value !== null &&
+    typeof value === 'object' &&
+    'markdown' in value &&
+    typeof (value as { markdown: unknown }).markdown === 'string'
+  ) {
+    return (value as { markdown: string }).markdown;
+  }
+  return null;
 }
 
 function T3LockBanner({ totalFailSevere }: { totalFailSevere: number }) {
