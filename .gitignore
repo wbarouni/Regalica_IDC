@@ -6,6 +6,12 @@
 *.key
 *.crt
 
+# Local docker-compose overrides (per-developer DSN routing). Never
+# committed — see docs/adr/0005 §"Tranche 1.2 Environment parity guard"
+# for the path that removes the need for this file.
+docker-compose.override.yml
+docker-compose.override.yaml
+
 # ---- Node / pnpm -----------------------------------------------------------
 node_modules/
 npm-debug.log*
