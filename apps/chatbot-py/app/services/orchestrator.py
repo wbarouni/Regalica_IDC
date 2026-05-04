@@ -447,12 +447,31 @@ def _build_finalize_payload_completed(result: EvaluateRunResult) -> dict[str, An
         # back to the engine's coarse severe|rounding the /finalize
         # zod schema accepts. MINEUR ↔ rounding, others ↔ severe.
         engine_sev = "rounding" if severity_label == "MINEUR" else "severe"
+
+        # Tranche 1.2 follow-up: forward the engine's expected /
+        # computed / gap_absolute / gap_relative values so the front
+        # FailsTable can render the operator-actionable diff. The
+        # engine emits these as decimal strings (lhs/rhs/gap); the
+        # /finalize zod schema accepts numbers, so we coerce via float.
+        # Conversion failure → null (the column is nullable).
+        def _maybe_number(raw: object) -> float | None:
+            if raw is None:
+                return None
+            try:
+                return float(raw)  # type: ignore[arg-type]
+            except (TypeError, ValueError):
+                return None
+
         fail_items.append(
             {
                 "rule_id": verdict.get("rule_id"),
                 "ax_term": verdict.get("ax_term", ""),
                 "num_regle": verdict.get("num_regle", 0),
                 "severity": engine_sev,
+                "expected_value": _maybe_number(verdict.get("rhs")),
+                "computed_value": _maybe_number(verdict.get("lhs")),
+                "gap_absolute": _maybe_number(verdict.get("gap")),
+                "gap_relative": _maybe_number(verdict.get("gap_relative")),
                 "calculation_trace": verdict.get("calculation_trace", {}),
             },
         )

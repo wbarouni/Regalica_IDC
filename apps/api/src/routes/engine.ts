@@ -171,6 +171,15 @@ export async function loadSeverityThreshold(pool: Pool): Promise<number> {
 // ---------------------------------------------------------------------------
 
 interface MappedVerdict {
+  // Tranche 1.2 follow-up: rule_id is the rules.id UUID. Required by
+  // the /finalize zod schema (finalizeFailItemSchema:rule_id) so the
+  // bulk INSERT into validation_fail_details can satisfy the FK to
+  // rules. Before this field was added, every FAIL verdict reached
+  // chatbot-py with rule_id=null and /finalize rejected the payload
+  // with INVALID_FINALIZE_BODY → run finished as
+  // status='failed' / error_code='t1_engine_exception' even though
+  // the engine had detected the failures correctly.
+  rule_id: string;
   ax_term: string;
   num_regle: number;
   status: string;
@@ -235,6 +244,7 @@ function mapTotals(result: EvaluationResult): EngineEvaluateTotals {
 
 function mapVerdict(v: Verdict, threshold: number): MappedVerdict {
   return {
+    rule_id: v.ruleId,
     ax_term: v.annexeCode,
     num_regle: v.numRegle,
     status: v.status,
