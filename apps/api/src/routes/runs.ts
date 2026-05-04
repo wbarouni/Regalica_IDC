@@ -69,20 +69,33 @@ interface ChatbotPyKickoffPayload {
   conversation_id?: string;
 }
 
-function kickoffEngineAsync(payload: ChatbotPyKickoffPayload): void {
+function kickoffEngineAsync(payload: ChatbotPyKickoffPayload, correlationId: string): void {
   const baseUrl = config.chatbotPyUrl;
   if (baseUrl === undefined || baseUrl.length === 0) {
-    logger.warn({ runId: payload.run_id }, 'CHATBOT_PY_URL not set — engine kickoff skipped');
+    logger.warn(
+      { runId: payload.run_id, correlation_id: correlationId },
+      'CHATBOT_PY_URL not set — engine kickoff skipped',
+    );
     return;
   }
   const url = `${baseUrl.replace(/\/$/, '')}/upload`;
   void fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      // Propagate the correlation_id end-to-end so chatbot-py logs and
+      // any downstream POST /finalize call carry the same value. The
+      // FastAPI side reads it via the mirror correlation_id middleware.
+      'X-Correlation-Id': correlationId,
+    },
     body: JSON.stringify(payload),
   }).catch((err: unknown) => {
     logger.warn(
-      { runId: payload.run_id, err: err instanceof Error ? err.message : String(err) },
+      {
+        runId: payload.run_id,
+        correlation_id: correlationId,
+        err: err instanceof Error ? err.message : String(err),
+      },
       'engine kickoff failed (fire-and-forget)',
     );
   });
@@ -94,6 +107,10 @@ export function runsRouter(pool: Pool): IRouter {
   router.post('/runs', async (req: Request, res: Response) => {
     const tenantId = req.params['tenantId'] as string;
     const userId = res.locals['userId'] as string;
+    // Set by correlationIdMiddleware (mounted in app.ts before any
+    // router). Always present — defaults to a fresh UUID v4 when the
+    // client did not supply X-Correlation-Id.
+    const correlationId = res.locals['correlationId'] as string;
     const parsed = createRunBody.safeParse(req.body);
     if (!parsed.success) {
       res.status(HTTP_BAD_REQUEST).json({
@@ -137,8 +154,9 @@ export function runsRouter(pool: Pool): IRouter {
           `INSERT INTO validation_runs
              (tenant_id, primary_annexe_code, arrete_date, primary_upload_id,
               initiated_by_user_id, rules_version_snapshot,
-              referentials_version_snapshot, engine_version, status)
-           VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8, 'running')
+              referentials_version_snapshot, engine_version, status,
+              correlation_id)
+           VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8, 'running', $9::uuid)
            RETURNING id, status`,
           [
             tenantId,
@@ -149,6 +167,7 @@ export function runsRouter(pool: Pool): IRouter {
             JSON.stringify(rulesSnapshot ?? {}),
             JSON.stringify(referentialsSnapshot ?? {}),
             engineVersion,
+            correlationId,
           ],
         );
         const runId = runIns.rows[0]!.id;
@@ -173,14 +192,17 @@ export function runsRouter(pool: Pool): IRouter {
         });
         return;
       }
-      kickoffEngineAsync({
-        run_id: result.runId,
-        primary_upload_id,
-        upload_ids,
-        arrete_date,
-        tenant_id: tenantId,
-        ...(conversation_id !== undefined ? { conversation_id } : {}),
-      });
+      kickoffEngineAsync(
+        {
+          run_id: result.runId,
+          primary_upload_id,
+          upload_ids,
+          arrete_date,
+          tenant_id: tenantId,
+          ...(conversation_id !== undefined ? { conversation_id } : {}),
+        },
+        correlationId,
+      );
       res.status(HTTP_CREATED).json({
         data: { run_id: result.runId, status: result.runStatus },
         meta: { ts: new Date().toISOString(), version: '1' },

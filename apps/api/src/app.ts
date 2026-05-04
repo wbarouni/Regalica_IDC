@@ -12,6 +12,7 @@ import { config } from './config.js';
 import { logger } from './logger.js';
 import { configureRunEventBus } from './lib/runEventBus.js';
 import { authMiddleware, tenantMiddleware } from './middleware/auth.js';
+import { correlationIdMiddleware } from './middleware/correlationId.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { conversationsRouter } from './routes/conversations.js';
 import { engineRouter } from './routes/engine.js';
@@ -38,9 +39,22 @@ export function createApp(pool?: Pool): Express {
 
   app.disable('x-powered-by');
   app.use(helmet());
-  app.use(cors({ origin: config.corsOrigin, credentials: true }));
+  // CORS must allow the X-Correlation-Id custom header so a browser
+  // client can either echo a server-generated id or seed its own.
+  app.use(
+    cors({
+      origin: config.corsOrigin,
+      credentials: true,
+      exposedHeaders: ['X-Correlation-Id'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Id', 'X-Correlation-Id'],
+    }),
+  );
   app.use(express.json({ limit: '1mb' }));
   app.use(pinoHttp({ logger }));
+  // Correlation-Id resolution must run AFTER pino-http so the per-
+  // request child logger exists when we bind correlation_id to it,
+  // but BEFORE any router so handlers can read res.locals.correlationId.
+  app.use(correlationIdMiddleware);
 
   app.use('/health', healthRouter);
 

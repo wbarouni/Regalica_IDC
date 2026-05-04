@@ -38,7 +38,9 @@ describeIfDb(
     let stepId: string;
 
     beforeAll(async () => {
-      ctx = await setupRoutesContext(55);
+      // Tier 73 covers migration 073 which adds validation_runs.correlation_id —
+      // populated by runs.ts INSERT since C1 (Tranche 0).
+      ctx = await setupRoutesContext(73);
 
       const upload = await request(ctx.app)
         .post(`/api/tenants/${ctx.tenantId}/uploads`)

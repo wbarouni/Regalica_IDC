@@ -33,7 +33,9 @@ describeIfDb('routes — runs (POST /api/tenants/:t/runs + /api/engine)', () => 
   let ruleId: string;
 
   beforeAll(async () => {
-    ctx = await setupRoutesContext(55);
+    // Tier 73 covers migration 073 which adds validation_runs.correlation_id —
+    // populated by runs.ts INSERT since C1 (Tranche 0).
+    ctx = await setupRoutesContext(73);
 
     // Seed two uploads (deduplication uses SHA-256 so the bodies must
     // differ). Both belong to ctx.tenantId via the route under test.

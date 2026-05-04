@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "source": "Tranche 0 — fermeture transactionnelle pipeline T0+T1. error_code enum data-driven, zero hardcoding (CLAUDE.md §10, doctrine 03 §3).",
+  "consumers": [
+    "apps/api/migrations/073_finalize_pipeline.sql — embeds this array verbatim in the seed DO block",
+    "apps/api/src/routes/engine.ts /finalize handler — error_code FK validation against run_error_codes table",
+    "apps/chatbot-py/app/domain/error_resolver.py — runtime cache loaded once at startup via SELECT code FROM run_error_codes"
+  ],
+  "note": "code is the natural key. severity ∈ {error, warning}. Labels are FR/EN/AR for i18n at the UI surface (Tranche 1+). Adding a new code = (this file + new migration) — never a switch in code.",
+  "items": [
+    {
+      "code": "t0_xsd_invalid",
+      "label_fr": "Structure XSD invalide. Le fichier XML ne respecte pas le schéma BCT.",
+      "label_en": "Invalid XSD structure. The XML file does not conform to the BCT schema.",
+      "label_ar": "بنية XSD غير صالحة. لا يتوافق ملف XML مع مخطط البنك المركزي التونسي.",
+      "severity": "error"
+    },
+    {
+      "code": "t0_embedded_fail",
+      "label_fr": "Contrôles embarqués BCT échoués (annexes compagnes manquantes ou totaux incohérents).",
+      "label_en": "BCT embedded controls failed (missing companion annexes or inconsistent totals).",
+      "label_ar": "فشل الضوابط المضمنة للبنك المركزي التونسي (ملاحق مرافقة مفقودة أو إجماليات متناقضة).",
+      "severity": "error"
+    },
+    {
+      "code": "t0_parse_error",
+      "label_fr": "Erreur de parsing XML. Le fichier ne peut pas être lu (encodage, syntaxe, ou contenu corrompu).",
+      "label_en": "XML parsing error. The file cannot be read (encoding, syntax, or corrupted content).",
+      "label_ar": "خطأ في تحليل XML. لا يمكن قراءة الملف (الترميز أو بناء الجملة أو محتوى تالف).",
+      "severity": "error"
+    },
+    {
+      "code": "t1_engine_exception",
+      "label_fr": "Exception du moteur RDG pendant l'évaluation. Veuillez contacter votre administrateur.",
+      "label_en": "RDG engine exception during evaluation. Please contact your administrator.",
+      "label_ar": "استثناء محرك RDG أثناء التقييم. يرجى الاتصال بمسؤولك.",
+      "severity": "error"
+    },
+    {
+      "code": "t1_no_verdicts",
+      "label_fr": "Le moteur RDG n'a produit aucun verdict pour ce run (corpus de règles vide ou applicable_total nul).",
+      "label_en": "RDG engine produced no verdicts for this run (empty rule set or applicable_total is zero).",
+      "label_ar": "لم ينتج محرك RDG أي حكم لهذا التشغيل (مجموعة القواعد فارغة أو applicable_total هو صفر).",
+      "severity": "error"
+    },
+    {
+      "code": "t1_timeout",
+      "label_fr": "Le moteur RDG n'a pas répondu dans le délai imparti. Veuillez réessayer.",
+      "label_en": "The RDG engine did not respond within the allotted time. Please retry.",
+      "label_ar": "لم يستجب محرك RDG في الوقت المحدد. يرجى إعادة المحاولة.",
+      "severity": "error"
+    }
+  ]
+}

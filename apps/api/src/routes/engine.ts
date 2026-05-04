@@ -12,7 +12,16 @@ import type { Pool } from 'pg';
 import { z } from 'zod';
 
 import { handleDbError } from '../db/errors.js';
-import { emitAgentStep } from '../lib/runEventBus.js';
+import { computeConformityRate } from '../domain/conformity.js';
+import {
+  diffCanonicalFields,
+  finalizeBodySchema,
+  isCanonicallyIdentical,
+  projectCanonicalFromPayload,
+  type CanonicalState,
+  type FinalizeBody,
+} from '../domain/finalize.js';
+import { emitAgentStep, emitComplete, emitError } from '../lib/runEventBus.js';
 import {
   PlatformConfigMissingError,
   PlatformConfigTypeError,
@@ -23,11 +32,13 @@ import { withConnection } from '../db/withConnection.js';
 import { logger } from '../logger.js';
 import {
   HTTP_BAD_REQUEST,
+  HTTP_CONFLICT,
   HTTP_CREATED,
   HTTP_FORBIDDEN,
   HTTP_INTERNAL_SERVER_ERROR,
   HTTP_NOT_FOUND,
   HTTP_OK,
+  HTTP_UNPROCESSABLE_CONTENT,
 } from '../lib/http.js';
 
 /**
@@ -723,6 +734,364 @@ export function engineRouter(pool: Pool): IRouter {
         duration_ms: result.durationMs,
         verdicts,
         totals,
+      },
+      meta: { ts: new Date().toISOString(), version: '1' },
+    });
+  });
+
+  // -------------------------------------------------------------------
+  // POST /runs/:runId/finalize
+  //
+  // Tranche 0 — fermeture transactionnelle du pipeline T0+T1.
+  //
+  // Single writer for `validation_runs` post-creation: this route is
+  // the ONLY code path that flips status='running' → completed/failed,
+  // populates totals + conformity_rate + completed_at + step BCT
+  // statuses + error_code, and emits the SSE complete/error frames.
+  //
+  // Idempotence (CEO arbitration #4 + ADR 0001): atomic SELECT FOR
+  // UPDATE on the row, then branch:
+  //   - row.status='running'                          → apply UPDATE +
+  //     bulk INSERT fail_items + emit SSE complete/error → 200
+  //   - row.status terminal AND canonically identical → 200 no-op
+  //     (no SSE re-emit, no fail_details re-insert)
+  //   - row.status terminal AND canonically divergent → 409 Conflict
+  //     with body listing the divergent fields
+  //
+  // The 5 canonical fields (status, total_pass, total_fail_severe,
+  // total_fail_rounding, error_code) are the ONLY axis of comparison.
+  // correlation_id is metadata, EXCLUDED from the diff (a fresh client
+  // retrying with a new UUID still resolves to no-op).
+  // -------------------------------------------------------------------
+  router.post('/runs/:runId/finalize', async (req: Request, res: Response) => {
+    const runId = req.params['runId'];
+    const tenantId = res.locals['enginePayloadTenantId'] as string | undefined;
+    // correlationIdMiddleware (mounted in app.ts before engineRouter)
+    // guarantees res.locals.correlationId is a UUID string.
+    const correlationId = res.locals['correlationId'] as string;
+
+    if (typeof runId !== 'string' || !UUID_RE.test(runId)) {
+      res.status(HTTP_BAD_REQUEST).json({
+        error: { code: 'INVALID_RUN_ID', message: 'runId must be a UUID' },
+      });
+      return;
+    }
+    if (typeof tenantId !== 'string' || !UUID_RE.test(tenantId)) {
+      res.status(HTTP_BAD_REQUEST).json({
+        error: {
+          code: 'MISSING_TENANT_CLAIM',
+          message: 'JWT payload must include a UUID `tenant_id` claim',
+        },
+      });
+      return;
+    }
+
+    const parsed = finalizeBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      const issue = parsed.error.issues[0];
+      res.status(HTTP_UNPROCESSABLE_CONTENT).json({
+        error: {
+          code: 'INVALID_FINALIZE_BODY',
+          message: issue !== undefined ? `${issue.path.join('.')}: ${issue.message}` : 'invalid',
+          details: parsed.error.issues.map((i) => ({
+            path: i.path.join('.'),
+            message: i.message,
+          })),
+        },
+      });
+      return;
+    }
+    const body: FinalizeBody = parsed.data;
+    const requestedCanonical: CanonicalState = projectCanonicalFromPayload(body);
+
+    interface FinalizeOutcome {
+      kind: 'finalized' | 'idempotent' | 'conflict' | 'not_found' | 'invalid_error_code';
+      stored?: CanonicalState;
+      divergent?: ReturnType<typeof diffCanonicalFields>;
+    }
+
+    let outcome: FinalizeOutcome;
+    try {
+      outcome = await withConnection(pool, { tenantId, userId: tenantId }, async (client) => {
+        // Verify error_code exists in the catalogue BEFORE taking the
+        // row lock — surfaces a 422 instead of a 23503 FK violation
+        // mid-transaction. NULL bypasses the lookup (status=completed
+        // path).
+        if (body.error_code !== null) {
+          const codeRow = await client.query<{ exists: boolean }>(
+            `SELECT EXISTS (
+                SELECT 1 FROM run_error_codes
+                 WHERE code = $1 AND deleted_at IS NULL
+              ) AS exists`,
+            [body.error_code],
+          );
+          if (codeRow.rows[0]?.exists !== true) {
+            return { kind: 'invalid_error_code' as const };
+          }
+        }
+
+        // SELECT ... FOR UPDATE serializes concurrent finalize calls on
+        // the same run. The row exists from the POST /runs handler.
+        const lockRow = await client.query<{
+          status: string;
+          total_pass: number | null;
+          total_fail_severe: number | null;
+          total_fail_rounding: number | null;
+          error_code: string | null;
+        }>(
+          `SELECT status, total_pass, total_fail_severe, total_fail_rounding, error_code
+             FROM validation_runs
+            WHERE id = $1::uuid AND tenant_id = $2::uuid
+              FOR UPDATE`,
+          [runId, tenantId],
+        );
+        if (lockRow.rows.length === 0) {
+          return { kind: 'not_found' as const };
+        }
+        const storedStatus = lockRow.rows[0]!.status;
+
+        if (storedStatus === 'running') {
+          // First terminal write — apply the full UPDATE and side
+          // effects. conformity_rate computed centrally, no scatter.
+          const conformityRate =
+            body.totals !== null
+              ? computeConformityRate(
+                  body.totals.pass,
+                  body.totals.fail_severe,
+                  body.totals.fail_rounding,
+                )
+              : null;
+          const totalRulesEvaluated =
+            body.totals !== null
+              ? body.totals.pass + body.totals.fail_severe + body.totals.fail_rounding
+              : null;
+
+          await client.query(
+            `UPDATE validation_runs
+                SET status                     = $1,
+                    total_pass                 = $2,
+                    total_fail_severe          = $3,
+                    total_fail_rounding        = $4,
+                    total_rules_evaluated      = $5,
+                    conformity_rate            = $6,
+                    execution_time_ms          = $7,
+                    completed_at               = NOW(),
+                    step1_xsd_status           = $8,
+                    step1_xsd_duration_ms      = $9,
+                    step2_embedded_status      = $10,
+                    step2_embedded_duration_ms = $11,
+                    step3_rdg_status           = $12,
+                    step3_rdg_duration_ms      = $13,
+                    error_code                 = $14,
+                    synthesis_artifact         = COALESCE($15::jsonb, synthesis_artifact)
+              WHERE id        = $16::uuid
+                AND tenant_id = $17::uuid
+                AND status    = 'running'`,
+            [
+              body.status,
+              body.totals?.pass ?? null,
+              body.totals?.fail_severe ?? null,
+              body.totals?.fail_rounding ?? null,
+              totalRulesEvaluated,
+              conformityRate,
+              body.duration_ms,
+              body.step1_xsd_status,
+              body.step1_xsd_duration_ms,
+              body.step2_embedded_status,
+              body.step2_embedded_duration_ms,
+              body.step3_rdg_status,
+              body.step3_rdg_duration_ms,
+              body.error_code,
+              body.synthesis_artifact !== undefined && body.synthesis_artifact !== null
+                ? JSON.stringify(body.synthesis_artifact)
+                : null,
+              runId,
+              tenantId,
+            ],
+          );
+
+          // Bulk-insert fail_items in a single multi-row INSERT (never a
+          // loop). Skipped when the array is empty (fast path).
+          if (body.fail_items.length > 0) {
+            const cols = [
+              'tenant_id',
+              'validation_run_id',
+              'rule_id',
+              'ax_term',
+              'num_regle',
+              'is_sentinel_iteration',
+              'iteration_index',
+              'iteration_xpath',
+              'iteration_label',
+              'severity',
+              'expected_value',
+              'computed_value',
+              'gap_absolute',
+              'gap_relative',
+              'calculation_trace',
+            ];
+            const values: unknown[] = [];
+            const placeholders: string[] = [];
+            body.fail_items.forEach((item, rowIdx) => {
+              const base = rowIdx * cols.length;
+              placeholders.push(
+                '(' +
+                  cols
+                    .map((_c, i) => {
+                      const idx = base + i + 1;
+                      // calculation_trace is the last column → cast jsonb.
+                      return i === cols.length - 1 ? `$${idx}::jsonb` : `$${idx}`;
+                    })
+                    .join(',') +
+                  ')',
+              );
+              values.push(
+                tenantId,
+                runId,
+                item.rule_id,
+                item.ax_term,
+                item.num_regle,
+                item.is_sentinel_iteration ?? false,
+                item.iteration_index ?? null,
+                item.iteration_xpath ?? null,
+                item.iteration_label ?? null,
+                item.severity,
+                item.expected_value ?? null,
+                item.computed_value ?? null,
+                item.gap_absolute ?? null,
+                item.gap_relative ?? null,
+                JSON.stringify(item.calculation_trace ?? {}),
+              );
+            });
+            await client.query(
+              `INSERT INTO validation_fail_details
+                 (${cols.join(', ')})
+               VALUES ${placeholders.join(', ')}`,
+              values,
+            );
+          }
+
+          return { kind: 'finalized' as const, stored: requestedCanonical };
+        }
+
+        // Row already terminal: branch on canonical equality.
+        // Cast is safe here: storedStatus is one of {completed, failed,
+        // aborted} per validation_runs_ck_status. aborted is out of
+        // scope this tranche (CEO décision #1), so any 'aborted' row
+        // present here predates Tranche 0 and is treated as a divergent
+        // canonical state by the diff helper.
+        const stored: CanonicalState = {
+          status: storedStatus as CanonicalState['status'],
+          total_pass: lockRow.rows[0]!.total_pass,
+          total_fail_severe: lockRow.rows[0]!.total_fail_severe,
+          total_fail_rounding: lockRow.rows[0]!.total_fail_rounding,
+          error_code: lockRow.rows[0]!.error_code,
+        };
+        if (isCanonicallyIdentical(stored, requestedCanonical)) {
+          return { kind: 'idempotent' as const, stored };
+        }
+        return {
+          kind: 'conflict' as const,
+          stored,
+          divergent: diffCanonicalFields(stored, requestedCanonical),
+        };
+      });
+    } catch (err) {
+      logger.error(
+        { err, runId, tenantId, correlation_id: correlationId },
+        'finalize transaction failed',
+      );
+      handleDbError(err, res);
+      return;
+    }
+
+    if (outcome.kind === 'invalid_error_code') {
+      res.status(HTTP_UNPROCESSABLE_CONTENT).json({
+        error: {
+          code: 'UNKNOWN_ERROR_CODE',
+          message: `error_code '${body.error_code ?? ''}' is not registered in run_error_codes`,
+        },
+      });
+      return;
+    }
+    if (outcome.kind === 'not_found') {
+      res.status(HTTP_NOT_FOUND).json({
+        error: { code: 'RUN_NOT_FOUND', message: 'no validation_runs row for runId + tenant' },
+      });
+      return;
+    }
+    if (outcome.kind === 'conflict') {
+      logger.warn(
+        {
+          runId,
+          tenantId,
+          correlation_id: correlationId,
+          divergent: outcome.divergent,
+          event: 'finalize.conflict',
+        },
+        'POST /finalize 409 — canonical state divergence on already-terminal run',
+      );
+      res.status(HTTP_CONFLICT).json({
+        error: {
+          code: 'FINALIZE_CONFLICT',
+          message: 'run already finalized with a divergent canonical state',
+          divergent: outcome.divergent,
+        },
+      });
+      return;
+    }
+    if (outcome.kind === 'idempotent') {
+      logger.info(
+        {
+          runId,
+          tenantId,
+          correlation_id: correlationId,
+          event: 'finalize.idempotent.no_op',
+        },
+        'POST /finalize 200 no-op — canonical state matches the stored row',
+      );
+      res.status(HTTP_OK).json({
+        data: { run_id: runId, idempotent: true },
+        meta: { ts: new Date().toISOString(), version: '1' },
+      });
+      return;
+    }
+
+    // outcome.kind === 'finalized' — emit the single SSE frame and ack.
+    const totalPass = body.totals?.pass ?? 0;
+    const totalFail = (body.totals?.fail_severe ?? 0) + (body.totals?.fail_rounding ?? 0);
+    if (body.status === 'completed') {
+      emitComplete(runId, {
+        runId,
+        pass: totalPass,
+        fail: totalFail,
+        durationMs: body.duration_ms,
+      });
+    } else {
+      // body.status === 'failed' (zod cross-field guarantees error_code is non-null).
+      emitError(runId, {
+        code: body.error_code ?? 'unknown',
+        message: body.error_code ?? 'finalize failed',
+      });
+    }
+
+    logger.info(
+      {
+        runId,
+        tenantId,
+        correlation_id: correlationId,
+        status: body.status,
+        error_code: body.error_code,
+        event: 'finalize.applied',
+      },
+      'POST /finalize 200 — run finalized and SSE emitted',
+    );
+
+    res.status(HTTP_OK).json({
+      data: {
+        run_id: runId,
+        status: body.status,
+        error_code: body.error_code,
       },
       meta: { ts: new Date().toISOString(), version: '1' },
     });
