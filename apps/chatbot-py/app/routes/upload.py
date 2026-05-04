@@ -23,6 +23,7 @@ Doctrine compliance:
 
 from __future__ import annotations
 
+import json
 import time
 import zlib
 from collections.abc import Awaitable, Callable
@@ -48,6 +49,8 @@ from app.routes.chat import get_error_resolver, get_llm_client, get_pool
 from app.services.orchestrator import (
     _build_finalize_payload_completed,
     _build_finalize_payload_failed,
+    _build_synthesis_artifact,
+    _clean_thought_leakage,
     _run_t1_validation,
 )
 from app.services.prompt_loader import load_active_prompt
@@ -437,6 +440,80 @@ async def _render_briefing(
     )
 
 
+async def _render_t1_synthesis(
+    *,
+    pool: asyncpg.Pool,
+    llm_client: LLMClient,
+    tenant_id: str,
+    t1_result: Any,
+) -> str | None:
+    """Tranche 1.2 — invoke regalica/aggregate_t1_result on the T1
+    output to produce the user-facing synthesis markdown.
+
+    Mirrors the chat-driven path's _invoke_t1_synthesis_aggregator but
+    is local to /upload so the LANCER button (no chat in flight) still
+    delivers a proper Regalica narration. Best-effort: returns None on
+    LLM error / missing prompt; caller treats None as
+    synthesis_artifact=null and the front falls back to the KPI grid
+    + FailsTable as primary surface.
+    """
+    meta = await load_active_prompt(
+        pool=pool,
+        tenant_id=tenant_id,
+        agent_type="regalica",
+        function_name="aggregate_t1_result",
+    )
+    if meta is None:
+        log.info(
+            "synthesis_aggregator_prompt_missing",
+            tenant_id=tenant_id,
+        )
+        return None
+
+    totals = t1_result["totals"]
+    pass_count = int(totals["pass_"])
+    fail_severe = int(totals["fail_severe"])
+    fail_rounding = int(totals["fail_rounding"])
+    payload: dict[str, Any] = {
+        "user_message": "",
+        "intent_type": "launch_validation",
+        "specialist_outputs": [
+            {
+                "bearer": "regalica/aggregate_t1_result",
+                "success": True,
+                "output": {
+                    "success": True,
+                    "total_fail_severe": fail_severe,
+                    "total_fail_rounding": fail_rounding,
+                    "total_pass": pass_count,
+                    "duration_ms": int(t1_result["duration_ms"]),
+                    "rejection_step": None,
+                    "rejection_reason": None,
+                },
+                "error": None,
+            },
+        ],
+    }
+    try:
+        request = LLMRequest(
+            prompt=json.dumps(payload, ensure_ascii=False),
+            temperature=meta["temperature"],
+            max_tokens=meta["max_tokens"],
+            thinking_enabled=meta["thinking_enabled"],
+            system_prompt=meta["template"],
+        )
+        response = await llm_client.complete(request)
+        raw = response.content
+        cleaned = _clean_thought_leakage(raw) if meta.get("output_contract") == "string" else raw
+        if not isinstance(cleaned, str):
+            return None
+        stripped = cleaned.strip()
+        return stripped if stripped else None
+    except Exception as exc:
+        log.warning("synthesis_aggregator_failed", error=str(exc))
+        return None
+
+
 @router.post("", response_model=UploadResponse)
 async def post_upload(
     payload: UploadKickoffRequest,
@@ -620,13 +697,56 @@ async def post_upload(
                     tenant_id=payload.tenant_id,
                     api_client=engine,
                 )
+                # Tranche 1.2 — invoke the Regalica synthesis aggregator
+                # so /finalize lands a real markdown synthesis_artifact
+                # (rendered by Workspace as <Artefact type="livrable_a">)
+                # AND the chat thread receives Regalica's user-facing
+                # narration of the verdict. Best-effort: failures
+                # downgrade gracefully to the KPI-only path.
+                synthesis_markdown = await _render_t1_synthesis(
+                    pool=pool,
+                    llm_client=llm_client,
+                    tenant_id=payload.tenant_id,
+                    t1_result=t1_result,
+                )
                 finalize_payload = _build_finalize_payload_completed(t1_result)
+                if synthesis_markdown is not None:
+                    finalize_payload["synthesis_artifact"] = _build_synthesis_artifact(
+                        synthesis_markdown,
+                        t1_result,
+                    )
                 await engine.finalize_run(
                     run_id=payload.run_id,
                     tenant_id=payload.tenant_id,
                     payload=finalize_payload,
                     correlation_id=getattr(request.state, "correlation_id", None),
                 )
+                # Persist Regalica's synthesis as a chat message so the
+                # operator sees the AI narration in the dock right after
+                # the run completes (only when a conversation_id was
+                # threaded by the frontend; the LANCER button passes it
+                # if the user has already opened a chat conversation).
+                if synthesis_markdown is not None and payload.conversation_id is not None:
+                    try:
+                        await engine.persist_message(
+                            conversation_id=payload.conversation_id,
+                            tenant_id=payload.tenant_id,
+                            content=synthesis_markdown,
+                            role="assistant",
+                            metadata={
+                                "agents_triggered": ["regalica/aggregate_t1_result"],
+                                "run_id": payload.run_id,
+                            },
+                            produced_by_agent="regalica",
+                            run_id=payload.run_id,
+                        )
+                    except (RegflowApiError, httpx.HTTPError) as err:
+                        log.warning(
+                            "engine_persist_synthesis_failed",
+                            run_id=payload.run_id,
+                            conversation_id=payload.conversation_id,
+                            error=str(err),
+                        )
                 t1_status = "completed"
             except T1RejectionError as exc:
                 error_code = (
