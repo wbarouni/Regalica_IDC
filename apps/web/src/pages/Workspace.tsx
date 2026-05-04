@@ -283,7 +283,7 @@ function ChatThread({ messages }: { messages: readonly ChatMessage[] }) {
 export default function Workspace() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { run, loading: runLoading, error: runError } = useCurrentRun();
+  const { run, loading: runLoading, error: runError, refetch: refetchCurrentRun } = useCurrentRun();
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
   // Surcouche: an interactively-launched run takes precedence over
   // the server-resolved current run. This lets the operator kick off a
@@ -295,16 +295,18 @@ export default function Workspace() {
 
   // SSE 'complete' event => the engine just persisted final
   // synthesis_artifact + deliverable_c_artifact + KPIs to
-  // validation_runs. Re-pull /summary so the livrables surface
-  // immediately, no polling required.
+  // validation_runs. Re-pull /summary AND /current so both the
+  // livrables (summary) and the persona-side KPI snapshot (run)
+  // refresh from the same emitter, no polling required.
   const sse = useEventSource(currentRunId);
   useEffect(() => {
     if (currentRunId === null) return;
     const unsubscribe = sse.subscribe('complete', () => {
       refetchSummary();
+      refetchCurrentRun();
     });
     return unsubscribe;
-  }, [currentRunId, sse, refetchSummary]);
+  }, [currentRunId, sse, refetchSummary, refetchCurrentRun]);
 
   // SSE 'error' event => /finalize emitted a single terminal error
   // frame with shape {code, message} (engine.ts:1072, runEventBus
