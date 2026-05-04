@@ -7,6 +7,7 @@ import remarkGfm from 'remark-gfm';
 import { Artefact } from '../components/Artefact';
 import { DaySeparator } from '../components/DaySeparator';
 import { Dock } from '../components/Dock';
+import { EngineErrorArtefact } from '../components/EngineErrorArtefact';
 import { FailsTable } from '../components/FailsTable';
 import { SuggestionChips } from '../components/SuggestionChips';
 import { LanguageSwitcher } from '../components/primitives/LanguageSwitcher';
@@ -304,6 +305,41 @@ export default function Workspace() {
     });
     return unsubscribe;
   }, [currentRunId, sse, refetchSummary]);
+
+  // SSE 'error' event => /finalize emitted a single terminal error
+  // frame with shape {code, message} (engine.ts:1072, runEventBus
+  // single-emitter pattern). Tranche 1 fix: before this listener,
+  // engine errors were silently dropped — the run reached
+  // status='failed' in DB but the frontend showed nothing. The
+  // payload's `code` is one of run_error_codes (apps/api/seeds/
+  // run_error_codes.json); EngineErrorArtefact resolves localised
+  // copy via i18n and falls back to error.engine.unknown for any
+  // unrecognised code.
+  const [engineError, setEngineError] = useState<{ code: string; message: string } | null>(null);
+  useEffect(() => {
+    if (currentRunId === null) return;
+    const unsubscribe = sse.subscribe('error', (data: unknown) => {
+      if (
+        data !== null &&
+        typeof data === 'object' &&
+        'code' in data &&
+        typeof (data as { code: unknown }).code === 'string'
+      ) {
+        const code = (data as { code: string }).code;
+        const rawMessage =
+          'message' in data && typeof (data as { message: unknown }).message === 'string'
+            ? (data as { message: string }).message
+            : code;
+        setEngineError({ code, message: rawMessage });
+      }
+    });
+    return unsubscribe;
+  }, [currentRunId, sse]);
+  useEffect(() => {
+    // A new run kicks off => clear any stale terminal error from a
+    // prior run so the artefact does not haunt the next ribbon cycle.
+    setEngineError(null);
+  }, [currentRunId]);
   const {
     messages,
     loading: chatLoading,
@@ -422,6 +458,10 @@ export default function Workspace() {
                   ))}
                 </ul>
               </Artefact>
+            )}
+
+            {engineError !== null && (
+              <EngineErrorArtefact code={engineError.code} message={engineError.message} />
             )}
 
             {runLoading && <LoadingState />}

@@ -198,7 +198,17 @@
     "noActiveRun": "Aucune validation en cours pour cet établissement.",
     "noActiveRunHint": "Importez un dépôt XML pour démarrer une validation.",
     "configMissing": "Configuration requise",
-    "invalid_xml_format": "Format invalide — seuls les fichiers XML sont acceptés."
+    "invalid_xml_format": "Format invalide — seuls les fichiers XML sont acceptés.",
+    "engineErrorTitle": "Erreur moteur de validation",
+    "engine": {
+      "t0_xsd_invalid": "Structure XSD invalide. Le fichier XML ne respecte pas le schéma BCT.",
+      "t0_embedded_fail": "Contrôles embarqués BCT échoués (annexes compagnes manquantes ou totaux incohérents).",
+      "t0_parse_error": "Erreur de parsing XML. Le fichier ne peut pas être lu (encodage, syntaxe, ou contenu corrompu).",
+      "t1_engine_exception": "Exception du moteur RDG pendant l'évaluation. Veuillez contacter votre administrateur.",
+      "t1_no_verdicts": "Le moteur RDG n'a produit aucun verdict pour ce run (corpus de règles vide ou applicable_total nul).",
+      "t1_timeout": "Le moteur RDG n'a pas répondu dans le délai imparti. Veuillez réessayer.",
+      "unknown": "Erreur inattendue lors de la validation."
+    }
   },
   "loading": "Chargement…"
 }

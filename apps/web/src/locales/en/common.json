@@ -198,7 +198,17 @@
     "noActiveRun": "No active validation for this institution.",
     "noActiveRunHint": "Upload an XML dispatch to start a validation.",
     "configMissing": "Configuration required",
-    "invalid_xml_format": "Invalid format — only XML files are accepted."
+    "invalid_xml_format": "Invalid format — only XML files are accepted.",
+    "engineErrorTitle": "Validation engine error",
+    "engine": {
+      "t0_xsd_invalid": "Invalid XSD structure. The XML file does not conform to the BCT schema.",
+      "t0_embedded_fail": "BCT embedded controls failed (missing companion annexes or inconsistent totals).",
+      "t0_parse_error": "XML parsing error. The file cannot be read (encoding, syntax, or corrupted content).",
+      "t1_engine_exception": "RDG engine exception during evaluation. Please contact your administrator.",
+      "t1_no_verdicts": "RDG engine produced no verdicts for this run (empty rule set or applicable_total is zero).",
+      "t1_timeout": "The RDG engine did not respond within the allotted time. Please retry.",
+      "unknown": "Unexpected validation error."
+    }
   },
   "loading": "Loading…"
 }
