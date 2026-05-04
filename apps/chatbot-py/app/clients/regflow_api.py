@@ -34,6 +34,7 @@ response — the engine persistence is best-effort augmentation).
 
 from __future__ import annotations
 
+import asyncio
 import time
 from typing import Any, TypedDict
 
@@ -42,6 +43,12 @@ import jwt
 
 from app.config import settings
 from app.exceptions import EvaluationError, EvaluationTimeoutError
+
+
+async def _sleep_seconds(seconds: float) -> None:
+    """Indirection so tests can monkey-patch the backoff sleep without
+    introducing real wall-clock waits."""
+    await asyncio.sleep(seconds)
 
 
 class RegflowApiError(Exception):
@@ -153,6 +160,7 @@ class RegflowApiClient:
         started_at: str | None = None,
         completed_at: str | None = None,
         error_message: str | None = None,
+        correlation_id: str | None = None,
     ) -> dict[str, Any]:
         """POST /runs/<run>/agent-steps/<step> — update + SSE."""
         endpoint = f"/runs/{run_id}/agent-steps/{step_id}"
@@ -163,7 +171,7 @@ class RegflowApiClient:
             body["completedAt"] = completed_at
         if error_message is not None:
             body["errorMessage"] = error_message
-        return await self._post(endpoint, body, tenant_id)
+        return await self._post(endpoint, body, tenant_id, correlation_id=correlation_id)
 
     async def persist_message(
         self,
@@ -175,6 +183,7 @@ class RegflowApiClient:
         metadata: dict[str, Any] | None = None,
         produced_by_agent: str | None = None,
         run_id: str | None = None,
+        correlation_id: str | None = None,
     ) -> dict[str, Any]:
         """POST /conversations/<id>/messages — persist a Regalica message."""
         endpoint = f"/conversations/{conversation_id}/messages"
@@ -189,29 +198,41 @@ class RegflowApiClient:
             body["produced_by_agent"] = produced_by_agent
         if run_id is not None:
             body["run_id"] = run_id
-        return await self._post(endpoint, body, tenant_id)
+        return await self._post(endpoint, body, tenant_id, correlation_id=correlation_id)
 
-    def _engine_auth_headers(self, tenant_id: str) -> dict[str, str]:
+    def _engine_auth_headers(
+        self,
+        tenant_id: str,
+        correlation_id: str | None = None,
+    ) -> dict[str, str]:
         """Build the engine-JWT auth headers for a given tenant.
 
         Extracted from `_post` so `evaluate_run` can reuse the same
         header construction without duplicating the JWT signing logic.
         Caller-controlled tenant_id flows into the JWT `tenant_id`
         claim that the API's engineAuthMiddleware validates.
+
+        When ``correlation_id`` is supplied, propagate it via
+        ``X-Correlation-Id`` so the Node API logs and the SSE payloads
+        carry the same UUID as the chatbot-py logs of this request.
         """
         token = _sign_engine_jwt(tenant_id)
-        return {
+        headers: dict[str, str] = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
         }
+        if correlation_id is not None:
+            headers["X-Correlation-Id"] = correlation_id
+        return headers
 
     async def _post(
         self,
         endpoint: str,
         body: dict[str, Any],
         tenant_id: str,
+        correlation_id: str | None = None,
     ) -> dict[str, Any]:
-        headers = self._engine_auth_headers(tenant_id)
+        headers = self._engine_auth_headers(tenant_id, correlation_id=correlation_id)
         response = await self._client.post(endpoint, json=body, headers=headers)
         if response.status_code // 100 != 2:
             raise RegflowApiError(
@@ -234,6 +255,7 @@ class RegflowApiClient:
         tenant_id: str,
         arrete_date: str,
         timeout_seconds: float = 30.0,
+        correlation_id: str | None = None,
     ) -> EvaluateRunResult:
         """POST /api/engine/runs/<run>/evaluate — drive the RDG engine.
 
@@ -269,7 +291,7 @@ class RegflowApiClient:
         """
         endpoint = f"/runs/{run_id}/evaluate"
         payload = {"arrete_date": arrete_date}
-        headers = self._engine_auth_headers(tenant_id)
+        headers = self._engine_auth_headers(tenant_id, correlation_id=correlation_id)
 
         try:
             response = await self._client.post(
@@ -321,4 +343,113 @@ class RegflowApiClient:
             duration_ms=int(data["duration_ms"]),
             verdicts=list(data["verdicts"]),
             totals=totals,
+        )
+
+    async def finalize_run(
+        self,
+        *,
+        run_id: str,
+        tenant_id: str,
+        payload: dict[str, Any],
+        correlation_id: str | None = None,
+        retry_max: int = 3,
+        retry_backoff_seconds: tuple[float, ...] = (1.0, 2.0, 4.0),
+    ) -> dict[str, Any]:
+        """POST /api/engine/runs/<run>/finalize — single-writer terminal write.
+
+        Tranche 0 contract:
+          * Idempotente côté Node : retries réseau avec MÊME
+            correlation_id résolvent en 200 no-op (pas de double SSE).
+          * 4xx (400/401/403/404/422/409) → propagés sans retry — le
+            retry sur erreur protocolaire ne ferait que masquer un bug
+            de payload côté caller.
+          * Réseau / 5xx → retry exponentiel jusqu'à `retry_max`
+            tentatives ; backoffs lus depuis platform_config keys
+            ``t1_finalize_retry_max`` / ``t1_finalize_retry_backoff_seconds``
+            (le caller les charge ; ce client n'a pas la connexion DB).
+
+        Args:
+            run_id: validation_runs.id à finaliser.
+            tenant_id: tenant pour le JWT engine.
+            payload: dict matching the Node zod ``finalizeBodySchema``
+                (status, totals, fail_items, duration_ms, step1/2/3
+                statuses + durations, error_code, synthesis_artifact).
+            correlation_id: propagé en header X-Correlation-Id sur
+                CHAQUE tentative — la dédup côté Node repose dessus.
+            retry_max: nombre maximal de tentatives (≥ 1).
+            retry_backoff_seconds: durées de backoff entre tentatives.
+                len() doit être ≥ retry_max - 1 ; valeurs en secondes.
+
+        Returns:
+            Le body JSON de la réponse Node (data + meta), incluant
+            ``data.idempotent: true`` si le serveur a no-op'é.
+
+        Raises:
+            RegflowApiError: 4xx (jamais retry) ou échec après tous
+                les retries 5xx / réseau.
+        """
+        endpoint = f"/runs/{run_id}/finalize"
+        headers = self._engine_auth_headers(tenant_id, correlation_id=correlation_id)
+
+        attempts = max(1, retry_max)
+        last_exc: Exception | None = None
+        for attempt_index in range(attempts):
+            try:
+                response = await self._client.post(endpoint, json=payload, headers=headers)
+            except httpx.HTTPError as exc:
+                last_exc = exc
+                if attempt_index < attempts - 1:
+                    delay = (
+                        retry_backoff_seconds[attempt_index]
+                        if attempt_index < len(retry_backoff_seconds)
+                        else retry_backoff_seconds[-1]
+                    )
+                    await _sleep_seconds(delay)
+                    continue
+                raise RegflowApiError(
+                    0,
+                    str(exc),
+                    endpoint=endpoint,
+                ) from exc
+
+            status_code = response.status_code
+            if status_code // 100 == 2:
+                parsed: Any = response.json()
+                if not isinstance(parsed, dict):
+                    raise RegflowApiError(
+                        status_code,
+                        f"expected JSON object, got {type(parsed).__name__}",
+                        endpoint=endpoint,
+                    )
+                return parsed
+
+            # Client errors (4xx) bubble immediately. Retrying a 422
+            # zod failure or a 409 conflict makes no sense — the caller
+            # has a contract bug to fix.
+            if 400 <= status_code < 500:
+                raise RegflowApiError(
+                    status_code,
+                    response.text,
+                    endpoint=endpoint,
+                )
+
+            # 5xx → retry with backoff.
+            last_exc = RegflowApiError(status_code, response.text, endpoint=endpoint)
+            if attempt_index < attempts - 1:
+                delay = (
+                    retry_backoff_seconds[attempt_index]
+                    if attempt_index < len(retry_backoff_seconds)
+                    else retry_backoff_seconds[-1]
+                )
+                await _sleep_seconds(delay)
+                continue
+            raise last_exc
+
+        # Unreachable — the loop either returns on 2xx or raises on 4xx /
+        # post-final 5xx. mypy needs the explicit raise to satisfy the
+        # return-statement check.
+        raise RegflowApiError(
+            0,
+            "finalize_run exhausted retries without a definitive response",
+            endpoint=endpoint,
         )

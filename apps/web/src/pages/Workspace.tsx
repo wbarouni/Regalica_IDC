@@ -310,7 +310,9 @@ export default function Workspace() {
     sendMessage,
     clearError,
     conversationId,
-  } = useChat();
+    // Tranche 0 E2 — pass the active run id so chatbot-py routes
+    // launch_validation to t1_runner with current_run_id non-null.
+  } = useChat({ runId: currentRunId });
 
   const upload = useUpload();
   const startRun = useStartRun();

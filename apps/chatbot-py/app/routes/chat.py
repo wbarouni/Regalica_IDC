@@ -29,6 +29,8 @@ import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
+from app.clients.regflow_api import RegflowApiClient
+from app.domain.error_resolver import ErrorResolver
 from app.llm.base import LLMClient
 from app.services.orchestrator import OrchestratorResult, orchestrate
 
@@ -94,14 +96,37 @@ def get_llm_client(request: Request) -> LLMClient:
     return client
 
 
+def get_api_client(request: Request) -> RegflowApiClient:
+    """Return the shared engine HTTP client from app.state."""
+    client: RegflowApiClient = request.app.state.api_client
+    return client
+
+
+def get_error_resolver(request: Request) -> ErrorResolver | None:
+    """Return the run_error_codes resolver, or None when DB is absent.
+
+    Tranche 0 wires the resolver in main.py lifespan ONLY when
+    ``database_url`` is set. The chat path tolerates absence (smoke
+    mode without DB) by passing None to orchestrate, which then skips
+    the /finalize call and returns the chat response unchanged.
+    """
+    return getattr(request.app.state, "error_resolver", None)
+
+
 @router.post("/message", response_model=ChatResponse)
 async def post_chat_message(
     chat_request: ChatRequest,
+    request: Request,
     pool: Annotated[asyncpg.Pool, Depends(get_pool)],
     llm_client: Annotated[LLMClient, Depends(get_llm_client)],
+    api_client: Annotated[RegflowApiClient, Depends(get_api_client)],
+    error_resolver: Annotated[ErrorResolver | None, Depends(get_error_resolver)],
 ) -> ChatResponse:
     """Handle a single chat turn: orchestrate, persist, respond."""
     context = chat_request.context
+    # Set by CorrelationIdMiddleware (mounted in main.py before any
+    # router). Always present as a UUID v4 string.
+    correlation_id: str = request.state.correlation_id
 
     try:
         result: OrchestratorResult = await orchestrate(
@@ -112,6 +137,9 @@ async def post_chat_message(
             fail_context=context.fail if context is not None else None,
             rule_context=context.rule if context is not None else None,
             current_run_id=context.validation_run_id if context is not None else None,
+            api_client=api_client,
+            error_resolver=error_resolver,
+            correlation_id=correlation_id,
         )
     except Exception as exc:
         raise HTTPException(

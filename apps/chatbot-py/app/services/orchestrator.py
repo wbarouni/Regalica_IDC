@@ -49,6 +49,7 @@ from app.agents.base import AgentResult
 from app.agents.t2 import CitationAgent, HistoricalAgent, InvestigatorAgent
 from app.clients.regflow_api import EvaluateRunResult, RegflowApiClient
 from app.config import settings
+from app.domain.error_resolver import T1_NO_VERDICTS, ErrorResolver
 from app.exceptions import (
     EvaluationError,
     EvaluationTimeoutError,
@@ -146,6 +147,14 @@ class _SpecialistContext:
     `t1_runner` specialist is the only consumer. Default None keeps
     every existing call site valid without modification; specialists
     that do not need it ignore the field.
+
+    `error_resolver` is the run_error_codes catalogue lookup loaded
+    once at startup (Tranche 0). t1_runner uses it to translate engine
+    exceptions into canonical error_codes before POSTing /finalize.
+
+    `correlation_id` is the per-request UUID set by
+    CorrelationIdMiddleware. Propagated end-to-end so engine logs +
+    SSE payloads + chatbot-py logs share the same id.
     """
 
     pool: asyncpg.Pool
@@ -155,6 +164,8 @@ class _SpecialistContext:
     rule_context: dict[str, Any] | None
     current_run_id: str | None
     api_client: RegflowApiClient | None = None
+    error_resolver: ErrorResolver | None = None
+    correlation_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -319,6 +330,15 @@ async def _call_t1_runner(meta: PromptMeta, ctx: _SpecialistContext) -> AgentRes
             api_client=ctx.api_client,
         )
     except T1RejectionError as exc:
+        # Tranche 0 D4 — finalize with status='failed' so the run row
+        # transitions out of 'running' and the SSE error frame fires.
+        # Best-effort: a finalize failure here is logged via
+        # RegflowApiError but not re-raised, because the chat must
+        # still surface the rejection_reason to the user.
+        await _finalize_t1_failure_best_effort(
+            ctx=ctx,
+            exception=exc,
+        )
         return AgentResult(
             agent_name=_T1_RUNNER_SPECIALIST_ID,
             success=False,
@@ -333,6 +353,34 @@ async def _call_t1_runner(meta: PromptMeta, ctx: _SpecialistContext) -> AgentRes
             },
             error=f"t1_rejected_step_{exc.step}",
         )
+    except (EvaluationTimeoutError, EvaluationError) as exc:
+        # Engine reachable but the call itself failed. Same best-effort
+        # finalize, then surface a graceful French message to the user.
+        await _finalize_t1_failure_best_effort(ctx=ctx, exception=exc)
+        rejection_reason = (
+            "Le moteur d'évaluation RDG a renvoyé une erreur. "
+            "Veuillez contacter votre administrateur."
+        )
+        return AgentResult(
+            agent_name=_T1_RUNNER_SPECIALIST_ID,
+            success=False,
+            output={
+                "success": False,
+                "total_fail_severe": 0,
+                "total_fail_rounding": 0,
+                "total_pass": 0,
+                "duration_ms": 0,
+                "rejection_step": 3,
+                "rejection_reason": rejection_reason,
+            },
+            error="t1_engine_failure",
+        )
+
+    # Tranche 0 D4 — happy path: POST /finalize with status='completed'
+    # so validation_runs.status, totals, completed_at and SSE complete
+    # all land in one atomic transaction. Best-effort error handling
+    # mirrors the failure path above.
+    await _finalize_t1_success_best_effort(ctx=ctx, result=result)
 
     return AgentResult(
         agent_name=_T1_RUNNER_SPECIALIST_ID,
@@ -348,6 +396,155 @@ async def _call_t1_runner(meta: PromptMeta, ctx: _SpecialistContext) -> AgentRes
         },
         error=None,
     )
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Tranche 0 — /finalize call helpers (single-writer terminal write)
+# ──────────────────────────────────────────────────────────────────────────
+
+
+def _build_finalize_payload_completed(result: EvaluateRunResult) -> dict[str, Any]:
+    """Map an EvaluateRunResult to the Node /finalize zod payload.
+
+    BCT step statuses are derived from the engine outcome:
+      - step3_rdg_status='pass' (the engine produced verdicts)
+      - step1/2 statuses default to 'pass' (T0 succeeded upstream;
+        Tranche 0 emits a single agent-step event per T0 phase, so
+        we infer 'pass' from "engine call reached step 3")
+      - durations of step1/2 are unknown at this layer (instrumented
+        in upload.py but not threaded here); set to null
+    """
+    totals = result["totals"]
+    fail_items: list[dict[str, Any]] = []
+    for verdict in result["verdicts"]:
+        if verdict.get("status") != "FAIL":
+            continue
+        severity_label = verdict.get("severity")
+        # Map REGFlow front-facing severity (BLOQUANT/MAJEUR/MINEUR)
+        # back to the engine's coarse severe|rounding the /finalize
+        # zod schema accepts. MINEUR ↔ rounding, others ↔ severe.
+        engine_sev = "rounding" if severity_label == "MINEUR" else "severe"
+        fail_items.append(
+            {
+                "rule_id": verdict.get("rule_id"),
+                "ax_term": verdict.get("ax_term", ""),
+                "num_regle": verdict.get("num_regle", 0),
+                "severity": engine_sev,
+                "calculation_trace": verdict.get("calculation_trace", {}),
+            },
+        )
+    return {
+        "status": "completed",
+        "totals": {
+            "pass": totals["pass_"],
+            "fail_severe": totals["fail_severe"],
+            "fail_rounding": totals["fail_rounding"],
+            "skipped_missing_annexe": totals["skipped_missing_annexe"],
+            "skipped_missing_rubrique": totals["skipped_missing_rubrique"],
+            "skipped_missing_colonne": totals["skipped_missing_colonne"],
+            "skipped_missing_data": totals["skipped_missing_data"],
+            "skipped_conditional": totals["skipped_conditional"],
+            "skipped_unsupported_op": totals["skipped_unsupported_op"],
+            "skipped_literal_text": totals["skipped_literal_text"],
+            "rules_applicable_total": totals["rules_applicable_total"],
+        },
+        "fail_items": fail_items,
+        "duration_ms": result["duration_ms"],
+        "step1_xsd_status": "pass",
+        "step1_xsd_duration_ms": None,
+        "step2_embedded_status": "pass",
+        "step2_embedded_duration_ms": None,
+        "step3_rdg_status": "pass",
+        "step3_rdg_duration_ms": result["duration_ms"],
+        "error_code": None,
+        "synthesis_artifact": None,
+    }
+
+
+def _build_finalize_payload_failed(error_code: str) -> dict[str, Any]:
+    """Minimal /finalize payload for status='failed' (T0 KO or T1 raise).
+
+    totals is null (T0/T1 raise = no verdicts produced). step BCT
+    statuses are all null because the failure happened before the
+    engine wrote them.
+    """
+    return {
+        "status": "failed",
+        "totals": None,
+        "fail_items": [],
+        "duration_ms": 0,
+        "step1_xsd_status": None,
+        "step1_xsd_duration_ms": None,
+        "step2_embedded_status": None,
+        "step2_embedded_duration_ms": None,
+        "step3_rdg_status": None,
+        "step3_rdg_duration_ms": None,
+        "error_code": error_code,
+        "synthesis_artifact": None,
+    }
+
+
+async def _finalize_t1_success_best_effort(
+    ctx: _SpecialistContext,
+    result: EvaluateRunResult,
+) -> None:
+    """POST /finalize on T1 success. Logs failures, never raises.
+
+    Best-effort: a /finalize POST failure does not prevent the chat
+    response from rendering. The Node side guarantees idempotence via
+    the canonical diff, so a future retry from another path resolves
+    cleanly.
+    """
+    if ctx.api_client is None or ctx.current_run_id is None:
+        return
+    error_code: str | None = None
+    if result["totals"]["rules_applicable_total"] == 0 and ctx.error_resolver is not None:
+        # Engine returned but the rule corpus was empty / inactive.
+        # Doctrine T1_NO_VERDICTS — finalize as failed instead of
+        # completed so the row reflects the unusable outcome.
+        error_code = ctx.error_resolver.assert_known(T1_NO_VERDICTS)
+    payload = (
+        _build_finalize_payload_failed(error_code)
+        if error_code is not None
+        else _build_finalize_payload_completed(result)
+    )
+    try:
+        await ctx.api_client.finalize_run(
+            run_id=ctx.current_run_id,
+            tenant_id=ctx.tenant_id,
+            payload=payload,
+            correlation_id=ctx.correlation_id,
+        )
+    except Exception as exc:
+        _logger.warning(
+            "finalize_run_post_success_failed run_id=%s error=%s",
+            ctx.current_run_id,
+            exc,
+        )
+
+
+async def _finalize_t1_failure_best_effort(
+    ctx: _SpecialistContext,
+    exception: BaseException,
+) -> None:
+    """POST /finalize with status='failed' for any T1 failure path."""
+    if ctx.api_client is None or ctx.current_run_id is None or ctx.error_resolver is None:
+        return
+    try:
+        error_code = ctx.error_resolver.from_t1_exception(exception)
+        payload = _build_finalize_payload_failed(error_code)
+        await ctx.api_client.finalize_run(
+            run_id=ctx.current_run_id,
+            tenant_id=ctx.tenant_id,
+            payload=payload,
+            correlation_id=ctx.correlation_id,
+        )
+    except Exception as exc:
+        _logger.warning(
+            "finalize_run_post_failure_failed run_id=%s error=%s",
+            ctx.current_run_id,
+            exc,
+        )
 
 
 # (specialist_id) -> async callable that does (load+run) the agent.
@@ -848,6 +1045,9 @@ async def orchestrate(
     rule_context: dict[str, Any] | None = None,
     current_run_id: str | None = None,
     session_history: list[str] | None = None,
+    api_client: RegflowApiClient | None = None,
+    error_resolver: ErrorResolver | None = None,
+    correlation_id: str | None = None,
 ) -> OrchestratorResult:
     """Run the full Phase 3-bis chat pipeline and return the canonical result.
 
@@ -960,6 +1160,9 @@ async def orchestrate(
         fail_context=fail_context,
         rule_context=rule_context,
         current_run_id=current_run_id,
+        api_client=api_client,
+        error_resolver=error_resolver,
+        correlation_id=correlation_id,
     )
 
     aggregator_label = f"{intent_spec.aggregator_agent_type}/{intent_spec.aggregator_function_name}"

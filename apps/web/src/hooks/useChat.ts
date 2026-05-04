@@ -46,7 +46,29 @@ interface ChatResponseBody {
  * Cross-origin: chatbot-py must list the frontend origin in
  * CHATBOT_CORS_ORIGIN; otherwise the browser blocks the fetch.
  */
-export function useChat(initialConversationId?: string): UseChatResult {
+/**
+ * Options accepted by `useChat`.
+ *
+ * `runId` — Tranche 0 E1: when set (the user is on a workspace with
+ * an active validation run), the chat POST body carries
+ * `context.validation_run_id = runId`. chatbot-py reads it via
+ * `ChatRequest.context.validation_run_id` → orchestrate(current_run_id)
+ * → `_SpecialistContext.current_run_id`, which is exactly what
+ * `_call_t1_runner` checks before driving `_run_t1_validation`.
+ *
+ * Without this, the launch_validation intent always resolves to
+ * `error="no_active_run"` — the chat is decoupled from the run.
+ *
+ * Backward-compat: omit the options bag (`useChat()`) and the body
+ * carries no `context` field, identical to the pre-Tranche 0 shape.
+ */
+export interface UseChatOptions {
+  initialConversationId?: string;
+  runId?: string | null;
+}
+
+export function useChat(options: UseChatOptions = {}): UseChatResult {
+  const { initialConversationId, runId = null } = options;
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,15 +95,22 @@ export function useChat(initialConversationId?: string): UseChatResult {
       setError(null);
 
       try {
+        const requestBody: Record<string, unknown> = {
+          message: trimmed,
+          tenant_id: TENANT_ID,
+          user_id: USER_ID,
+          conversation_id: conversationId ?? undefined,
+        };
+        if (runId !== null && runId !== '') {
+          // ChatContext (Pydantic) accepts validation_run_id as the
+          // sole field we care about here. Other fields stay implicit
+          // null so chatbot-py treats them as absent.
+          requestBody.context = { validation_run_id: runId };
+        }
         const res = await fetch(`${CHATBOT_URL}/chat/message`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message: trimmed,
-            tenant_id: TENANT_ID,
-            user_id: USER_ID,
-            conversation_id: conversationId ?? undefined,
-          }),
+          body: JSON.stringify(requestBody),
         });
 
         if (!res.ok) {
@@ -120,7 +149,7 @@ export function useChat(initialConversationId?: string): UseChatResult {
         setLoading(false);
       }
     },
-    [conversationId, loading],
+    [conversationId, loading, runId],
   );
 
   const clearError = useCallback(() => setError(null), []);

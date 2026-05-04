@@ -31,7 +31,7 @@ from typing import Annotated, Any, NamedTuple
 
 import asyncpg
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from app.agents.base import AgentResult
@@ -40,9 +40,10 @@ from app.agents.t0_ingestor import IngestorXMLAgent
 from app.agents.t0_temporal import TemporalAgent
 from app.clients.regflow_api import RegflowApiClient, RegflowApiError
 from app.config import settings
+from app.domain.error_resolver import ErrorResolver
 from app.llm.base import LLMClient, LLMRequest
 from app.logger import get_logger
-from app.routes.chat import get_llm_client, get_pool
+from app.routes.chat import get_error_resolver, get_llm_client, get_pool
 from app.services.prompt_loader import load_active_prompt
 
 router = APIRouter()
@@ -330,6 +331,64 @@ def _propagate_outputs(shared: dict[str, Any], step: _StepRow, result: AgentResu
             shared["primary_annexe"] = annexe
 
 
+async def _finalize_t0_failure_best_effort(
+    *,
+    engine: RegflowApiClient,
+    error_resolver: ErrorResolver | None,
+    correlation_id: str | None,
+    run_id: str,
+    tenant_id: str,
+    failing_agent_type: str,
+) -> None:
+    """POST /finalize with status='failed' for a T0 step failure.
+
+    Tranche 0 single-writer pattern: only /finalize can sortie a
+    validation_runs row from status='running'. Without this call, a
+    T0 KO would leave the run pinned at 'running' indefinitely.
+
+    Best-effort: a /finalize failure (Node down, network) is logged
+    but never re-raised — the synchronous UploadResponse remains the
+    operator-facing source of truth, and a future retry from any path
+    will resolve cleanly thanks to the canonical-diff idempotence.
+    """
+    if error_resolver is None:
+        log.warning(
+            "skip_finalize_t0_failure_no_resolver",
+            run_id=run_id,
+            failing_agent_type=failing_agent_type,
+        )
+        return
+    try:
+        error_code = error_resolver.from_t0_agent(failing_agent_type)
+        payload: dict[str, Any] = {
+            "status": "failed",
+            "totals": None,
+            "fail_items": [],
+            "duration_ms": 0,
+            "step1_xsd_status": None,
+            "step1_xsd_duration_ms": None,
+            "step2_embedded_status": None,
+            "step2_embedded_duration_ms": None,
+            "step3_rdg_status": None,
+            "step3_rdg_duration_ms": None,
+            "error_code": error_code,
+            "synthesis_artifact": None,
+        }
+        await engine.finalize_run(
+            run_id=run_id,
+            tenant_id=tenant_id,
+            payload=payload,
+            correlation_id=correlation_id,
+        )
+    except Exception as err:
+        log.warning(
+            "finalize_t0_failure_post_failed",
+            run_id=run_id,
+            failing_agent_type=failing_agent_type,
+            error=str(err),
+        )
+
+
 async def _render_briefing(
     pool: asyncpg.Pool,
     llm_client: LLMClient,
@@ -375,9 +434,11 @@ async def _render_briefing(
 @router.post("", response_model=UploadResponse)
 async def post_upload(
     payload: UploadKickoffRequest,
+    request: Request,
     pool: Annotated[asyncpg.Pool, Depends(get_pool)],
     llm_client: Annotated[LLMClient, Depends(get_llm_client)],
     engine: Annotated[RegflowApiClient, Depends(get_engine_client)],
+    error_resolver: Annotated[ErrorResolver | None, Depends(get_error_resolver)],
 ) -> UploadResponse:
     """Run the T0 pipeline + the Regalica briefing for one validation_run.
 
@@ -478,6 +539,21 @@ async def post_upload(
                 )
 
             if not result.success:
+                # Tranche 0 D5 — single-writer terminal write on T0 KO.
+                # POST /finalize with status='failed' so the run row
+                # transitions out of 'running' and the SSE error frame
+                # fires for the workspace ribbon. Best-effort: a
+                # finalize POST failure is logged but never raised, the
+                # synchronous /upload response remains the source of
+                # truth for the operator.
+                await _finalize_t0_failure_best_effort(
+                    engine=engine,
+                    error_resolver=error_resolver,
+                    correlation_id=getattr(request.state, "correlation_id", None),
+                    run_id=payload.run_id,
+                    tenant_id=payload.tenant_id,
+                    failing_agent_type=step.agent_type,
+                )
                 break
 
         briefing: UploadBriefing | None = None

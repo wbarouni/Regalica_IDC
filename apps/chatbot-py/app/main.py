@@ -6,10 +6,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.clients.regflow_api import RegflowApiClient
 from app.config import settings
 from app.db.pool import close_pool, get_pool
+from app.domain.error_resolver import ErrorResolver
 from app.llm.factory import create_llm_client
 from app.logger import configure_logger, get_logger
+from app.middleware.correlation_id import CorrelationIdMiddleware
 from app.routes.chat import router as chat_router
 from app.routes.health import router as health_router
 from app.routes.upload import router as upload_router
@@ -27,16 +30,40 @@ async def lifespan(fastapi_app: FastAPI) -> AsyncIterator[None]:
     # configuration (no fallback values, no silent degradation).
     fastapi_app.state.llm_client = create_llm_client(settings)
 
+    # Engine HTTP client: instantiated once and shared. RegflowApiClient
+    # owns its httpx.AsyncClient internally and pins a single keep-alive
+    # pool to the Node engine surface. Closed in the finally block.
+    fastapi_app.state.api_client = RegflowApiClient()
+
     # DB pool: pre-warm at startup when DATABASE_URL is set so the
     # process fails fast on a misconfigured DSN. The health probe path
     # tolerates a missing pool (database_url is optional in non-DB
     # modes such as a smoke test of the LLM stack alone).
     if settings.database_url is not None:
         fastapi_app.state.db_pool = await get_pool(settings)
+        # Catalogue errors codes from run_error_codes (1 SELECT cached
+        # process-life). chatbot-py reads the DB, never the JSON file
+        # — single runtime source of truth (Tranche 0 décision #6).
+        # Defensive load: when the table does not yet exist (legacy DB
+        # at tier < 73, or test fixtures pre-migration), log a warning
+        # and continue without the resolver. Downstream code tolerates
+        # `error_resolver=None` by short-circuiting the /finalize call.
+        try:
+            fastapi_app.state.error_resolver = await ErrorResolver.load(
+                fastapi_app.state.db_pool,
+            )
+        except Exception as exc:
+            logger.warning(
+                "error_resolver load failed (run_error_codes missing?) "
+                "— /finalize skipped this session: %s",
+                exc,
+            )
+            fastapi_app.state.error_resolver = None
 
     try:
         yield
     finally:
+        await fastapi_app.state.api_client.aclose()
         await close_pool()
         logger.info("regalica-chatbot-py shutting down")
 
@@ -64,7 +91,14 @@ if _cors_origins:
         allow_credentials=True,
         allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
         allow_headers=["*"],
+        expose_headers=["X-Correlation-Id"],
     )
+
+# Correlation-Id middleware mounted AFTER CORS so the value is set
+# before any handler runs but after CORS pre-flight has already
+# resolved. Starlette runs middleware in reverse mount order, so this
+# is the "innermost" wrapper around handlers — exactly what we want.
+app.add_middleware(CorrelationIdMiddleware)
 
 app.include_router(health_router, prefix="/health", tags=["health"])
 app.include_router(chat_router, prefix="/chat", tags=["chat"])
