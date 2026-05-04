@@ -102,6 +102,14 @@ async def test_t1_success_calls_finalize_with_completed_status(
     expected = _evaluate_result_stub(pass_count=937, fail_severe=2, rules_total=939)
     mock_runner = AsyncMock(return_value=expected)
     monkeypatch.setattr("app.services.orchestrator._run_t1_validation", mock_runner)
+    # Tranche 0.7 — _call_t1_runner now invokes the synthesis aggregator
+    # before finalize. Stub its inner LLM call so the test stays
+    # network-free; the markdown surfaces through the finalize payload
+    # which we assert below.
+    monkeypatch.setattr(
+        "app.services.orchestrator._invoke_t1_synthesis_aggregator",
+        AsyncMock(return_value="Validation terminée. 937 conformes, 2 sévères."),
+    )
 
     api_client = MagicMock()
     api_client.evaluate_run = AsyncMock(return_value=expected)
@@ -119,6 +127,46 @@ async def test_t1_success_calls_finalize_with_completed_status(
     assert payload["totals"]["fail_severe"] == 2
     assert payload["error_code"] is None
     assert call_kwargs["correlation_id"] == "cccccccc-1111-4111-8111-111111111111"
+    # Tranche 0.7 — synthesis_artifact must be populated when the
+    # aggregator returned a markdown string.
+    assert "synthesis_artifact" in payload
+    artifact = payload["synthesis_artifact"]
+    assert artifact["markdown"].startswith("Validation terminée")
+    assert artifact["totals"]["pass"] == 937
+    assert artifact["totals"]["fail_severe"] == 2
+    assert artifact["totals"]["conformity_rate"] is not None
+
+
+@pytest.mark.asyncio
+async def test_t1_success_with_aggregator_failure_finalizes_without_synthesis(
+    monkeypatch: pytest.MonkeyPatch,
+    resolver: ErrorResolver,
+) -> None:
+    """When the synthesis aggregator returns None (LLM exception or
+    empty output), the run still finalizes as 'completed' but without
+    synthesis_artifact in the payload."""
+    expected = _evaluate_result_stub(pass_count=100, rules_total=100)
+    monkeypatch.setattr(
+        "app.services.orchestrator._run_t1_validation",
+        AsyncMock(return_value=expected),
+    )
+    monkeypatch.setattr(
+        "app.services.orchestrator._invoke_t1_synthesis_aggregator",
+        AsyncMock(return_value=None),
+    )
+
+    api_client = MagicMock()
+    api_client.finalize_run = AsyncMock(return_value={"data": {}})
+    ctx = _build_ctx(api_client=api_client, error_resolver=resolver)
+
+    result = await _call_t1_runner(MagicMock(), ctx)
+
+    assert result.success is True
+    payload = api_client.finalize_run.await_args.kwargs["payload"]
+    assert payload["status"] == "completed"
+    # synthesis_artifact stays at the default null from
+    # _build_finalize_payload_completed (no override when None).
+    assert payload["synthesis_artifact"] is None
 
 
 @pytest.mark.asyncio

@@ -271,21 +271,23 @@ async def _call_rule_form_assist(meta: PromptMeta, ctx: _SpecialistContext) -> A
 
 
 async def _call_t1_runner(meta: PromptMeta, ctx: _SpecialistContext) -> AgentResult:
-    """Specialist for the launch_validation intent (C17b).
+    """Specialist for the launch_validation intent (C17b + Tranche 0.7).
 
-    Bypasses the LLM entirely — calls _run_t1_validation in process to
-    drive the 3-step BCT pipeline. The shared `meta` (the regalica/
-    aggregate_t1_result prompt) is loaded by _invoke_specialist as a
-    bearer formality but unused here; the aggregator step downstream
-    re-loads the same prompt and invokes the LLM with the canonical
-    payload (user_message, intent_type, specialist_outputs[0]).
+    Calls _run_t1_validation in process to drive the 3-step BCT
+    pipeline. The shared `meta` (the regalica/aggregate_t1_result
+    prompt) is loaded by _invoke_specialist as a bearer formality.
+    Tranche 0.7 reuses it to invoke the aggregator a SECOND time
+    inside the specialist boundary — the produced markdown is
+    persisted to validation_runs.synthesis_artifact via /finalize.
+    The aggregator step downstream of `orchestrate()` (orch.py:1228)
+    still runs to produce the chat reply; the duplicate LLM call is
+    accepted (gemini-2.5-flash, 2-3 sentences) for the simplicity
+    gain of NOT refactoring the pipeline ordering.
 
     Returns an AgentResult whose `output` carries the 7-key T1 result
     block expected by the aggregator's input_schema (success / totals /
     duration_ms / rejection_step / rejection_reason).
     """
-    del meta  # Not used — see docstring.
-
     if ctx.current_run_id is None:
         return AgentResult(
             agent_name=_T1_RUNNER_SPECIALIST_ID,
@@ -378,9 +380,30 @@ async def _call_t1_runner(meta: PromptMeta, ctx: _SpecialistContext) -> AgentRes
 
     # Tranche 0 D4 — happy path: POST /finalize with status='completed'
     # so validation_runs.status, totals, completed_at and SSE complete
-    # all land in one atomic transaction. Best-effort error handling
-    # mirrors the failure path above.
-    await _finalize_t1_success_best_effort(ctx=ctx, result=result)
+    # all land in one atomic transaction.
+    #
+    # Tranche 0.7 — produce the synthesis markdown via the same
+    # aggregator prompt that the chat path uses downstream. Best-effort:
+    # an aggregator failure logs a warning and yields synthesis_markdown
+    # = None, the run still finalizes as 'completed'.
+    synthesis_markdown = await _invoke_t1_synthesis_aggregator(
+        meta=meta,
+        ctx=ctx,
+        t1_output={
+            "success": True,
+            "total_fail_severe": result["totals"]["fail_severe"],
+            "total_fail_rounding": result["totals"]["fail_rounding"],
+            "total_pass": result["totals"]["pass_"],
+            "duration_ms": result["duration_ms"],
+            "rejection_step": None,
+            "rejection_reason": None,
+        },
+    )
+    await _finalize_t1_success_best_effort(
+        ctx=ctx,
+        result=result,
+        synthesis_markdown=synthesis_markdown,
+    )
 
     return AgentResult(
         agent_name=_T1_RUNNER_SPECIALIST_ID,
@@ -484,9 +507,105 @@ def _build_finalize_payload_failed(error_code: str) -> dict[str, Any]:
     }
 
 
+async def _invoke_t1_synthesis_aggregator(
+    meta: PromptMeta,
+    ctx: _SpecialistContext,
+    t1_output: dict[str, Any],
+) -> str | None:
+    """Tranche 0.7 — invoke regalica/aggregate_t1_result to produce the
+    synthesis markdown that lands in validation_runs.synthesis_artifact.
+
+    `meta` is the same prompt row that _invoke_specialist already
+    loaded for the t1_runner bearer (regalica/aggregate_t1_result —
+    seeded by migration 072-C and promoted to active by 072-B). We
+    reuse it instead of re-fetching from prompt_bank to keep the
+    helper purely in-process — zero new DB roundtrip.
+
+    Best-effort: returns None on any LLM exception (logged as a
+    structured warning). The caller treats None as "no synthesis
+    artifact for this run" and finalizes with synthesis_artifact=null
+    — the Node /finalize zod schema accepts that explicitly.
+
+    Doctrine — zero hardcoding: temperature, max_tokens, thinking flag,
+    template body all come from the prompt row. The intent_type
+    constant is doctrinal (must match migration 072 seed); the
+    user_message default is empty since the chat path also injects
+    a real one downstream when /chat/message replays the same prompt.
+    """
+    try:
+        payload: dict[str, Any] = {
+            "user_message": "",
+            "intent_type": "launch_validation",
+            "specialist_outputs": [
+                {
+                    "bearer": "regalica/aggregate_t1_result",
+                    "success": bool(t1_output.get("success", False)),
+                    "output": t1_output,
+                    "error": None,
+                },
+            ],
+        }
+        request = LLMRequest(
+            prompt=json.dumps(payload, ensure_ascii=False),
+            temperature=meta["temperature"],
+            max_tokens=meta["max_tokens"],
+            thinking_enabled=meta["thinking_enabled"],
+            system_prompt=meta["template"],
+        )
+        response = await ctx.llm_client.complete(request)
+        raw_content = response.content
+        # output_contract='string' for aggregate_t1_result (migration
+        # 069 + seed). Apply the same _clean_thought_leakage filter the
+        # downstream aggregator step uses (orch.py:1022) for parity.
+        if meta.get("output_contract") == "string":
+            cleaned = _clean_thought_leakage(raw_content)
+        else:
+            cleaned = raw_content
+        if not isinstance(cleaned, str):
+            return None
+        stripped = cleaned.strip()
+        return stripped if stripped else None
+    except Exception as exc:
+        _logger.warning(
+            "synthesis_aggregator_failed run_id=%s error=%s",
+            ctx.current_run_id,
+            exc,
+        )
+        return None
+
+
+def _build_synthesis_artifact(
+    markdown: str,
+    result: EvaluateRunResult,
+) -> dict[str, Any]:
+    """Build the synthesis_artifact JSONB for /finalize.
+
+    Shape committed in ADR 0003: { markdown, totals } where totals
+    carries the four canonical aggregate counts. Frontend reads
+    `synthesis_artifact.markdown` via T1Deliverables (Tranche 0.5
+    extractMarkdownFromArtifact).
+    """
+    totals = result["totals"]
+    pass_count = int(totals["pass_"])
+    fail_severe = int(totals["fail_severe"])
+    fail_rounding = int(totals["fail_rounding"])
+    denominator = pass_count + fail_severe + fail_rounding
+    conformity_rate = round(pass_count / denominator, 4) if denominator > 0 else None
+    return {
+        "markdown": markdown,
+        "totals": {
+            "pass": pass_count,
+            "fail_severe": fail_severe,
+            "fail_rounding": fail_rounding,
+            "conformity_rate": conformity_rate,
+        },
+    }
+
+
 async def _finalize_t1_success_best_effort(
     ctx: _SpecialistContext,
     result: EvaluateRunResult,
+    synthesis_markdown: str | None = None,
 ) -> None:
     """POST /finalize on T1 success. Logs failures, never raises.
 
@@ -494,6 +613,11 @@ async def _finalize_t1_success_best_effort(
     response from rendering. The Node side guarantees idempotence via
     the canonical diff, so a future retry from another path resolves
     cleanly.
+
+    Tranche 0.7 — when `synthesis_markdown` is non-None, the payload
+    carries `synthesis_artifact = { markdown, totals }`. None keeps
+    the field null (default behavior preserved for callers that don't
+    yet plumb the markdown).
     """
     if ctx.api_client is None or ctx.current_run_id is None:
         return
@@ -508,6 +632,11 @@ async def _finalize_t1_success_best_effort(
         if error_code is not None
         else _build_finalize_payload_completed(result)
     )
+    if synthesis_markdown is not None and error_code is None:
+        # Only attach the synthesis artifact on the completed branch —
+        # a failed finalize with t1_no_verdicts has no meaningful
+        # markdown to surface (the rule corpus was empty upstream).
+        payload["synthesis_artifact"] = _build_synthesis_artifact(synthesis_markdown, result)
     try:
         await ctx.api_client.finalize_run(
             run_id=ctx.current_run_id,
