@@ -10,6 +10,7 @@ import { Dock } from '../components/Dock';
 import { EngineErrorArtefact } from '../components/EngineErrorArtefact';
 import { FailsTable } from '../components/FailsTable';
 import { LaunchErrorArtefact } from '../components/LaunchErrorArtefact';
+import { ProgressBar } from '../components/ProgressBar';
 import { SuggestionChips } from '../components/SuggestionChips';
 import { LanguageSwitcher } from '../components/primitives/LanguageSwitcher';
 import { PersonaSidebar } from '../components/layout/PersonaSidebar';
@@ -465,6 +466,7 @@ export default function Workspace() {
         </header>
 
         <Ribbon steps={steps} run={run} runIdShort={runIdShort} />
+        {run?.status === 'running' && <ProgressBar runId={currentRunId} />}
 
         <div className="thread-scroll">
           <div className="thread">

@@ -1,7 +1,14 @@
 import type { Pool } from 'pg';
 
 import { clearPlatformConfigCache, getPlatformConfig } from '../src/lib/platformConfig';
-import { configureRunEventBus, getRunEventBusMaxListeners } from '../src/lib/runEventBus';
+import {
+  configureRunEventBus,
+  emitProgress,
+  getRunEventBusMaxListeners,
+  subscribeRunEvents,
+  type ProgressEvent,
+  type RunEventPayload,
+} from '../src/lib/runEventBus';
 
 /**
  * Unit-level coverage for the platform_config-driven listener cap.
@@ -66,5 +73,54 @@ describe('lib/runEventBus — listener cap from platform_config', () => {
     const pool = makeFakePool(33);
     const value = await getPlatformConfig<number>(pool, 'sse_max_listeners');
     expect(value).toBe(33);
+  });
+});
+
+// K4 — emitProgress is invoked by the engine /evaluate handler with
+// the runEvaluation onProgress callback. The wiring is mechanical: the
+// route passes a closure that calls emitProgress; this test pins the
+// bus contract so a future refactor of the channel name / payload
+// shape is caught by the unit suite, not by an integration smoke.
+describe('lib/runEventBus — K4 emitProgress channel', () => {
+  it('delivers progress payloads to subscribers verbatim', () => {
+    const runId = '00000000-0000-7000-8000-000000000099';
+    const received: RunEventPayload[] = [];
+    const types: string[] = [];
+    const unsubscribe = subscribeRunEvents(runId, (event) => {
+      types.push(event.type);
+      received.push(event.payload);
+    });
+    try {
+      const payload: ProgressEvent = {
+        rulesEvaluated: 1500,
+        rulesTotal: 4611,
+        pctComplete: 32,
+      };
+      emitProgress(runId, payload);
+    } finally {
+      unsubscribe();
+    }
+    expect(types).toEqual(['progress']);
+    expect(received).toHaveLength(1);
+    expect(received[0]).toEqual({
+      rulesEvaluated: 1500,
+      rulesTotal: 4611,
+      pctComplete: 32,
+    });
+  });
+
+  it('scopes progress emissions per runId — other runs see nothing', () => {
+    const runIdA = '00000000-0000-7000-8000-0000000000aa';
+    const runIdB = '00000000-0000-7000-8000-0000000000bb';
+    const receivedB: RunEventPayload[] = [];
+    const offB = subscribeRunEvents(runIdB, (event) => {
+      receivedB.push(event.payload);
+    });
+    try {
+      emitProgress(runIdA, { rulesEvaluated: 10, rulesTotal: 100, pctComplete: 10 });
+    } finally {
+      offB();
+    }
+    expect(receivedB).toEqual([]);
   });
 });

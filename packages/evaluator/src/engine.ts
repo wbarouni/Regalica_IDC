@@ -49,10 +49,34 @@ const ENGINE_VERSION: string = (() => {
   return (JSON.parse(raw) as { version: string }).version;
 })();
 
+/**
+ * K4 — progress callback contract.
+ *
+ * Invoked from inside the evaluation loop with the number of rules
+ * already evaluated and the total. Throttled in two complementary
+ * ways to keep the cost bounded on a 4611-rule corpus:
+ *
+ *   - Every `PROGRESS_TICK_RULES` rules (count-based granularity);
+ *   - At most every `PROGRESS_TICK_MS` milliseconds (time-based
+ *     guard so a fast tick batch does not flood the bus).
+ *
+ * The very first tick always fires (so the consumer sees 0% as
+ * soon as the loop starts) and a terminal tick always fires (so
+ * the consumer reads 100% before the function returns). Between
+ * those, the throttle picks the first of the two thresholds.
+ *
+ * Optional: omitting it preserves the pre-K4 behaviour bit-for-bit.
+ */
+export type RunEvaluationProgressCallback = (rulesEvaluated: number, rulesTotal: number) => void;
+
+const PROGRESS_TICK_RULES = 50;
+const PROGRESS_TICK_MS = 500;
+
 export interface RunEvaluationOptions {
   readonly roundingThreshold?: Decimal;
   readonly rulesVersionSnapshot?: string;
   readonly referentialsVersionSnapshot?: string;
+  readonly onProgress?: RunEvaluationProgressCallback;
 }
 
 export async function runEvaluation(
@@ -64,13 +88,38 @@ export async function runEvaluation(
   const groups = groupRulesByAnnexe(input.rules);
   const verdicts: Verdict[] = [];
 
+  const onProgress = options?.onProgress;
+  const rulesTotal = input.rules.length;
+  let evaluated = 0;
+  let lastTickAt = startedAt;
+  if (onProgress !== undefined) {
+    // K4 — initial tick at 0% so the consumer can switch a hidden
+    // bar on as soon as the first frame fires; idempotent, never
+    // double-emits because we only call onProgress here once.
+    onProgress(0, rulesTotal);
+  }
+
   for (const bucket of groups.values()) {
     for (const rule of bucket) {
       const resolved = resolveTerms(rule.terms, input.mergedCells);
       const agg = aggregateTerms(resolved);
       const verdict = produceVerdict(rule, agg, options?.roundingThreshold);
       verdicts.push(verdict);
+      evaluated += 1;
+      if (onProgress !== undefined && evaluated < rulesTotal) {
+        const now = Date.now();
+        if (evaluated % PROGRESS_TICK_RULES === 0 || now - lastTickAt >= PROGRESS_TICK_MS) {
+          onProgress(evaluated, rulesTotal);
+          lastTickAt = now;
+        }
+      }
     }
+  }
+  if (onProgress !== undefined && rulesTotal > 0) {
+    // K4 — terminal tick at 100% so the consumer is guaranteed a
+    // final frame independent of the throttle alignment. Skipped
+    // when rulesTotal is 0 (the initial 0/0 tick already covered it).
+    onProgress(rulesTotal, rulesTotal);
   }
 
   verdicts.sort((a, b) => {

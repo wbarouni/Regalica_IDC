@@ -21,7 +21,7 @@ import {
   type CanonicalState,
   type FinalizeBody,
 } from '../domain/finalize.js';
-import { emitAgentStep, emitComplete, emitError } from '../lib/runEventBus.js';
+import { emitAgentStep, emitComplete, emitError, emitProgress } from '../lib/runEventBus.js';
 import {
   PlatformConfigMissingError,
   PlatformConfigTypeError,
@@ -715,13 +715,30 @@ export function engineRouter(pool: Pool): IRouter {
         arreteDate: new Date(arreteDate),
         statuses: ['active'],
       });
-      result = await runEvaluation({
-        tenantId,
-        arreteDate,
-        parsedXmls: parsedXmlsMap,
-        mergedCells: phaseA.mergedCells,
-        rules,
-      });
+      result = await runEvaluation(
+        {
+          tenantId,
+          arreteDate,
+          parsedXmls: parsedXmlsMap,
+          mergedCells: phaseA.mergedCells,
+          rules,
+        },
+        {
+          // K4 — emit run-scoped SSE progress frames so the workspace
+          // ribbon can render a live percentage while runEvaluation
+          // chews through the corpus. The engine throttles at 50
+          // rules / 500 ms, so the bus stays under ~10 frames/s on the
+          // typical 4611-rule run. pctComplete is integer 0..100.
+          onProgress: (evaluated, total) => {
+            const pctComplete = total > 0 ? Math.floor((evaluated / total) * 100) : 0;
+            emitProgress(runId, {
+              rulesEvaluated: evaluated,
+              rulesTotal: total,
+              pctComplete,
+            });
+          },
+        },
+      );
     } catch (err) {
       logger.error({ err, runId, arreteDate }, 'runEvaluation failed');
       res.status(HTTP_INTERNAL_SERVER_ERROR).json({

@@ -175,4 +175,47 @@ describe('engine — runEvaluation()', () => {
     expect(result.rulesVersionSnapshot).toBe('rules@abcd1234');
     expect(result.referentialsVersionSnapshot).toBe('refs@efgh5678');
   });
+
+  // K4 — onProgress callback contract.
+  it('K4 — invokes onProgress with initial 0 + terminal 100% when rules are present', async () => {
+    const cells = buildCells({
+      '00': {
+        R1: { '1': '100', '2': '200' },
+        R2: { '1': '100', '2': '100' },
+      },
+    });
+    const input: EvaluationInput = {
+      tenantId: 't',
+      arreteDate: '2025-06-01',
+      parsedXmls: new Map(),
+      mergedCells: cells,
+      rules: [
+        makeRule('rule-1', 1, 'R1', '1', 'R2', '1'),
+        makeRule('rule-2', 2, 'R1', '2', 'R2', '2'),
+      ],
+    };
+    const ticks: Array<[number, number]> = [];
+    await runEvaluation(input, {
+      onProgress: (evaluated, total) => {
+        ticks.push([evaluated, total]);
+      },
+    });
+    // Always at least: initial 0/total + terminal total/total. The 50-rule
+    // throttle skips the per-rule tick on a 2-rule run, so we expect 2.
+    expect(ticks[0]).toEqual([0, 2]);
+    expect(ticks[ticks.length - 1]).toEqual([2, 2]);
+  });
+
+  it('K4 — onProgress is never invoked when omitted (backward compat)', async () => {
+    const input: EvaluationInput = {
+      tenantId: 't',
+      arreteDate: '2025-06-01',
+      parsedXmls: new Map(),
+      mergedCells: new Map(),
+      rules: [],
+    };
+    // Should run cleanly without onProgress; no observable change.
+    const result = await runEvaluation(input);
+    expect(result.verdicts).toHaveLength(0);
+  });
 });
