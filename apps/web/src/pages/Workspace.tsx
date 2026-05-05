@@ -644,7 +644,7 @@ export default function Workspace() {
                  as children so the RegalicaRunSpeech frame nests
                  them inside the bubble. */
               <RegalicaRunSpeech run={summary.run}>
-                <T1Deliverables run={summary.run} annexes={summary.annexes} />
+                <T1Deliverables run={summary.run} />
                 {currentRunId !== null &&
                   (summary.run.total_fail_severe ?? 0) + (summary.run.total_fail_rounding ?? 0) >
                     0 && (
@@ -713,69 +713,32 @@ export default function Workspace() {
   );
 }
 
-function T1Deliverables({
-  run,
-  annexes,
-}: {
-  run: ValidationRun;
-  annexes: readonly {
-    code: string;
-    fail_severe: string | number;
-    fail_rounding: string | number;
-  }[];
-}) {
-  const { t } = useTranslation();
-  const synthesis = run.synthesis_artifact ?? null;
+function T1Deliverables({ run }: { run: ValidationRun }) {
+  // Point 5 — remove the redundant Livrable A (synthesis_artifact
+  // markdown brut) and Livrable B (annexes barres) artefacts. Both
+  // duplicated information already covered by the Synthèse KPI grid
+  // (KpiGrid + summary.annexes block, Workspace.tsx:612-636) which
+  // sits at the top of the thread for both running and completed
+  // runs. The maquette v5 (workspace-v5.html :626-697) shows ONE
+  // synthesis card per run, not three layers — Livrable C
+  // (analyse de cause racine) is the only deliverable that carries
+  // genuinely new information beyond the KPIs and stays on screen.
+  //
+  // The synthesis_artifact JSONB is preserved in the DB (Tranche 0.7
+  // commit cb28e06) for audit and Phase 5 analytics; we just stop
+  // re-rendering it next to the KPIs that already represent the
+  // same totals.
   const deliverableC = run.deliverable_c_artifact ?? null;
-  // Tranche 0.5 W2.3 — when /finalize stores the aggregator's
-  // markdown response in synthesis_artifact (object form
-  // {markdown, totals}) or as a raw string, render via ReactMarkdown
-  // so headings, lists, bold etc. are styled. Fall back to JSON
-  // pretty-print for any other shape (debug surface).
-  const synthesisMarkdown = extractMarkdownFromArtifact(synthesis);
   const deliverableCMarkdown = extractMarkdownFromArtifact(deliverableC);
-  const synthesisRawJson =
-    synthesisMarkdown === null && synthesis !== null ? JSON.stringify(synthesis, null, 2) : null;
   const deliverableCRawJson =
     deliverableCMarkdown === null && deliverableC !== null
       ? JSON.stringify(deliverableC, null, 2)
       : null;
+  if (deliverableCMarkdown === null && deliverableCRawJson === null) {
+    return null;
+  }
   return (
     <>
-      {synthesisMarkdown !== null && (
-        <Artefact type="livrable_a" state="standard">
-          <div className="text-sm prose prose-stone prose-sm max-w-none">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{synthesisMarkdown}</ReactMarkdown>
-          </div>
-        </Artefact>
-      )}
-      {synthesisRawJson !== null && (
-        <Artefact type="livrable_a" state="standard">
-          <pre className="text-sm font-mono whitespace-pre-wrap break-words">
-            {synthesisRawJson}
-          </pre>
-        </Artefact>
-      )}
-      {annexes.length > 0 && (
-        <Artefact type="livrable_b" state="standard">
-          <div className="font-mono text-[10px] uppercase tracking-wider text-stone-500 mb-2">
-            {t('summary.byAnnexe')}
-          </div>
-          <ul className="space-y-1 text-sm font-mono">
-            {annexes.map((a) => (
-              <li
-                key={a.code}
-                className="flex justify-between items-center border border-stone-200 rounded px-3 py-2"
-              >
-                <span>{a.code}</span>
-                <span className="text-stone-700">
-                  {Number(a.fail_severe)} severe · {Number(a.fail_rounding)} rounding
-                </span>
-              </li>
-            ))}
-          </ul>
-        </Artefact>
-      )}
       {deliverableCMarkdown !== null && (
         <Artefact type="livrable_c" state="standard">
           <div className="text-sm prose prose-stone prose-sm max-w-none">
