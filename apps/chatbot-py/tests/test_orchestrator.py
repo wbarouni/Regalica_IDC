@@ -470,7 +470,14 @@ async def test_orchestrate_specialist_prompt_inactive_does_not_block_aggregator(
 
 @pytest.mark.asyncio
 async def test_orchestrate_thinking_trace_follows_persona_template() -> None:
-    """Thinking trace prose: capital Mais / Donc, no bullets."""
+    """Thinking trace as 4 verbose phases (Correction 2).
+
+    Until Correction 2 the trace was a single one-line sentence; the
+    workspace v5 mockup (`docs/mockups/regalica-workspace-v5.html`
+    :715-728) renders it as 4 explicit phases instead. The trace
+    remains deterministic (no LLM call) but its prose is broken into
+    Compréhension / Options / Arbitrages / Décision.
+    """
     prompts: dict[tuple[str, str], dict[str, Any] | None] = {
         ("regalica", "router"): _prompt_row("[REGALICA_ROUTER_V1]"),
         ("regalica", "aggregate_general_help"): _prompt_row("[REGALICA_AGGREGATE_GENERAL_HELP_V1]"),
@@ -489,15 +496,23 @@ async def test_orchestrate_thinking_trace_follows_persona_template() -> None:
         llm_client=llm,
     )
     trace = result.thinking_trace
-    assert trace.startswith("L'utilisateur demande")
-    assert "Mais je pense" in trace
+    # Phase 1 still opens with the persona template prefix.
+    assert trace.startswith("1 · Compréhension de la demande")
+    assert "L'utilisateur demande : « Test message »." in trace
+    # The 4 phase headings MUST all be present.
+    assert "1 · Compréhension" in trace
+    assert "2 · Options considérées" in trace
+    assert "3 · Arbitrages" in trace
+    assert "4 · Décision" in trace
+    # Phase 4 still carries the persona template close.
     assert "Donc je vais" in trace
-    assert "Test message" in trace
     assert "general_help" in trace
-    # Doctrine: prose, never bullet points.
+    # Doctrine: prose paragraphs, never bullet points (• or - prefix).
     assert "•" not in trace
-    assert "- " not in trace
-    assert "\n" not in trace
+    # The frontend renders trace via whitespace-pre-line so paragraph
+    # breaks (\n\n between phases) MUST be present — they are the
+    # contract, not a violation.
+    assert "\n\n" in trace
 
 
 @pytest.mark.asyncio

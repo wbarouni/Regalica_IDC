@@ -171,7 +171,12 @@ def test_post_chat_message_dispatches_through_orchestrator_and_returns_200(
     assert body["message_id"] == "00000000-0000-0000-0000-0000000000bb"
     assert body["response_markdown"] == "Bonjour, je suis Regalica."
     assert body["agents_called"] == ["regalica/aggregate_general_help"]
-    assert body["thinking_trace"].startswith("L'utilisateur demande")
+    # Correction 2 — thinking trace is now a 4-phase narrative starting
+    # with "1 · Compréhension de la demande" (Workspace.tsx renders the
+    # newlines via whitespace-pre-line). Phase 1 still embeds the
+    # "L'utilisateur demande" persona prefix.
+    assert body["thinking_trace"].startswith("1 · Compréhension de la demande")
+    assert "L'utilisateur demande" in body["thinking_trace"]
     assert "general_help" in body["thinking_trace"]
     # Tokens come from the specialist (general_help) LLM response, not the router.
     assert body["tokens_input"] == 42

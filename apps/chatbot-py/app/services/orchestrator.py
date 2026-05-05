@@ -1536,27 +1536,114 @@ def _build_thinking_trace(
     specialist_ids: list[str],
     aggregator_label: str,
 ) -> str:
-    """Compose the Regalica thinking trace as natural French prose."""
+    """Compose the Regalica thinking trace as 4 verbose phases.
+
+    Correction 2 — the previous one-line trace was too terse for the
+    workspace v5 mockup which renders the trace with 4 explicit phases
+    (`docs/mockups/regalica-workspace-v5.html` :715-728): Compréhension,
+    Options, Arbitrages, Décision. The trace is still deterministic
+    (no LLM call) but reads as cognitive narrative — exactly what the
+    user expects from "thinking mode".
+
+    Each phase is a paragraph; the frontend renders them with
+    `whitespace-pre-line` so the `\\n\\n` separators show as visible
+    blank lines (Workspace.tsx).
+    """
+
+    if specialist_ids:
+        if len(specialist_ids) == 1:
+            joined_specialists = specialist_ids[0]
+        else:
+            joined_specialists = ", ".join(specialist_ids[:-1]) + f" et {specialist_ids[-1]}"
+    else:
+        joined_specialists = ""
+
+    # Phase 1 — Compréhension (re-state the user's request verbatim).
+    phase_1 = (
+        f"1 · Compréhension de la demande\n"
+        f"{_THINKING_PREFIX} : « {message} ». "
+        f"L'intention détectée par le routeur Regalica est « {intent} » — "
+        f"je dois m'aligner sur cette catégorisation avant de répondre."
+    )
+
+    # Phase 2 — Options considérées.
     if not specialist_ids:
-        action = (
+        options_body = (
+            "Pour cette intention, aucun spécialiste métier n'est requis "
+            "selon la table de dispatch chargée depuis intent_specialists. "
+            "Deux options : (a) répondre directement via l'aggregator "
+            f"{aggregator_label}, ou (b) demander une clarification s'il "
+            "manque du contexte. La réponse aggregator est suffisante "
+            "pour cette catégorie."
+        )
+    elif len(specialist_ids) == 1:
+        options_body = (
+            f"Le seul spécialiste candidat est {joined_specialists}. "
+            "Trois options : (a) consulter le spécialiste puis agréger, "
+            "(b) répondre directement sans consultation au risque "
+            "d'hallucination, (c) demander une clarification. "
+            "L'option (a) est la seule à offrir des données concrètes "
+            "sur le run du Compliance Officer."
+        )
+    else:
+        options_body = (
+            f"Plusieurs spécialistes candidats : {joined_specialists}. "
+            "Trois options : (a) consultations parallèles puis agrégation, "
+            "(b) consultations séquentielles, (c) un seul spécialiste "
+            "choisi heuristiquement. L'option (a) minimise la latence et "
+            "garantit des données complètes pour l'aggregator."
+        )
+    phase_2 = f"2 · Options considérées\n{options_body}"
+
+    # Phase 3 — Arbitrages (justify the chosen path).
+    if not specialist_ids:
+        arbitrage_body = (
+            "L'aggregator possède toute l'information nécessaire dans "
+            "son prompt (cas hors-périmètre, aide générale, ambiguïté). "
+            "Inutile de consulter un spécialiste qui retournerait un "
+            "résultat vide. Je passe directement à l'agrégation."
+        )
+    elif len(specialist_ids) == 1:
+        arbitrage_body = (
+            f"Le spécialiste {joined_specialists} apporte une donnée "
+            "concrète (analyse, citation ou comparaison historique selon "
+            "le cas) que l'aggregator ne peut pas synthétiser sans son "
+            "JSON. Je le consulte puis je structure la réponse utilisateur."
+        )
+    else:
+        arbitrage_body = (
+            f"Les spécialistes {joined_specialists} couvrent des facettes "
+            "complémentaires (cause racine, source réglementaire, "
+            "historique selon les cas). Je les lance en parallèle via "
+            "asyncio.gather pour rester sous le budget latence "
+            "(p95 < 3 s), puis l'aggregator combine leurs JSON en un "
+            "narratif cohérent vouvoyé."
+        )
+    phase_3 = f"3 · Arbitrages\n{arbitrage_body}"
+
+    # Phase 4 — Décision (the executable plan).
+    if not specialist_ids:
+        decision_action = (
             f"composer directement la réponse via {aggregator_label} sans invoquer de spécialiste"
         )
     elif len(specialist_ids) == 1:
-        action = (
-            f"consulter le spécialiste {specialist_ids[0]} "
+        decision_action = (
+            f"consulter le spécialiste {joined_specialists} "
             f"puis composer la réponse via {aggregator_label}"
         )
     else:
-        joined = ", ".join(specialist_ids[:-1]) + f" et {specialist_ids[-1]}"
-        action = (
-            f"consulter en parallèle les spécialistes {joined}, "
+        decision_action = (
+            f"consulter en parallèle les spécialistes {joined_specialists}, "
             f"puis composer la réponse via {aggregator_label}"
         )
-    return (
-        f"{_THINKING_PREFIX} : « {message} ». "
-        f"{_THINKING_MID} que l'intention détectée est « {intent} ». "
-        f"{_THINKING_END} {action}."
+    phase_4 = (
+        f"4 · Décision\n"
+        f"{_THINKING_END} {decision_action}. "
+        "La réponse sera vouvoyée, sobre, sans superlatif, alignée sur "
+        "la doctrine Regalica (docs/05 §22-25)."
     )
+
+    return f"{phase_1}\n\n{phase_2}\n\n{phase_3}\n\n{phase_4}"
 
 
 def _build_no_router_result(message: str, start: float) -> OrchestratorResult:

@@ -609,41 +609,24 @@ export default function Workspace() {
             {!runLoading && run === null && runError === null && activeRunId === null && (
               <NoActiveRun />
             )}
-            {run !== null && (
-              <Artefact type="synthese" state="standard">
-                <KpiGrid run={run} />
-                {summary !== null && summary.annexes.length > 0 && (
-                  <div className="mt-4">
-                    <div className="font-mono text-[10px] uppercase tracking-wider text-stone-500 mb-2">
-                      {t('summary.byAnnexe')}
-                    </div>
-                    <ul className="space-y-1 text-sm font-mono">
-                      {summary.annexes.map((a) => (
-                        <li
-                          key={a.code}
-                          className="flex justify-between items-center border border-stone-200 rounded px-3 py-2"
-                        >
-                          <span>{a.code}</span>
-                          <span className="text-stone-700">
-                            {Number(a.fail_severe)} severe · {Number(a.fail_rounding)} rounding
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </Artefact>
+            {run !== null && summary !== null && summary.run.status !== 'completed' && (
+              /* Correction 1 — running run keeps the Synthèse external
+                 because there is no Regalica bubble to nest it inside
+                 yet (the run hasn't completed; no narrative + no
+                 confidence to derive). Once status === 'completed' the
+                 Synthèse moves INTO the bubble below. */
+              <RunSynthesisCard run={run} annexes={summary.annexes} />
             )}
             {summary !== null && summary.run.status === 'completed' && (
-              /* Point 1 — Regalica's voice OWNS its artefacts.
-                 The maquette v5 (workspace-v5.html :626-697) places
-                 every <article class="artefact"> as a direct child
-                 of `.msg-rega__body`, so the avatar + intro + badge
-                 visually encapsulate the deliverables. We pass
-                 T1Deliverables, FailsTable and InvestigationArtefact
-                 as children so the RegalicaRunSpeech frame nests
-                 them inside the bubble. */
+              /* Point 1 + Correction 1 — Regalica's voice OWNS the
+                 Synthèse, then the cause-root deliverable (Livrable C),
+                 then the FailsTable, then the per-fail decomposition.
+                 Everything sits as direct children of .msg-rega__body
+                 to match the workspace v5 mockup pattern (:626-697)
+                 where every <article class="artefact"> is rendered
+                 inside the bubble. */
               <RegalicaRunSpeech run={summary.run}>
+                <RunSynthesisCard run={summary.run} annexes={summary.annexes} />
                 <T1Deliverables run={summary.run} />
                 {currentRunId !== null &&
                   (summary.run.total_fail_severe ?? 0) + (summary.run.total_fail_rounding ?? 0) >
@@ -660,6 +643,12 @@ export default function Workspace() {
                   <InvestigationArtefact fail={topFail.fail} />
                 )}
               </RegalicaRunSpeech>
+            )}
+            {run !== null && summary === null && (
+              /* Defensive: run row exists but /summary is still pending.
+                 Show the KPI grid skeleton from the run row alone (no
+                 annexes block until summary lands). */
+              <RunSynthesisCard run={run} annexes={[]} />
             )}
             {summary !== null && summary.run.status === 'completed' && (
               <T3LockBanner totalFailSevere={summary.run.total_fail_severe ?? 0} />
@@ -710,6 +699,52 @@ export default function Workspace() {
         />
       </main>
     </div>
+  );
+}
+
+/**
+ * Correction 1 — Synthèse extracted as a reusable card so it can be
+ * mounted both standalone (running runs, before the Regalica bubble
+ * exists) and as a direct child of `.msg-rega__body` (completed runs,
+ * inside the Regalica voice frame). KpiGrid + per-annexe block stay
+ * unchanged; only the wrapping `<Artefact type="synthese">` is moved.
+ */
+function RunSynthesisCard({
+  run,
+  annexes,
+}: {
+  run: ValidationRun;
+  annexes: readonly {
+    code: string;
+    fail_severe: string | number;
+    fail_rounding: string | number;
+  }[];
+}) {
+  const { t } = useTranslation();
+  return (
+    <Artefact type="synthese" state="standard">
+      <KpiGrid run={run} />
+      {annexes.length > 0 && (
+        <div className="mt-4">
+          <div className="font-mono text-[10px] uppercase tracking-wider text-stone-500 mb-2">
+            {t('summary.byAnnexe')}
+          </div>
+          <ul className="space-y-1 text-sm font-mono">
+            {annexes.map((a) => (
+              <li
+                key={a.code}
+                className="flex justify-between items-center border border-stone-200 rounded px-3 py-2"
+              >
+                <span>{a.code}</span>
+                <span className="text-stone-700">
+                  {Number(a.fail_severe)} severe · {Number(a.fail_rounding)} rounding
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </Artefact>
   );
 }
 
