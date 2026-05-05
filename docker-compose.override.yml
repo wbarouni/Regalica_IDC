@@ -43,6 +43,17 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    environment:
+      # Force production runtime mode regardless of what the .env
+      # file (loaded via env_file:) declares. The Dockerfile sets
+      # ENV NODE_ENV=production at build time, but env_file: .env
+      # has higher precedence in compose, so a developer's .env with
+      # NODE_ENV=development would silently make the container try
+      # to load pino-pretty (a dev-only transport that is not in the
+      # production npm install set) and crash on first log line.
+      # The S1 L10 e2e-fresh-machine CI run exposed this failure as
+      # `Error: unable to determine transport target for "pino-pretty"`.
+      NODE_ENV: production
 
   chatbot-py:
     # Single source of truth for the DSN: the Docker postgres service.
