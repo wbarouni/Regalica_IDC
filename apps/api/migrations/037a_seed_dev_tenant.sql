@@ -1,4 +1,4 @@
--- Migration 999_seed_dev_tenant.sql
+-- Migration 037a_seed_dev_tenant.sql
 -- Object: seed the canonical dev/CI tenant + author + validator users
 --         + role assignments so that `pnpm setup:dev` (S1) yields a
 --         tenant ready to receive XML uploads + run validations
@@ -12,10 +12,12 @@
 --             implicitly so it can grant the two roles by code below).
 -- References: docs/adr/0006-s1-reproducibility.md, docs/DEV-SETUP.md.
 --
--- Numbered 999 (much higher than the canonical 001-075a sequence) so
--- this seed runs LAST and is unambiguously a dev/CI affordance, not
--- part of the production schema evolution. Production deployments
--- skip this migration via the GUC gate below.
+-- Numbered 037a (suffix to land between 037 and 038) so the dev tenant
+-- exists BEFORE the GUC-gated referential seeds (038_seed_annexes.sql,
+-- 042_seed_rules_*.sql, ...) reference it via FK. Production deployments
+-- skip this migration via the GUC gate below — the historical 999_
+-- numbering was reverted to 037a after the S1 L10 e2e-fresh-machine
+-- CI run exposed the FK-violation race on a truly empty schema.
 --
 -- Required session var:
 --   app.seed_dev_tenant — must be the literal string 'true'. Posted
@@ -50,7 +52,7 @@ BEGIN
   v_gate := current_setting('app.seed_dev_tenant', true);
   IF v_gate IS NULL OR v_gate <> 'true' THEN
     RAISE NOTICE
-      'migration 999: app.seed_dev_tenant != ''true'' — skipping dev seed';
+      'migration 037a: app.seed_dev_tenant != ''true'' — skipping dev seed';
     RETURN;
   END IF;
 
@@ -102,7 +104,7 @@ BEGIN
 
   IF v_compliance_role_id IS NULL OR v_signatory_role_id IS NULL THEN
     RAISE EXCEPTION
-      'migration 999: expected roles compliance_officer + signatory '
+      'migration 037a: expected roles compliance_officer + signatory '
       'were not seeded for tenant % — verify migration 007 trigger',
       v_tenant_id;
   END IF;
@@ -130,6 +132,6 @@ BEGIN
   ON CONFLICT (user_id, role_id, assigned_at) DO NOTHING;
 
   RAISE NOTICE
-    'migration 999: dev tenant % + author % + validator % seeded',
+    'migration 037a: dev tenant % + author % + validator % seeded',
     v_tenant_id, v_author_id, v_validator_id;
 END $$;

@@ -11,12 +11,12 @@ const TENANT_ID = 'd3a7c6e6-2d18-4ff6-8183-94507eded6d7';
 const AUTHOR_ID = '2cb0ce35-4b43-499f-b23a-722ef86902ce';
 const VALIDATOR_ID = 'ef810369-1e96-485d-bf1d-dc8937e32bb9';
 
-describeIfDb('migration 999 — seed_dev_tenant (S1 reproducibility)', () => {
+describeIfDb('migration 037a — seed_dev_tenant (S1 reproducibility)', () => {
   describe('without app.seed_dev_tenant GUC', () => {
     let ctx: MigrationsTestContext;
 
     beforeAll(async () => {
-      ctx = await setupMigrationsSchema(999);
+      ctx = await setupMigrationsSchema(75);
     });
 
     afterAll(async () => {
@@ -44,7 +44,7 @@ describeIfDb('migration 999 — seed_dev_tenant (S1 reproducibility)', () => {
     let ctx: MigrationsTestContext;
 
     beforeAll(async () => {
-      ctx = await setupMigrationsSchema(999, {
+      ctx = await setupMigrationsSchema(75, {
         sessionVars: { 'app.seed_dev_tenant': 'true' },
       });
     });
@@ -133,13 +133,14 @@ describeIfDb('migration 999 — seed_dev_tenant (S1 reproducibility)', () => {
     });
 
     it('is idempotent — re-running the seed inserts no duplicate rows', async () => {
-      // Re-apply 999 manually via the same GUC. The migration does NOT
-      // re-touch already-present rows thanks to ON CONFLICT DO NOTHING
-      // on tenants/users + the deterministic assigned_at on user_roles.
+      // Re-apply 037a manually via the same GUC. The migration does
+      // NOT re-touch already-present rows thanks to ON CONFLICT DO
+      // NOTHING on tenants/users + the deterministic assigned_at on
+      // user_roles.
       const { readFile } = await import('node:fs/promises');
       const { resolve } = await import('node:path');
       const sql = await readFile(
-        resolve(__dirname, '../../migrations/999_seed_dev_tenant.sql'),
+        resolve(__dirname, '../../migrations/037a_seed_dev_tenant.sql'),
         'utf-8',
       );
       const c = await ctx.testPool.connect();
@@ -165,7 +166,7 @@ describeIfDb('migration 999 — seed_dev_tenant (S1 reproducibility)', () => {
         `SELECT count(*)::text AS c FROM user_roles WHERE tenant_id = $1`,
         [TENANT_ID],
       );
-      // 2 grants seeded by 999 + the auto-grant from the
+      // 2 grants seeded by 037a + the auto-grant from the
       // tenants_seed_roles trigger does NOT fire on conflict so no
       // additional roles row. Expect 2 user_roles rows total.
       expect(grantCount.rows[0]?.c).toBe('2');

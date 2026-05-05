@@ -13,9 +13,9 @@
  *      SEED_FIXTURES_DIR.
  *   2. Resolves the destination tenant id from
  *      SEED_FIXTURES_TENANT_ID, defaulting to the dev tenant UUID
- *      seeded by migration 999_seed_dev_tenant.sql.
+ *      seeded by migration 037a_seed_dev_tenant.sql.
  *   3. Resolves the uploader user id from SEED_FIXTURES_USER_ID,
- *      defaulting to the compliance user seeded by 999.
+ *      defaulting to the compliance user seeded by 037a.
  *   4. Resolves the API base URL from SEED_FIXTURES_API_URL,
  *      defaulting to http://localhost:3000 (the host port published
  *      by the docker-compose stack).
@@ -42,11 +42,11 @@ const REPO_ROOT = (() => {
   return resolve(here, '..');
 })();
 
-// Defaults align with the dev fixtures defined in migration 999.
+// Defaults align with the dev fixtures defined in migration 037a.
 // Every literal below is a development-time convenience reference,
 // not business data:
 //   * tenantId / userId mirror the deterministic UUIDs hardcoded in
-//     migration 999_seed_dev_tenant.sql so the script can target the
+//     migration 037a_seed_dev_tenant.sql so the script can target the
 //     same dev tenant without a registry round-trip.
 //   * apiUrl is the canonical localhost:3000 dev port of the API
 //     service (matches docker-compose.yml `api.ports`).

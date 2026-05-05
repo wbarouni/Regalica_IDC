@@ -59,7 +59,7 @@ describe('GET /api/health (apiHealthRouter)', () => {
   const makeStatusProbe = (
     appliedCount: number,
     pendingCount: number,
-    lastFilename = '999_seed_dev_tenant.sql',
+    lastFilename = '075a_backdate_rules_valid_from.sql',
   ): MigratorStatusProbe => {
     return async () => {
       const applied: MigratorStatus['applied'] = Array.from({ length: appliedCount }, (_, i) => {
@@ -97,8 +97,10 @@ describe('GET /api/health (apiHealthRouter)', () => {
 
   it('returns 200 with the canonical payload shape when in sync', async () => {
     // 88 applied / 0 pending mirrors the real local DB after L2 + L3
-    // (87 base migrations + 999_seed_dev_tenant.sql). The mock pool
-    // reports tenant present + 4611 active rules.
+    // (87 base migrations + 037a_seed_dev_tenant.sql, the seed which
+    // L10 fix #3 renumbered from 999 to 037a so it lands before the
+    // FK-dependent referential seeds). The mock pool reports tenant
+    // present + 4611 active rules.
     const pool = makeMockPool({ tenantExists: true, rulesActive: 4611 });
     const app = buildApp(pool, makeStatusProbe(88, 0));
     const res = await request(app).get('/api/health/');
@@ -111,7 +113,7 @@ describe('GET /api/health (apiHealthRouter)', () => {
         rules_active_count: 4611,
         applied_migrations_count: 88,
         expected_migrations_count: 88,
-        schema_version: '999_seed_dev_tenant.sql',
+        schema_version: '075a_backdate_rules_valid_from.sql',
       }),
     );
   });

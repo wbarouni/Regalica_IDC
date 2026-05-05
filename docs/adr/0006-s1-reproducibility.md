@@ -45,18 +45,18 @@ amener cette dette à zéro.
 
 10 livrables ont été tranchés avant l'écriture (cf. spec S1) :
 
-| #   | Livrable                                     | Décision majeure                                                                                                                                                |
-| --- | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| L1  | `docker-compose.override.yml` versionné      | Option A — committer la canonical override + ajouter `docker-compose.local.yml` au `.gitignore` pour les tweaks per-dev.                                        |
-| L2  | Migration `999_seed_dev_tenant.sql`          | Option A — migration SQL versionnée, GUC-gated `app.seed_dev_tenant`. UUIDs hardcodés (dev fixtures déterministes), tenant + 2 users + 2 rôles assignés.        |
-| L3  | Wrapper `migrate-with-operator`              | Extension du runner existant (additive, non-breaking) — pas de fork. Subcommand `up:operator` côté CLI. Détection GUC-gated par fingerprint de contenu fichier. |
-| L4  | `bootstrap-env.ts` + `apps/api/.env.example` | Script idempotent + création du fichier manquant + alignement chatbot-py.                                                                                       |
-| L5  | `seed-fixtures.ts`                           | Subset 5 XMLs (le batch `2026-02-28/filled/`) plutôt que les 65 — couvre upload→/runs→completed avec KPIs non-nuls.                                             |
-| L6  | `setup-dev.ts` orchestrator                  | Pipeline 6-step idempotent enchaînant L1+L2+L3+L4+L5.                                                                                                           |
-| L7  | `GET /api/health`                            | Audit-then-act : route `/health` minimale préservée pour compat. Nouvelle `/api/health` riche, distincte.                                                       |
-| L8  | `docs/DEV-SETUP.md` + `CLAUDE.md` §12        | Source unique. La procédure manuelle est explicitement marquée obsolète.                                                                                        |
-| L9  | ADR 0006                                     | Ce document.                                                                                                                                                    |
-| L10 | Test ultime + CI job `e2e-fresh-machine`     | Séparé en commit dédié.                                                                                                                                         |
+| #   | Livrable                                                                | Décision majeure                                                                                                                                                |
+| --- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| L1  | `docker-compose.override.yml` versionné                                 | Option A — committer la canonical override + ajouter `docker-compose.local.yml` au `.gitignore` pour les tweaks per-dev.                                        |
+| L2  | Migration `037a_seed_dev_tenant.sql` (renumbered de 999 par L10 fix #3) | Option A — migration SQL versionnée, GUC-gated `app.seed_dev_tenant`. UUIDs hardcodés (dev fixtures déterministes), tenant + 2 users + 2 rôles assignés.        |
+| L3  | Wrapper `migrate-with-operator`                                         | Extension du runner existant (additive, non-breaking) — pas de fork. Subcommand `up:operator` côté CLI. Détection GUC-gated par fingerprint de contenu fichier. |
+| L4  | `bootstrap-env.ts` + `apps/api/.env.example`                            | Script idempotent + création du fichier manquant + alignement chatbot-py.                                                                                       |
+| L5  | `seed-fixtures.ts`                                                      | Subset 5 XMLs (le batch `2026-02-28/filled/`) plutôt que les 65 — couvre upload→/runs→completed avec KPIs non-nuls.                                             |
+| L6  | `setup-dev.ts` orchestrator                                             | Pipeline 6-step idempotent enchaînant L1+L2+L3+L4+L5.                                                                                                           |
+| L7  | `GET /api/health`                                                       | Audit-then-act : route `/health` minimale préservée pour compat. Nouvelle `/api/health` riche, distincte.                                                       |
+| L8  | `docs/DEV-SETUP.md` + `CLAUDE.md` §12                                   | Source unique. La procédure manuelle est explicitement marquée obsolète.                                                                                        |
+| L9  | ADR 0006                                                                | Ce document.                                                                                                                                                    |
+| L10 | Test ultime + CI job `e2e-fresh-machine`                                | Séparé en commit dédié.                                                                                                                                         |
 
 Décisions stratégiques tranchées par le CEO (Q1-Q5) :
 
@@ -86,11 +86,11 @@ L'ancien override per-dev (`postgres:3333@host.docker.internal`) a
 fait perdre une journée d'audit en avril ; la décision A élimine
 définitivement cette classe de drift.
 
-### L2 — Migration SQL `999_*` (vs script TS)
+### L2 — Migration SQL `037a_*` (initialement `999_*`) (vs script TS)
 
 Mécanisme uniforme avec le reste du corpus migration. Audit trail
 automatique via `schema_migrations`. Idempotence native via
-`ON CONFLICT DO NOTHING`. Numérotée 999 pour s'exécuter en dernier
+`ON CONFLICT DO NOTHING`. Numérotée 037a (suffixe pour s'insérer entre 037 et 038)
 sans interférer avec la suite canonique 001-075a.
 
 GUC `app.seed_dev_tenant=true` plutôt que `NODE_ENV='development'`
@@ -222,7 +222,7 @@ de build Docker sur un commit qui aurait déjà cassé le format.`timeout-minute
 - Drift dev/CI/prod éliminé sur les surfaces couvertes par S1.
 - 30+ tests unitaires sur les nouveaux scripts (node:test built-in,
   zéro deps).
-- 88e migration (`999`) idempotente et conditionnelle, ne touche
+- 88e migration (`037a`, ex-`999`) idempotente et conditionnelle, ne touche
   jamais la prod.
 - Endpoint `/api/health/` exploitable par tout monitoring/CI/ops
   sans connaissance interne.
@@ -233,7 +233,7 @@ de build Docker sur un commit qui aurait déjà cassé le format.`timeout-minute
   Docker-only par défaut. Les devs qui utilisaient leur Postgres
   host devront créer un `docker-compose.local.yml` personnel.
 - Les UUIDs hardcodés du tenant dev créent un couplage doc-driven
-  entre les 4 surfaces qui les référencent (migration 999,
+  entre les 4 surfaces qui les référencent (migration 037a,
   seed-fixtures, frontend .env, CI job). Renommage = changement
   coordonné.
 
@@ -253,7 +253,7 @@ message) :
 
 | Livrable | Tests ajoutés                          | Total tests `pnpm test:tools` après livrable |
 | -------- | -------------------------------------- | -------------------------------------------- |
-| L2       | 9 (jest, migration 999)                | — (jest côté api)                            |
+| L2       | 9 (jest, migration 037a)               | — (jest côté api)                            |
 | L3       | 6 (jest, migrator GUC)                 | — (jest côté api)                            |
 | L4       | 15 (node:test, bootstrap-env pure fns) | 15                                           |
 | L5       | 10 (node:test, seed-fixtures pure fns) | 25                                           |

@@ -23,7 +23,7 @@ export type MigratorStatusProbe = () => Promise<MigratorStatus>;
  * route reports the structural state of the DB so a fresh-machine
  * `pnpm setup:dev` operator can verify in one curl that:
  *   - the migration runner has applied every file on disk
- *   - the dev tenant from migration 999 is present
+ *   - the dev tenant from migration 037a is present
  *   - the rules corpus seeded by 042 + promoted by 075/075a is active
  *
  * Returns 200 with the full payload when applied == expected;
@@ -41,7 +41,7 @@ export type MigratorStatusProbe = () => Promise<MigratorStatus>;
  *   }
  */
 
-// Dev tenant id seeded by migration 999_seed_dev_tenant.sql. The
+// Dev tenant id seeded by migration 037a_seed_dev_tenant.sql. The
 // health endpoint reads the tenant_dev_present boolean against this
 // canonical UUID so a fresh-machine setup can confirm the seed
 // migration actually ran (vs. silently no-opped due to a missing

@@ -46,7 +46,7 @@ in summary:
 3. **postgres healthcheck** — polls `docker inspect ...
 .State.Health.Status` until `healthy` (timeout 60 s).
 4. **migrate up:operator** — applies the 88 SQL migrations (87 base
-   - `999_seed_dev_tenant.sql`) with the operator GUCs (`SEED_*`)
+   - `037a_seed_dev_tenant.sql`) with the operator GUCs (`SEED_*`)
      that turn the GUC-gated seed migrations from no-ops into actual
      data writes (rules, prompts, dev tenant, dev users).
 5. **stack up** — `docker compose up -d api chatbot-py nginx`.
@@ -87,7 +87,7 @@ Once `setup:dev` returns, verify in three steps:
    ```json
    {
      "status": "ok",
-     "schema_version": "999_seed_dev_tenant.sql",
+     "schema_version": "075a_backdate_rules_valid_from.sql",
      "applied_migrations_count": 88,
      "expected_migrations_count": 88,
      "in_sync": true,
@@ -141,7 +141,7 @@ services:
 | `chatbot-py` exits with `ValueError: No API key was provided`        | `GEMINI_API_KEY` empty in the root `.env`                                             | Re-run `pnpm bootstrap:env` (interactive) or export the key and re-run `pnpm setup:dev`                                                     |
 | `POST /runs → 501 COLUMN_NOT_FOUND`                                  | `migrate:up` was used instead of `migrate:up:operator`; GUC-gated migrations no-opped | `SEED_DEV_TENANT=true SEED_AUTHOR_USER_ID=… pnpm --filter @regflow/api migrate:up:operator`                                                 |
 | `seed-fixtures` reports `network error`                              | API container not yet listening on 3000                                               | Re-run `pnpm setup:dev`; the orchestrator gates on the postgres healthcheck but only sleeps 5 s for api/chatbot-py — bump the wait or retry |
-| `/api/health` returns `tenant_dev_present: false`                    | Migration 999 ran without the `app.seed_dev_tenant` GUC                               | Same fix as the 501 row above                                                                                                               |
+| `/api/health` returns `tenant_dev_present: false`                    | Migration 037a ran without the `app.seed_dev_tenant` GUC                              | Same fix as the 501 row above                                                                                                               |
 | Local Postgres on host port 5432 conflicts with the Compose Postgres | Two listeners fighting for the same TCP port                                          | Stop the host Postgres OR override the published port in `docker-compose.local.yml` (see example above)                                     |
 
 ## Useful sub-scripts

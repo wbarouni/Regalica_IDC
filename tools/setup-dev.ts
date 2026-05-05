@@ -8,7 +8,7 @@
  *   1. bootstrap-env (S1 L4)            — populate .env files + JWT
  *   2. docker compose up -d postgres    — start the canonical Postgres
  *   3. wait for pg_isready              — health-gate before migrating
- *   4. pnpm migrate:up:operator (L3)    — apply 87 base migrations + 999
+ *   4. pnpm migrate:up:operator (L3)    — apply 87 base migrations + 037a
  *      with the operator GUCs that turn the GUC-gated seed migrations
  *      from no-ops into actual data writes (rules, prompts, dev tenant).
  *   5. docker compose up -d api chatbot-py nginx — bring up the rest of
@@ -196,7 +196,7 @@ async function step3WaitPostgres(log: Logger): Promise<void> {
 
 async function step4Migrate(log: Logger): Promise<void> {
   log.step(4, TOTAL_STEPS, 'pnpm migrate:up:operator (with dev GUCs)');
-  // Default values match migration 999_seed_dev_tenant.sql + the
+  // Default values match migration 037a_seed_dev_tenant.sql + the
   // historical valid_from used when seeding the rules corpus
   // (075a_backdate_rules_valid_from.sql). The orchestrator never
   // overrides values the operator already exported.
