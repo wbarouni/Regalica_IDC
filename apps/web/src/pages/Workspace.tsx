@@ -219,6 +219,7 @@ function Ribbon({
 }
 
 function ChatTurn({ message }: { message: ChatMessage }) {
+  const { t } = useTranslation();
   if (message.role === 'user') {
     return (
       <div className="msg-user">
@@ -254,8 +255,19 @@ function ChatTurn({ message }: { message: ChatMessage }) {
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
         </div>
         {trace !== null && trace.length > 0 && (
-          <Artefact type="system" state="collapsed" badgeKey="artefact.badge.trace">
-            <p className="text-sm text-stone-800">{trace}</p>
+          /* Point 4 — thinking trace VISIBLE by default (state="standard")
+             instead of collapsed. Until this commit the trace was
+             technically rendered but hidden behind a click — the user
+             never saw "Regalica raisonne". The maquette v5
+             (workspace-v5.html :702-732) shows the thinking artefact
+             standard with 4-phase prose visible. We keep the system
+             variant + a dedicated thinking confidence label so the
+             user immediately reads the cognitive footprint. */
+          <Artefact type="system" state="standard" badgeKey="artefact.badge.trace">
+            <div className="font-mono text-[10px] uppercase tracking-wider text-marigold-700 mb-2">
+              {t('thinking.label', { defaultValue: 'Mode thinking · raisonnement Regalica' })}
+            </div>
+            <p className="text-sm text-stone-800 whitespace-pre-line">{trace}</p>
             {agents !== null && (
               <p className="mt-2 text-xs text-stone-600 font-mono">{agents.join(' / ')}</p>
             )}

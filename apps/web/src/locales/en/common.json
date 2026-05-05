@@ -210,6 +210,9 @@
   "autoLaunch": {
     "acknowledgement": "Understood. Launching the BCT T1 validation on the file you just uploaded."
   },
+  "thinking": {
+    "label": "Thinking mode · Regalica reasoning"
+  },
   "investigation": {
     "title": "Investigation · Rule {{ax}}/{{num}}",
     "subtitle": "RDG decomposition · expected (RHS) vs computed (LHS)",

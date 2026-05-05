@@ -210,6 +210,9 @@
   "autoLaunch": {
     "acknowledgement": "Très bien. Je lance la validation BCT T1 sur le fichier que vous venez de charger."
   },
+  "thinking": {
+    "label": "Mode thinking · raisonnement Regalica"
+  },
   "investigation": {
     "title": "Investigation · Règle {{ax}}/{{num}}",
     "subtitle": "Décomposition RDG · valeur attendue (RHS) vs valeur calculée (LHS)",
