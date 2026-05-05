@@ -14,6 +14,7 @@ import { configureRunEventBus } from './lib/runEventBus.js';
 import { authMiddleware, tenantMiddleware } from './middleware/auth.js';
 import { correlationIdMiddleware } from './middleware/correlationId.js';
 import { errorHandler } from './middleware/error-handler.js';
+import { apiHealthRouter } from './routes/apiHealth.js';
 import { conversationsRouter } from './routes/conversations.js';
 import { engineRouter } from './routes/engine.js';
 import { filingsRouter } from './routes/filings.js';
@@ -59,6 +60,12 @@ export function createApp(pool?: Pool): Express {
   app.use('/health', healthRouter);
 
   if (pool) {
+    // S1 L7 — `/api/health` is the rich, DB-backed health probe used
+    // by the orchestrator's final verification step. Mounted on the
+    // pool branch because the payload requires migrate-status +
+    // tenants + rules queries.
+    app.use('/api/health', apiHealthRouter(pool));
+
     // Configure the in-process SSE event bus from platform_config.
     // Fire-and-forget: failures are logged inside the function and
     // leave the bus on Node's default cap (10) — acceptable for the
