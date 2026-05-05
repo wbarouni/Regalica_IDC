@@ -642,6 +642,7 @@ export default function Workspace() {
                      .calc-block / .inspector primitives. */
                   <InvestigationArtefact fail={topFail.fail} />
                 )}
+                <T3LockBanner totalFailSevere={summary.run.total_fail_severe ?? 0} />
               </RegalicaRunSpeech>
             )}
             {run !== null && summary === null && (
@@ -649,9 +650,6 @@ export default function Workspace() {
                  Show the KPI grid skeleton from the run row alone (no
                  annexes block until summary lands). */
               <RunSynthesisCard run={run} annexes={[]} />
-            )}
-            {summary !== null && summary.run.status === 'completed' && (
-              <T3LockBanner totalFailSevere={summary.run.total_fail_severe ?? 0} />
             )}
 
             <ChatThread messages={messages} />
