@@ -27,7 +27,7 @@ import pytest
 from app.llm.base import LLMResponse
 from app.services import intent_grammar as ig
 from app.services import platform_config as pc
-from app.services.orchestrator import OrchestratorResult, orchestrate
+from app.services.orchestrator import OrchestratorResult, _load_run_fails_context, orchestrate
 
 
 @pytest.fixture(autouse=True)
@@ -614,3 +614,141 @@ async def test_orchestrate_router_prompt_omits_run_context_when_no_run_id() -> N
     sys_prompt = llm.complete.call_args_list[0].args[0].system_prompt
     assert "Run: {}." in sys_prompt
     assert "List: zoom." in sys_prompt
+
+
+# ─────────────────────────────────────────────────────────────────────
+# Point 3 — _load_run_fails_context
+# ─────────────────────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_load_run_fails_context_returns_top_fails_in_severity_order() -> None:
+    """Severe FAILs come first, then rounding, ordered by gap_absolute desc."""
+    rows = [
+        {
+            "rule_id": "00000000-0000-0000-0000-000000000001",
+            "ax_term": "630",
+            "num_regle": 266,
+            "severity": "severe",
+            "expected_value": 100.0,
+            "computed_value": 80.0,
+            "gap_absolute": 20.0,
+            "gap_relative": 0.2,
+        },
+    ]
+    pool = _build_pool(top_fails=rows)
+    out = await _load_run_fails_context(
+        pool,
+        run_id="00000000-0000-0000-0000-000000000aaa",
+        tenant_id=_TENANT,
+    )
+    assert out is not None
+    assert out["run_id"] == "00000000-0000-0000-0000-000000000aaa"
+    assert out["total_count"] == 1
+    assert out["top_fails"][0]["ax_term"] == "630"
+    assert out["top_fails"][0]["severity"] == "severe"
+    assert out["top_fails"][0]["gap_absolute"] == 20.0
+
+
+@pytest.mark.asyncio
+async def test_load_run_fails_context_empty_run_returns_zero_count() -> None:
+    pool = _build_pool(top_fails=[])
+    out = await _load_run_fails_context(
+        pool,
+        run_id="00000000-0000-0000-0000-000000000bbb",
+        tenant_id=_TENANT,
+    )
+    assert out is not None
+    assert out["total_count"] == 0
+    assert out["top_fails"] == []
+
+
+@pytest.mark.asyncio
+async def test_load_run_fails_context_returns_none_on_db_error() -> None:
+    pool = MagicMock()
+
+    async def boom(*_args: Any, **_kw: Any) -> None:
+        raise RuntimeError("db down")
+
+    pool.fetch = AsyncMock(side_effect=boom)
+    out = await _load_run_fails_context(
+        pool,
+        run_id="00000000-0000-0000-0000-000000000ccc",
+        tenant_id=_TENANT,
+    )
+    # Best-effort: SQL failures degrade silently to None so the
+    # orchestrator falls back to the pre-Point-3 behaviour without
+    # surfacing a 500.
+    assert out is None
+
+
+@pytest.mark.asyncio
+async def test_orchestrate_zoom_preloads_fail_context_when_caller_omits_it() -> None:
+    """Point 3 — caller passes only current_run_id; orchestrate
+    preloads the run's top FAILs into fail_context for the zoom intent
+    so the investigator specialist gets concrete data instead of {}."""
+    router_template = "Router. Run: {run_context}. List: {question_types_list}. Msg: {message}."
+    prompts: dict[tuple[str, str], dict[str, Any] | None] = {
+        ("regalica", "router"): _prompt_row(router_template),
+        ("regalica", "aggregate_zoom_fail"): _prompt_row("[ZOOM]"),
+        ("investigator", "analyze_fail"): _prompt_row("[INV]"),
+        ("citation", "find_regulatory_source"): _prompt_row("[CIT]"),
+    }
+    fails = [
+        {
+            "rule_id": "00000000-0000-0000-0000-000000000010",
+            "ax_term": "630",
+            "num_regle": 266,
+            "severity": "severe",
+            "expected_value": 100.0,
+            "computed_value": 80.0,
+            "gap_absolute": 20.0,
+            "gap_relative": 0.2,
+        },
+    ]
+    run_id = "00000000-0000-0000-0000-000000000fff"
+    run_row = {
+        # router_context.py:71 aliases id::text AS run_id, so the
+        # mock pool must already expose the projected key.
+        "run_id": run_id,
+        "tenant_id": _TENANT,
+        "primary_annexe_code": "RSM630",
+        "arrete_date": "2026-02-28",
+        "status": "completed",
+        "total_rules_evaluated": 1245,
+        "total_pass": 1242,
+        "total_fail_severe": 1,
+        "total_fail_rounding": 0,
+        "conformity_rate": 0.9988,
+    }
+    pool = _build_pool(
+        prompts=prompts,
+        run_context_row=run_row,
+        top_fails=fails,
+        question_types=["zoom", "general_help"],
+    )
+    llm = _build_llm(
+        [
+            _llm_response(json.dumps({"intent": "zoom", "confidence": 0.95})),
+            _llm_response(json.dumps({"hypothesis": "ok"})),  # investigator
+            _llm_response(json.dumps({"source": "BCT 2017-06"})),  # citation
+            _llm_response("ok zoom"),  # aggregator
+        ]
+    )
+    out = await orchestrate(
+        message="regarde le FAIL 630/266",
+        tenant_id=_TENANT,
+        pool=pool,
+        llm_client=llm,
+        current_run_id=run_id,
+        # Caller (frontend useChat) does NOT pass fail_context — Point 3
+        # preload should kick in for the zoom intent.
+    )
+    assert isinstance(out, OrchestratorResult)
+    # The investigator's user prompt is the JSON of fail_context+rule_context.
+    # The 2nd LLM call is the investigator (router was 1st). Its prompt
+    # body must mention the preloaded ax_term/num_regle/severity.
+    investigator_prompt = llm.complete.call_args_list[1].args[0].prompt
+    assert "630" in investigator_prompt
+    assert "266" in investigator_prompt
+    assert "severe" in investigator_prompt

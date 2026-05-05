@@ -102,6 +102,27 @@ _PLANNER_CONFIDENCE_THRESHOLD: Final[float] = 0.65
 # intent_specialists (seeded by migration 065).
 _AMBIGUOUS_INTENT: Final[str] = "ambiguous"
 
+# Point 3 — set of intents that NEED a populated fail_context to reason
+# correctly. When `current_run_id` is non-null AND the caller did not
+# supply fail_context (frontend default behaviour: useChat only sends
+# context.validation_run_id), the orchestrator pre-loads the top FAILs
+# of the run from `validation_fail_details` BEFORE invoking the
+# specialists. Without this, the investigator/citation/historical
+# specialists receive `fail_context = {}` and Gemini hallucinates or
+# refuses ("je n'ai pas détecté X fails") because it has no concrete
+# data to ground against.
+#
+# Intents that DON'T need fails (general_help, out_of_scope, ambiguous,
+# launch_validation, citation w/o ax_term, simulation/sanction/plan
+# at V1) stay outside this set so we never burn an extra SQL query.
+_INTENTS_NEEDING_FAILS: Final[frozenset[str]] = frozenset({"zoom", "cluster", "historical", "plan"})
+
+# Per-run cap on the number of FAIL rows pre-loaded into fail_context.
+# 10 covers the demo corpus (typical 7 FAILs) and stays well below the
+# Gemini context window even when each row carries calculation_trace
+# JSON. Operator-tuneable via platform_config in a follow-up tranche.
+_FAILS_CONTEXT_PRELOAD_LIMIT: Final[int] = 10
+
 # Persona-aligned thinking trace template (docs/10 §5). Phase 3-bis
 # may move this to prompt_bank once the trace itself becomes a
 # prompt.
@@ -1184,6 +1205,95 @@ async def _invoke_aggregator(
 # ---------------------------------------------------------------------------
 
 
+async def _load_run_fails_context(
+    pool: asyncpg.Pool,
+    *,
+    run_id: str,
+    tenant_id: str,
+    limit: int = _FAILS_CONTEXT_PRELOAD_LIMIT,
+) -> dict[str, Any] | None:
+    """Pre-load the top FAILs of a run into a fail_context dict.
+
+    Used by `orchestrate()` when the caller supplied a current_run_id
+    but no explicit fail_context, AND the detected intent is one that
+    needs fails to reason (zoom / cluster / historical / plan). The
+    returned dict shape:
+
+        {
+            "run_id": <uuid>,
+            "total_count": <int>,
+            "top_fails": [
+                {
+                    "rule_id": <uuid>,
+                    "ax_term": "630",
+                    "num_regle": 266,
+                    "severity": "severe" | "rounding",
+                    "expected_value": float | None,
+                    "computed_value": float | None,
+                    "gap_absolute": float | None,
+                    "gap_relative": float | None,
+                },
+                ...
+            ],
+        }
+
+    Returns None on any DB error so the caller can fall back to the
+    pre-Point-3 behaviour without surfacing a 500. The investigator /
+    citation specialists then receive `fail_context = None` again and
+    degrade gracefully (the maquette intent for V1).
+
+    RLS is enforced through tenant_id in the WHERE clause; no SET ROLE
+    needed because the chatbot-py pool runs under regflow_app which
+    already carries the per-tenant guard from migrations 005a / 030 /
+    036.
+    """
+    try:
+        rows = await pool.fetch(
+            """
+            SELECT
+                rule_id::text       AS rule_id,
+                ax_term,
+                num_regle,
+                severity,
+                expected_value::float AS expected_value,
+                computed_value::float AS computed_value,
+                gap_absolute::float   AS gap_absolute,
+                gap_relative::float   AS gap_relative
+            FROM validation_fail_details
+            WHERE validation_run_id = $1::uuid
+              AND tenant_id         = $2::uuid
+            ORDER BY
+                CASE severity WHEN 'severe' THEN 0 ELSE 1 END,
+                gap_absolute DESC NULLS LAST
+            LIMIT $3
+            """,
+            run_id,
+            tenant_id,
+            limit,
+        )
+    except Exception:
+        _logger.exception("_load_run_fails_context: SQL fetch failed for run=%s", run_id)
+        return None
+
+    return {
+        "run_id": run_id,
+        "total_count": len(rows),
+        "top_fails": [
+            {
+                "rule_id": r["rule_id"],
+                "ax_term": r["ax_term"],
+                "num_regle": r["num_regle"],
+                "severity": r["severity"],
+                "expected_value": r["expected_value"],
+                "computed_value": r["computed_value"],
+                "gap_absolute": r["gap_absolute"],
+                "gap_relative": r["gap_relative"],
+            }
+            for r in rows
+        ],
+    }
+
+
 async def orchestrate(
     message: str,
     tenant_id: str,
@@ -1300,12 +1410,32 @@ async def orchestrate(
     else:
         specialist_ids = planner_outcome.specialist_ids
 
+    # Point 3 — pre-load the run's top FAILs into fail_context when
+    # the caller didn't supply one and the intent needs FAIL-grounded
+    # reasoning. Without this, useChat (which only carries
+    # context.validation_run_id) leaves the investigator/citation
+    # specialists with `fail_context = {}` and Gemini hallucinates
+    # or refuses ("je n'ai pas détecté X fails"). The loader is
+    # best-effort: a SQL failure leaves fail_context untouched and
+    # the pipeline falls back to the pre-Point-3 degradation.
+    effective_fail_context = fail_context
+    if (
+        effective_fail_context is None
+        and current_run_id is not None
+        and intent in _INTENTS_NEEDING_FAILS
+    ):
+        effective_fail_context = await _load_run_fails_context(
+            pool,
+            run_id=current_run_id,
+            tenant_id=tenant_id,
+        )
+
     # 3. Specialists (parallel) + aggregator-prompt fetch (parallel).
     ctx = _SpecialistContext(
         pool=pool,
         tenant_id=tenant_id,
         llm_client=llm_client,
-        fail_context=fail_context,
+        fail_context=effective_fail_context,
         rule_context=rule_context,
         current_run_id=current_run_id,
         api_client=api_client,
