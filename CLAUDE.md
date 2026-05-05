@@ -299,14 +299,26 @@ pnpm dev                                            # up complet
 pnpm dev:down                                       # down
 ```
 
-**Migrations DB (Phase 1+) :**
+**Setup environnement de dev (chantier S1) :**
 
 ```bash
-# DATABASE_URL requis dans l'env (voir .env.example)
+pnpm install
+pnpm setup:dev   # demande GEMINI_API_KEY interactivement
+```
+
+Procédure complète documentée dans **[docs/DEV-SETUP.md](docs/DEV-SETUP.md)** (livrable canonique S1 ; ADR 0006). La procédure manuelle historique (clé psql, GUCs operator à poser à la main, `cp .env.example .env`) **est obsolète** — utilise `pnpm setup:dev`.
+
+**Migrations DB :**
+
+```bash
+# DATABASE_URL requis dans l'env
 pnpm --filter @regflow/api migrate:status           # appliquées / en attente / drift
-pnpm --filter @regflow/api migrate:up               # applique toutes les migrations en attente
+pnpm --filter @regflow/api migrate:up               # legacy: applique sans GUCs operator (les migrations GUC-gated restent en no-op)
+pnpm --filter @regflow/api migrate:up:operator      # S1 L3: applique avec les GUCs operator (SEED_*) — utilisé par setup:dev
 pnpm --filter @regflow/api migrate:verify           # vérifie les checksums contre la DB
 ```
+
+La liste des 20 migrations GUC-gated et les variables d'env qu'elles consomment est documentée dans `tools/migrate-with-operator` (alias CLI ci-dessus) et `docs/adr/0006-s1-reproducibility.md` §3.
 
 Convention d'en-tête des fichiers `.sql` et règles d'idempotence dans `apps/api/migrations/README.md`.
 
