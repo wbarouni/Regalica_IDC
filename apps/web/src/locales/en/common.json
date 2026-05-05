@@ -116,6 +116,19 @@
       "draft": "Draft",
       "deprecated": "Deprecated",
       "rejected": "Rejected"
+    },
+    "pending_review": {
+      "title": "Rules pending 4-eyes review",
+      "empty": "No rules awaiting review.",
+      "colRule": "Rule",
+      "colDescription": "Description",
+      "colAuthor": "Author",
+      "colSubmitted": "Submitted",
+      "colAction": "Action",
+      "viewDetail": "View detail",
+      "loading": "Loading…",
+      "error": "Failed to load rules pending review.",
+      "countLabel": "{{count}} pending"
     }
   },
   "kpi": {

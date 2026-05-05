@@ -116,6 +116,19 @@
       "draft": "مسودة",
       "deprecated": "مهجور",
       "rejected": "مرفوض"
+    },
+    "pending_review": {
+      "title": "القواعد قيد مراجعة الأربعة أعين",
+      "empty": "لا توجد قواعد قيد المراجعة.",
+      "colRule": "القاعدة",
+      "colDescription": "الوصف",
+      "colAuthor": "المؤلف",
+      "colSubmitted": "تاريخ التقديم",
+      "colAction": "الإجراء",
+      "viewDetail": "عرض التفاصيل",
+      "loading": "جارٍ التحميل…",
+      "error": "فشل تحميل القواعد قيد المراجعة.",
+      "countLabel": "{{count}} قيد الانتظار"
     }
   },
   "kpi": {

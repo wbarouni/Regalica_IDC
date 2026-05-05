@@ -87,6 +87,25 @@ export interface Rule {
   is_inter_annexe: boolean;
 }
 
+// K3 — shape returned by GET /rules/pending-review (library.ts:54-65).
+// Wider than `Rule` because the dedicated 4-eyes review surface needs
+// the author UUID (governance accountability) and the submission
+// timestamp (recency sort + decision SLA).
+export interface PendingRule {
+  id: string;
+  ax_term: string;
+  num_regle: number;
+  operator: string;
+  natural_language: string;
+  terms_count: number;
+  version: number;
+  status: string;
+  valid_from: string;
+  is_inter_annexe: boolean;
+  author_user_id: string | null;
+  created_at: string;
+}
+
 export interface Referential {
   code: string;
   entry_count: number;

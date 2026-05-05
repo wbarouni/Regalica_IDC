@@ -116,6 +116,19 @@
       "draft": "Brouillon",
       "deprecated": "Dépréciée",
       "rejected": "Rejetée"
+    },
+    "pending_review": {
+      "title": "Règles en revue 4-yeux",
+      "empty": "Aucune règle en attente de revue.",
+      "colRule": "Règle",
+      "colDescription": "Description",
+      "colAuthor": "Auteur",
+      "colSubmitted": "Soumise",
+      "colAction": "Action",
+      "viewDetail": "Voir détail",
+      "loading": "Chargement…",
+      "error": "Échec du chargement des règles en revue.",
+      "countLabel": "{{count}} en attente"
     }
   },
   "kpi": {

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { LanguageSwitcher } from '../components/primitives/LanguageSwitcher';
 import { PersonaSidebar } from '../components/layout/PersonaSidebar';
+import { PendingRulesPanel } from '../components/PendingRulesPanel';
 import { BCT_ANNEXE_GROUPS } from '../constants/bct-taxonomy';
 import { RULE_LABEL_PREVIEW_LENGTH } from '../constants/ui';
 import { useCurrentRun } from '../hooks/useCurrentRun';
@@ -14,16 +15,14 @@ import { DEFAULT_PAGE_SIZE } from '../lib/config';
 import { RULE_STATUSES, type RuleStatus } from '../types/api';
 
 /**
- * Library page — wired to GET /rules, /referentials,
- * /rules/pending-review.
+ * Library page — wired to GET /rules, /referentials and
+ * /rules/pending-review (via the dedicated <PendingRulesPanel>
+ * mounted at the top of the rules rayon, K3).
  *
  * Class names target the Edition One stylesheet
- * (apps/web/src/styles/primitives.css). That file is not yet landed
- * in the repo — once it is, the look-and-feel matches the validated
- * Library v3 mockup automatically. Until then the markup renders
- * structurally but unstyled. Inline `style={{...}}` attributes carry
- * the layout-critical bits (column widths, scroll, padding) so the
- * page is usable even without the full stylesheet.
+ * (apps/web/src/styles/primitives.css). Inline `style={{...}}`
+ * attributes carry the layout-critical bits (column widths, scroll,
+ * padding) for elements not yet expressed as named primitives.
  */
 
 type Rayon = 'rules' | 'referentials' | 'circulaires' | 'filings';
@@ -156,6 +155,7 @@ export default function Library(): JSX.Element {
           <div className="thread-scroll" style={{ flex: 1 }}>
             {activeRayon === 'rules' && (
               <div>
+                <PendingRulesPanel />
                 <div className="ledger-filters">
                   {[
                     { key: RULE_STATUSES.ACTIVE, label: t('lib.filterActive') },
