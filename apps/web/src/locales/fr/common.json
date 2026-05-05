@@ -207,6 +207,9 @@
   "autoZoom": {
     "triggerMessage": "Regarde ce FAIL : règle {{ax}}/{{num}} et explique la cause racine."
   },
+  "autoLaunch": {
+    "acknowledgement": "Très bien. Je lance la validation BCT T1 sur le fichier que vous venez de charger."
+  },
   "investigation": {
     "title": "Investigation · Règle {{ax}}/{{num}}",
     "subtitle": "Décomposition RDG · valeur attendue (RHS) vs valeur calculée (LHS)",

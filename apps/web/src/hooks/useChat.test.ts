@@ -102,3 +102,39 @@ describe('useChat — Tranche 0 E1: runId propagation', () => {
     expect(init.method).toBe('POST');
   });
 });
+
+describe('useChat — Point 2: local intent interceptor + injectRegalicaMessage', () => {
+  it('skips the LLM round-trip when onLocalIntentMatch returns true', async () => {
+    const matcher = vi.fn().mockReturnValue(true);
+    const { result } = renderHook(() => useChat({ onLocalIntentMatch: matcher }));
+    await act(async () => {
+      await result.current.sendMessage('lance la validation');
+    });
+    expect(matcher).toHaveBeenCalledWith('lance la validation');
+    expect(fetchMock).not.toHaveBeenCalled();
+    // The user message stays visible in the thread.
+    expect(result.current.messages.some((m) => m.content === 'lance la validation')).toBe(true);
+  });
+
+  it('falls through to the chatbot-py POST when matcher returns false', async () => {
+    fetchMock.mockResolvedValueOnce(chatResponseStub());
+    const matcher = vi.fn().mockReturnValue(false);
+    const { result } = renderHook(() => useChat({ onLocalIntentMatch: matcher }));
+    await act(async () => {
+      await result.current.sendMessage('Bonjour');
+    });
+    expect(matcher).toHaveBeenCalledWith('Bonjour');
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+  });
+
+  it('injectRegalicaMessage appends a synthetic assistant turn without fetching', async () => {
+    const { result } = renderHook(() => useChat());
+    act(() => {
+      result.current.injectRegalicaMessage('OK lancement…');
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result.current.messages).toHaveLength(1);
+    expect(result.current.messages[0]?.role).toBe('regalica');
+    expect(result.current.messages[0]?.content).toBe('OK lancement…');
+  });
+});

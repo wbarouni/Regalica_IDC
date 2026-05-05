@@ -11,15 +11,6 @@ export interface ChatMessage {
   timestamp: string;
 }
 
-interface UseChatResult {
-  messages: ChatMessage[];
-  loading: boolean;
-  error: string | null;
-  conversationId: string | null;
-  sendMessage: (text: string) => Promise<void>;
-  clearError: () => void;
-}
-
 interface ChatResponseBody {
   conversation_id: string;
   message_id: string;
@@ -65,16 +56,68 @@ interface ChatResponseBody {
 export interface UseChatOptions {
   initialConversationId?: string;
   runId?: string | null;
+  /**
+   * Point 2 — Local intent interceptor.
+   *
+   * Invoked SYNCHRONOUSLY before the chat POST when the user types
+   * a message. Returns true to short-circuit the network call (the
+   * caller has handled the intent locally, e.g. by calling the same
+   * imperative path the LANCER button calls). Returns false (or
+   * undefined) to fall through to the standard chatbot-py round-trip.
+   *
+   * Use case: the user types "lance la validation" / "démarre" while
+   * a pendingUpload exists in the workspace state — Workspace.tsx
+   * intercepts the phrase, calls handleLaunchRun(), injects a
+   * synthetic Regalica acknowledgement, and skips the LLM call.
+   * Without this hook, the message would route through chatbot-py's
+   * launch_validation intent → t1_runner, which short-circuits with
+   * "Aucun run actif" because no run row has been created yet.
+   *
+   * The user message is still appended to the thread (so the
+   * acknowledgement reads as a chat turn). The synthetic Regalica
+   * response is the caller's responsibility, surfaced via
+   * `injectRegalicaMessage`.
+   */
+  onLocalIntentMatch?: (text: string) => boolean | undefined;
+}
+
+interface UseChatResult {
+  messages: ChatMessage[];
+  loading: boolean;
+  error: string | null;
+  conversationId: string | null;
+  sendMessage: (text: string) => Promise<void>;
+  clearError: () => void;
+  /**
+   * Point 2 — programmatic injection of a Regalica message into the
+   * thread (skips the chatbot-py round-trip). Used by the local
+   * interceptor to acknowledge a chat-driven launch_validation.
+   */
+  injectRegalicaMessage: (content: string) => void;
 }
 
 export function useChat(options: UseChatOptions = {}): UseChatResult {
-  const { initialConversationId, runId = null } = options;
+  const { initialConversationId, runId = null, onLocalIntentMatch } = options;
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(
     initialConversationId ?? null,
   );
+
+  const injectRegalicaMessage = useCallback((content: string): void => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        role: 'regalica',
+        content,
+        thinking_trace: null,
+        agents_called: [],
+        timestamp: new Date().toISOString(),
+      },
+    ]);
+  }, []);
 
   const sendMessage = useCallback(
     async (text: string): Promise<void> => {
@@ -91,6 +134,15 @@ export function useChat(options: UseChatOptions = {}): UseChatResult {
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, userMsg]);
+
+      // Point 2 — local intent interceptor. The user's message stays
+      // visible in the thread; the LLM round-trip is skipped if the
+      // caller acknowledges the intent. Caller is responsible for any
+      // synthetic Regalica response via injectRegalicaMessage.
+      if (onLocalIntentMatch !== undefined && onLocalIntentMatch(trimmed) === true) {
+        return;
+      }
+
       setLoading(true);
       setError(null);
 
@@ -149,10 +201,18 @@ export function useChat(options: UseChatOptions = {}): UseChatResult {
         setLoading(false);
       }
     },
-    [conversationId, loading, runId],
+    [conversationId, loading, runId, onLocalIntentMatch],
   );
 
   const clearError = useCallback(() => setError(null), []);
 
-  return { messages, loading, error, conversationId, sendMessage, clearError };
+  return {
+    messages,
+    loading,
+    error,
+    conversationId,
+    sendMessage,
+    clearError,
+    injectRegalicaMessage,
+  };
 }

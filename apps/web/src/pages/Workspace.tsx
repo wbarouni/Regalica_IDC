@@ -359,6 +359,14 @@ export default function Workspace() {
       ? { code: run.error_code, message: run.error_code }
       : null;
   const displayedEngineError = engineError ?? persistedEngineError;
+  // Point 2 — local intent matcher ref. Invoked synchronously inside
+  // useChat.sendMessage BEFORE the LLM round-trip. Returns true to
+  // short-circuit (the caller — Workspace — has handled the intent
+  // locally, e.g. by calling handleLaunchRun for a chat-driven
+  // launch_validation phrase). The ref pattern decouples the matcher's
+  // body from the useChat setup order, since handleLaunchRun depends
+  // on later state (pendingUpload, conversationId, startRun).
+  const localLaunchMatcherRef = useRef<((text: string) => boolean) | null>(null);
   const {
     messages,
     loading: chatLoading,
@@ -368,7 +376,11 @@ export default function Workspace() {
     conversationId,
     // Tranche 0 E2 — pass the active run id so chatbot-py routes
     // launch_validation to t1_runner with current_run_id non-null.
-  } = useChat({ runId: currentRunId });
+    injectRegalicaMessage,
+  } = useChat({
+    runId: currentRunId,
+    onLocalIntentMatch: (text) => localLaunchMatcherRef.current?.(text) === true,
+  });
 
   // C — top severe fail for the auto-mounted InvestigationArtefact.
   // Fetched in parallel with the rest of the workspace, mounted only
@@ -499,6 +511,35 @@ export default function Workspace() {
     upload.reset();
     startRun.reset();
   }, [upload, startRun]);
+
+  // Point 2 — populate the local matcher ref now that handleLaunchRun
+  // and pendingUpload are in scope. The ref is invoked synchronously
+  // inside useChat.sendMessage BEFORE the LLM round-trip; on a regex
+  // match (FR/EN/AR launch verbs), if a pendingUpload is staged, the
+  // launch button is fired imperatively, a Regalica acknowledgement
+  // is injected into the thread via injectRegalicaMessage, and the
+  // network call is skipped.
+  //
+  // Without a pendingUpload (no XML staged), the matcher returns
+  // false and the message routes through the normal chatbot-py
+  // path — the launch_validation intent there still works for an
+  // already-running validation_runs row (re-evaluating the same XMLs).
+  useEffect(() => {
+    localLaunchMatcherRef.current = (text) => {
+      if (pendingUpload === null) return false;
+      const re =
+        /\b(lance|d[eé]marre|valide|run|start|launch|trigger|kick[\s-]?off|ابدأ|شغّل|أطلق)\b/i;
+      if (!re.test(text)) return false;
+      handleLaunchRun();
+      injectRegalicaMessage(
+        t('autoLaunch.acknowledgement', {
+          defaultValue:
+            'Très bien. Je lance la validation BCT T1 sur le fichier que vous venez de charger.',
+        }),
+      );
+      return true;
+    };
+  }, [pendingUpload, handleLaunchRun, injectRegalicaMessage, t]);
 
   if (
     runError === 'MISSING_TENANT_ID' ||

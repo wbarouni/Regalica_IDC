@@ -207,6 +207,9 @@
   "autoZoom": {
     "triggerMessage": "Zoom on this FAIL: rule {{ax}}/{{num}} and explain the root cause."
   },
+  "autoLaunch": {
+    "acknowledgement": "Understood. Launching the BCT T1 validation on the file you just uploaded."
+  },
   "investigation": {
     "title": "Investigation · Rule {{ax}}/{{num}}",
     "subtitle": "RDG decomposition · expected (RHS) vs computed (LHS)",
