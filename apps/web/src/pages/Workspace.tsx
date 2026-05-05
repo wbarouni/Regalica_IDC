@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import { useNavigate } from 'react-router-dom';
@@ -376,6 +376,49 @@ export default function Workspace() {
   // returned (the route filter=fail returns severe + rounding; we
   // gate on severity inside the JSX below to keep the hook simple).
   const topFail = useTopSevereFail(currentRunId);
+
+  // D — auto-zoom: when the run is completed AND a top severe fail
+  // is loaded, fire ONCE per runId a synthetic chat turn that lets
+  // Regalica explain the fail through the canonical zoom intent.
+  // The orchestrator routes the message via `regalica/router` →
+  // `zoom` intent → [investigator, citation] specialists → aggregator
+  // `aggregate_zoom_fail` → markdown response that flows into the
+  // existing ChatThread render path.
+  //
+  // Idempotency layered:
+  //   1. `autoZoomFiredFor` ref guards the in-session re-render path
+  //      (a state change on currentRunId stays put unless the run
+  //      itself rotates).
+  //   2. `messages.length === 0` guard prevents a re-fire on a full
+  //      page reload: useChat re-mounts with an empty thread, but if
+  //      the user already scrolled or clicked anything they'll have
+  //      a turn in the chat — the gate then holds. After reload, with
+  //      thread empty, the auto-zoom DOES re-fire — accepted because
+  //      the conversation history is per-session in chatbot-py and
+  //      reload starts a new session anyway. Phase 4 may persist
+  //      chat threads via /conversations and tighten this further.
+  //
+  // Failure mode: the chat layer already swallows Gemini exceptions
+  // into ChatMessage error state without crashing the UI; D inherits
+  // that resilience at no extra cost.
+  const autoZoomFiredFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (currentRunId === null) return;
+    if (run?.status !== 'completed') return;
+    if (topFail.fail === null || topFail.fail.severity !== 'severe') return;
+    if (autoZoomFiredFor.current === currentRunId) return;
+    if (messages.length > 0) return;
+    autoZoomFiredFor.current = currentRunId;
+    const ax = topFail.fail.ax_term;
+    const num = topFail.fail.num_regle;
+    void sendMessage(
+      t('autoZoom.triggerMessage', {
+        ax,
+        num,
+        defaultValue: 'Regarde ce FAIL : règle {{ax}}/{{num}} et explique la cause racine.',
+      }),
+    );
+  }, [currentRunId, run?.status, topFail.fail, sendMessage, t, messages.length]);
 
   const upload = useUpload();
   const startRun = useStartRun();

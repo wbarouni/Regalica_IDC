@@ -204,6 +204,9 @@
       }
     }
   },
+  "autoZoom": {
+    "triggerMessage": "Regarde ce FAIL : règle {{ax}}/{{num}} et explique la cause racine."
+  },
   "investigation": {
     "title": "Investigation · Règle {{ax}}/{{num}}",
     "subtitle": "Décomposition RDG · valeur attendue (RHS) vs valeur calculée (LHS)",

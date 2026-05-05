@@ -204,6 +204,9 @@
       }
     }
   },
+  "autoZoom": {
+    "triggerMessage": "Zoom on this FAIL: rule {{ax}}/{{num}} and explain the root cause."
+  },
   "investigation": {
     "title": "Investigation · Rule {{ax}}/{{num}}",
     "subtitle": "RDG decomposition · expected (RHS) vs computed (LHS)",
