@@ -87,6 +87,13 @@ class EvaluateRunTotals(TypedDict):
 
 
 class MappedVerdict(TypedDict):
+    # Tranche 1.2 follow-up: rule_id is the rules.id UUID. Forwarded by
+    # the Node engine since commit 16d3968 (apps/api/src/routes/engine.ts:182)
+    # so chatbot-py can inject it into the /finalize fail_items payload to
+    # satisfy the FK validation_fail_details.rule_id → rules.id. Aligning
+    # this TypedDict with the live wire shape prevents a future restrictive
+    # consumer from accidentally dropping the field.
+    rule_id: str
     ax_term: str
     num_regle: int
     status: str
