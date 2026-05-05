@@ -6,7 +6,8 @@
 - **Branche** : `phase-0/brute-refactoring`
 - **Commits** : `3a6ce64` (L1), `d38aeb4` (L2), `7ebc00a` (L3),
   `279187e` (L4), `e7104a3` (L5), `f2a0b88` (L6), `d251b68` (L7),
-  ce commit (L8 + L9), un commit suivant (L10).
+  `1f0e7b1` (L7 fix : injection MigratorStatusProbe pour les
+  jest tests CI), `20a7473` (L8 + L9), `e57aa22` (L10).
 
 ## Contexte
 
@@ -193,15 +194,25 @@ historique comme obsolète. Évite la divergence entre la doc agent
 
 Ce document.
 
-### L10 — Test ultime + CI job (commit suivant)
+### L10 — Test ultime + CI job (commit `e57aa22`)
 
 Job CI `e2e-fresh-machine` ajouté à `.github/workflows/ci.yml` :
-container Linux clean exécute `pnpm install && pnpm setup:dev`
+runner ubuntu-latest clean exécute `pnpm install && pnpm setup:dev`
 en mode `BOOTSTRAP_ENV_NONINTERACTIVE=true` avec
-`GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}`. Ensuite curl
-`/api/health/` doit retourner `in_sync: true` + `tenant_dev_present:
-true` + `rules_active_count > 0`. Le job vérifie la reproductibilité
-sur chaque commit.
+`GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}` (fallback placeholder
+quand le secret est absent — le chemin `/api/health` ne dépend pas
+du LLM). Ensuite curl `/api/health/` doit retourner `status: "ok"`
+
+- `in_sync: true` + `tenant_dev_present: true` + `applied ==
+expected` + `rules_active_count >= 1`. Sur échec, dump des logs
+  postgres/api/chatbot-py puis `docker compose down -v`.
+
+Le job dépend de la chaîne `lint-ts + lint-python + typecheck-ts
+
+- no-residual-debt + forbidden-deps`pour ne pas brûler ~12 min
+de build Docker sur un commit qui aurait déjà cassé le format.`timeout-minutes: 25` couvre le cold cache (~6-8m pour build
+  api+chatbot-py, ~30s pour les 88 migrations, ~10s pour les 5
+  uploads XML). Re-runs à chaud ~12m.
 
 ## Conséquences
 
