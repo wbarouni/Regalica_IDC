@@ -10,6 +10,7 @@ import { RULE_LABEL_PREVIEW_LENGTH } from '../constants/ui';
 import { useCurrentRun } from '../hooks/useCurrentRun';
 import { useDir } from '../hooks/useDir';
 import { useReferentials } from '../hooks/useReferentials';
+import { useRubriques } from '../hooks/useRubriques';
 import { useRules } from '../hooks/useRules';
 import { DEFAULT_PAGE_SIZE } from '../lib/config';
 import { RULE_STATUSES, type RuleStatus } from '../types/api';
@@ -25,9 +26,9 @@ import { RULE_STATUSES, type RuleStatus } from '../types/api';
  * padding) for elements not yet expressed as named primitives.
  */
 
-type Rayon = 'rules' | 'referentials' | 'circulaires' | 'filings';
+type Rayon = 'rules' | 'rubriques' | 'referentials' | 'circulaires' | 'filings';
 
-const RAYONS: readonly Rayon[] = ['rules', 'referentials', 'circulaires', 'filings'];
+const RAYONS: readonly Rayon[] = ['rules', 'rubriques', 'referentials', 'circulaires', 'filings'];
 
 function statusPillClass(status: string): string {
   if (status === RULE_STATUSES.ACTIVE) return 'pill pill--pass';
@@ -58,6 +59,16 @@ export default function Library(): JSX.Element {
   const { rules: pendingRules } = useRules({ status: RULE_STATUSES.PENDING_REVIEW });
 
   const { referentials, loading: refLoading } = useReferentials();
+
+  const {
+    rubriques,
+    loading: rubriquesLoading,
+    total: rubriquesTotal,
+    page: rubriquesPage,
+    setPage: setRubriquesPage,
+  } = useRubriques({ annexeCode: axTermFilter });
+
+  const rubriquesTotalPages = Math.max(1, Math.ceil(rubriquesTotal / DEFAULT_PAGE_SIZE));
 
   const totalPages = Math.max(1, Math.ceil(rulesTotal / DEFAULT_PAGE_SIZE));
 
@@ -94,7 +105,7 @@ export default function Library(): JSX.Element {
         </nav>
 
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-          {activeRayon === 'rules' && (
+          {(activeRayon === 'rules' || activeRayon === 'rubriques') && (
             <aside
               style={{
                 width: '180px',
@@ -321,6 +332,117 @@ export default function Library(): JSX.Element {
                           className="btn btn--ghost"
                           disabled={page >= totalPages}
                           onClick={() => setPage(page + 1)}
+                        >
+                          {'>'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeRayon === 'rubriques' && (
+              <div>
+                {rubriquesLoading && (
+                  <div
+                    style={{
+                      padding: '32px',
+                      textAlign: 'center',
+                      color: 'var(--stone-500)',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '12px',
+                    }}
+                  >
+                    {t('loading')}
+                  </div>
+                )}
+                {!rubriquesLoading && (
+                  <div className="ledger-wrap">
+                    <table className="ledger">
+                      <thead>
+                        <tr>
+                          <th>{t('lib.rubriques.colCode')}</th>
+                          <th>{t('lib.rubriques.colLabel')}</th>
+                          <th>{t('lib.rubriques.colAnnexe')}</th>
+                          <th>{t('lib.rubriques.colParent')}</th>
+                          <th className="num">{t('lib.rubriques.colLevel')}</th>
+                          <th>{t('lib.rubriques.colSource')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rubriques.length === 0 && (
+                          <tr>
+                            <td
+                              colSpan={6}
+                              style={{
+                                textAlign: 'center',
+                                padding: '24px',
+                                color: 'var(--stone-500)',
+                              }}
+                            >
+                              {t('lib.rubriques.empty')}
+                            </td>
+                          </tr>
+                        )}
+                        {rubriques.map((r) => (
+                          <tr key={r.id}>
+                            <td>
+                              <span className="mono">{r.code}</span>
+                            </td>
+                            <td style={{ fontSize: '12px', color: 'var(--stone-800)' }}>
+                              {r.label ?? '—'}
+                            </td>
+                            <td>
+                              <span className="mono" style={{ fontSize: '11px' }}>
+                                {r.annexe_code ?? '—'}
+                              </span>
+                            </td>
+                            <td>
+                              <span className="mono" style={{ fontSize: '11px' }}>
+                                {r.parent_rubrique_code ?? '—'}
+                              </span>
+                            </td>
+                            <td className="num">
+                              <span className="mono">{r.level ?? '—'}</span>
+                            </td>
+                            <td style={{ fontSize: '11px', color: 'var(--stone-700)' }}>
+                              {r.source_circulaire !== null
+                                ? `${r.source_circulaire}${r.source_article !== null ? ` §${r.source_article}` : ''}`
+                                : '—'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+
+                    {rubriquesTotal > DEFAULT_PAGE_SIZE && (
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: '8px',
+                          padding: '12px 24px',
+                          justifyContent: 'flex-end',
+                          alignItems: 'center',
+                          borderTop: '1px solid var(--stone-100)',
+                        }}
+                      >
+                        <button
+                          type="button"
+                          className="btn btn--ghost"
+                          disabled={rubriquesPage === 1}
+                          onClick={() => setRubriquesPage(Math.max(1, rubriquesPage - 1))}
+                        >
+                          {'<'}
+                        </button>
+                        <span style={{ fontSize: '12px', color: 'var(--stone-700)' }}>
+                          {rubriquesPage} / {rubriquesTotalPages}
+                        </span>
+                        <button
+                          type="button"
+                          className="btn btn--ghost"
+                          disabled={rubriquesPage >= rubriquesTotalPages}
+                          onClick={() => setRubriquesPage(rubriquesPage + 1)}
                         >
                           {'>'}
                         </button>

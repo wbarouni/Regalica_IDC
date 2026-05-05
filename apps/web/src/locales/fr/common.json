@@ -99,9 +99,19 @@
     "colUpdatedAt": "Mis à jour",
     "rayons": {
       "rules": "Règles RDG",
+      "rubriques": "Rubriques",
       "referentials": "Référentiels",
       "circulaires": "Circulaires",
       "filings": "Filings archivés"
+    },
+    "rubriques": {
+      "empty": "Aucune rubrique trouvée.",
+      "colCode": "Code",
+      "colLabel": "Libellé",
+      "colAnnexe": "Annexe",
+      "colParent": "Parent",
+      "colLevel": "Niveau",
+      "colSource": "Source"
     },
     "domains": {
       "label": "Domaines BCT",

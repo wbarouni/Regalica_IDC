@@ -99,9 +99,19 @@
     "colUpdatedAt": "Updated",
     "rayons": {
       "rules": "RDG rules",
+      "rubriques": "Items",
       "referentials": "Referentials",
       "circulaires": "Circulars",
       "filings": "Archived filings"
+    },
+    "rubriques": {
+      "empty": "No item found.",
+      "colCode": "Code",
+      "colLabel": "Label",
+      "colAnnexe": "Annex",
+      "colParent": "Parent",
+      "colLevel": "Level",
+      "colSource": "Source"
     },
     "domains": {
       "label": "BCT domains",

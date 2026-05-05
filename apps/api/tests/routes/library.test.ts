@@ -56,6 +56,22 @@ describeIfDb('routes — library', () => {
                $2, 'active', $3, NOW(), false)`,
       [ctx.tenantId, ctx.userId, validatorId],
     );
+
+    // Three rubriques: one under RSM630, one under RCM00, one without
+    // annexe_code, all 'active' so they show up in the _active view.
+    await ctx.testPool.query(
+      `INSERT INTO referentials_rubriques
+         (tenant_id, code, label, annexe_code, level, valid_from,
+          author_user_id, status, validator_user_id, validated_at)
+       VALUES
+         ($1, 'AC010000000000', 'Caisse', 'RCM00', 1, '2024-01-01',
+          $2, 'active', $3, NOW()),
+         ($1, 'PR010000000000', 'Provisions', 'RSM630', 2, '2024-01-01',
+          $2, 'active', $3, NOW()),
+         ($1, 'XX999999999999', 'Sans annexe', NULL, NULL, '2024-01-01',
+          $2, 'active', $3, NOW())`,
+      [ctx.tenantId, ctx.userId, validatorId],
+    );
   }, 120000);
 
   afterAll(async () => {
@@ -111,6 +127,43 @@ describeIfDb('routes — library', () => {
       .get(`/api/tenants/${ctx.tenantId}/rules/not-a-uuid`)
       .set('X-User-Id', ctx.userId);
     expect(res.status).toBe(400);
+  });
+
+  it('lists active rubriques paginated', async () => {
+    const res = await request(ctx.app)
+      .get(`/api/tenants/${ctx.tenantId}/rubriques?limit=10`)
+      .set('X-User-Id', ctx.userId);
+    expect(res.status).toBe(200);
+    expect(res.body.meta.total).toBeGreaterThanOrEqual(3);
+    expect(res.body.data.length).toBeGreaterThanOrEqual(3);
+    expect(
+      res.body.data.every((r: { code: string; label: string }) => typeof r.code === 'string'),
+    ).toBe(true);
+  });
+
+  it('filters rubriques by annexe_code', async () => {
+    const res = await request(ctx.app)
+      .get(`/api/tenants/${ctx.tenantId}/rubriques?annexe_code=RCM00`)
+      .set('X-User-Id', ctx.userId);
+    expect(res.status).toBe(200);
+    expect(res.body.data.length).toBeGreaterThanOrEqual(1);
+    expect(
+      res.body.data.every((r: { annexe_code: string | null }) => r.annexe_code === 'RCM00'),
+    ).toBe(true);
+  });
+
+  it('filters rubriques by q (ILIKE on code or label)', async () => {
+    const res = await request(ctx.app)
+      .get(`/api/tenants/${ctx.tenantId}/rubriques?q=Provisions`)
+      .set('X-User-Id', ctx.userId);
+    expect(res.status).toBe(200);
+    expect(res.body.data.length).toBeGreaterThanOrEqual(1);
+    expect(
+      res.body.data.some(
+        (r: { code: string; label: string | null }) =>
+          (r.label ?? '').includes('Provisions') || r.code.includes('Provisions'),
+      ),
+    ).toBe(true);
   });
 
   it('aggregates referentials across the 14 active views', async () => {

@@ -40,6 +40,8 @@ const REFERENTIAL_VIEWS: readonly { code: string; view: string }[] = [
  *   GET /rules                 -> rules_active, paginated, optional ax_term
  *   GET /rules/pending-review  -> rules WHERE status='pending_review'
  *   GET /rules/:ruleId         -> rules_active row + terms JSONB
+ *   GET /rubriques             -> referentials_rubriques_active rows, paginated,
+ *                                 optional annexe_code + q
  *   GET /referentials          -> 14-view UNION ALL aggregate
  */
 export function libraryRouter(pool: Pool): IRouter {
@@ -163,6 +165,72 @@ export function libraryRouter(pool: Pool): IRouter {
         const cnt = await client.query(
           `SELECT COUNT(*)::int AS total
              FROM ${fromClause}
+            WHERE ${conditions.join(' AND ')}`,
+          args.slice(0, args.length - 2),
+        );
+        return { rows: rows.rows, total: (cnt.rows[0] as { total: number }).total };
+      });
+      res.json({
+        data: data.rows,
+        meta: {
+          ts: new Date().toISOString(),
+          version: '1',
+          page,
+          limit,
+          total: data.total,
+        },
+      });
+    } catch (err) {
+      handleDbError(err, res);
+    }
+  });
+
+  router.get('/rubriques', async (req: Request, res: Response) => {
+    const tenantId = req.params['tenantId'] as string;
+    const userId = res.locals['userId'] as string;
+    const annexeCode =
+      typeof req.query['annexe_code'] === 'string' && req.query['annexe_code'].length > 0
+        ? req.query['annexe_code']
+        : null;
+    const q =
+      typeof req.query['q'] === 'string' && req.query['q'].length > 0 ? req.query['q'] : null;
+    const pageStr = typeof req.query['page'] === 'string' ? req.query['page'] : '1';
+    const limitStr = typeof req.query['limit'] === 'string' ? req.query['limit'] : '50';
+    const page = Math.max(1, Number.parseInt(pageStr, 10) || 1);
+    const limit = Math.min(200, Math.max(1, Number.parseInt(limitStr, 10) || 50));
+    const offset = (page - 1) * limit;
+
+    const conditions: string[] = ['tenant_id = $1'];
+    const args: (string | number)[] = [tenantId];
+    if (annexeCode !== null) {
+      args.push(annexeCode);
+      conditions.push(`annexe_code = $${args.length}`);
+    }
+    if (q !== null) {
+      args.push(`%${q}%`);
+      const idx = args.length;
+      conditions.push(`(code ILIKE $${idx} OR label ILIKE $${idx})`);
+    }
+    args.push(limit);
+    args.push(offset);
+    const limitOffsetSql = `LIMIT $${args.length - 1} OFFSET $${args.length}`;
+
+    try {
+      const data = await withConnection(pool, { tenantId, userId }, async (client) => {
+        const rows = await client.query(
+          `SELECT id, code, label, annexe_code, parent_rubrique_code,
+                  is_aggregate, is_detail, level,
+                  source_circulaire, source_article, source_page,
+                  valid_from
+             FROM referentials_rubriques_active
+            WHERE ${conditions.join(' AND ')}
+            ORDER BY annexe_code NULLS LAST, code
+            ${limitOffsetSql}`,
+          args,
+        );
+        const cnt = await client.query(
+          `SELECT COUNT(*)::int AS total
+             FROM referentials_rubriques_active
             WHERE ${conditions.join(' AND ')}`,
           args.slice(0, args.length - 2),
         );

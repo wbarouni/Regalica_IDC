@@ -99,9 +99,19 @@
     "colUpdatedAt": "تاريخ التحديث",
     "rayons": {
       "rules": "قواعد RDG",
+      "rubriques": "البنود",
       "referentials": "المراجع",
       "circulaires": "المنشورات",
       "filings": "التصريحات المؤرشفة"
+    },
+    "rubriques": {
+      "empty": "لم يتم العثور على بنود.",
+      "colCode": "الرمز",
+      "colLabel": "التسمية",
+      "colAnnexe": "الملحق",
+      "colParent": "الأصل",
+      "colLevel": "المستوى",
+      "colSource": "المصدر"
     },
     "domains": {
       "label": "مجالات BCT",

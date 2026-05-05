@@ -113,6 +113,21 @@ export interface Referential {
   last_updated_at: string | null;
 }
 
+export interface Rubrique {
+  id: string;
+  code: string;
+  label: string | null;
+  annexe_code: string | null;
+  parent_rubrique_code: string | null;
+  is_aggregate: boolean;
+  is_detail: boolean;
+  level: number | null;
+  source_circulaire: string | null;
+  source_article: string | null;
+  source_page: number | null;
+  valid_from: string;
+}
+
 export interface Filing {
   id: string;
   code_annexe: string;
