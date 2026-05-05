@@ -61,6 +61,16 @@ def _seed_intent_grammar_cache() -> Iterator[None]:
                 specialist_ids=("investigator", "citation"),
                 ordinal=1,
             ),
+            # Migration 078 — self_introduction routes to a static_response
+            # aggregator (no specialist). Mirror in the test grammar so
+            # the orchestrator can dispatch the new intent during specs.
+            "self_introduction": ig.IntentSpec(
+                intent_type="self_introduction",
+                aggregator_agent_type="regalica",
+                aggregator_function_name="aggregate_self_introduction",
+                specialist_ids=(),
+                ordinal=11,
+            ),
         },
         bearers={
             "investigator": ig.SpecialistBearer(
@@ -110,6 +120,20 @@ def _prompt_row(template: str = "[TEMPLATE]") -> dict[str, object]:
         "static_response": None,
         "model_tier": "standard",
     }
+
+
+def _prompt_row_static(static: str, template: str = "[TEMPLATE]") -> dict[str, object]:
+    """Variant of `_prompt_row` that carries a non-empty `static_response`.
+
+    The orchestrator's aggregator step short-circuits the LLM call when
+    `static_response` is set (`is_static_response(meta)` branch in
+    orchestrator.py), surfacing the canned markdown verbatim. Used by
+    the self_introduction (migration 078) and download_report (076)
+    flows.
+    """
+    row = _prompt_row(template)
+    row["static_response"] = static
+    return row
 
 
 @pytest.fixture
@@ -241,6 +265,50 @@ def test_post_chat_message_absorbs_llm_failure_in_general_help_path(
     assert "Erreur LLM" in body["response_markdown"]
     assert "rate limited" in body["response_markdown"]
     assert body["agents_called"] == ["regalica/aggregate_general_help"]
+
+
+def test_post_chat_message_dispatches_self_introduction_to_static_response(
+    client: TestClient, mock_pool: MagicMock, mock_llm: MagicMock
+) -> None:
+    """Migration 078 — self_introduction → static_response, no LLM aggregator call.
+
+    When the router classifies the message as `self_introduction`, the
+    orchestrator loads `regalica/aggregate_self_introduction` whose
+    prompt row carries a non-empty `static_response`. The orchestrator
+    surfaces the canned markdown verbatim and SKIPS the aggregator LLM
+    call entirely (only the router LLM call burns tokens). The end-to-
+    end response_markdown is bit-identical to the static_response.
+    """
+    canned_markdown = (
+        "**Je suis Regalica**, assistante de conformité IA pour REGFlow. "
+        "Je couvre les phases T0/T1/T2/T3 de validation BCT."
+    )
+    mock_pool.fetchrow.side_effect = [
+        _prompt_row("[REGALICA_ROUTER_V1]"),  # router prompt
+        _prompt_row_static(canned_markdown, "[REGALICA_AGGREGATE_SELF_INTRODUCTION_V1]"),
+        {"id": "00000000-0000-0000-0000-000000000111"},  # _ensure_conversation
+        {"next_seq": 1},  # _persist_message SELECT MAX
+        {"id": "00000000-0000-0000-0000-000000000222"},  # _persist_message INSERT
+    ]
+    # Only the router LLM call should fire — the aggregator step is
+    # short-circuited by static_response. Provide a single response;
+    # if the orchestrator tries to call complete a second time the test
+    # fails with StopIteration.
+    mock_llm.complete.side_effect = [
+        _llm_response(json.dumps({"intent": "self_introduction", "confidence": 0.95})),
+    ]
+
+    payload = _valid_request_payload()
+    payload["message"] = "Qui es-tu ?"
+    response = client.post("/chat/message", json=payload)
+
+    assert response.status_code == status.HTTP_200_OK
+    body = response.json()
+    assert body["response_markdown"] == canned_markdown
+    assert body["agents_called"] == ["regalica/aggregate_self_introduction"]
+    # The router consumed exactly 1 LLM round-trip; the aggregator
+    # consumed 0. Token totals reflect the router-only spend.
+    assert mock_llm.complete.call_count == 1
 
 
 def test_post_chat_message_503_when_pool_missing(
