@@ -279,6 +279,72 @@ jobs:
         run: pnpm test
 
   # =========================================================================
+  # S1 L10 — fresh-machine end-to-end
+  # =========================================================================
+  # The contract sealed by the S1 chantier: a fresh ubuntu-latest runner,
+  # `pnpm install && pnpm setup:dev` (with BOOTSTRAP_ENV_NONINTERACTIVE
+  # + GEMINI_API_KEY exported), and the `/api/health` payload comes back
+  # with applied=expected and tenant_dev_present=true. This job is the
+  # binary truth-test for the "ça marche partout avec une seule
+  # commande" promise documented in docs/DEV-SETUP.md and ADR 0006.
+  e2e-fresh-machine:
+    name: E2E fresh-machine (pnpm setup:dev + /api/health)
+    runs-on: ubuntu-latest
+    needs: [lint-ts, lint-python, typecheck-ts, no-residual-debt, forbidden-deps]
+    # 25 minutes covers: pnpm install (1m) + Docker image builds for
+    # api+chatbot-py (~6-8m cold) + 88 migrations apply (~30s) + 5
+    # XML uploads (~10s) + final health curl. Re-runs on a warm GHA
+    # cache complete in ~12m.
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - name: pnpm install
+        run: pnpm install
+      - name: Run pnpm setup:dev (non-interactive)
+        env:
+          BOOTSTRAP_ENV_NONINTERACTIVE: 'true'
+          # Gemini key is sourced from the GitHub secret of the same
+          # name. When unset (forks, first-time CI before the secret
+          # is provisioned) we fall back to a placeholder; chatbot-py
+          # may then refuse to call the LLM, but the health probe path
+          # (api + postgres + migrations) is unaffected.
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || 'ci-placeholder-not-a-real-key' }}
+        run: pnpm setup:dev
+      - name: Assert /api/health payload (in_sync + tenant + rules)
+        run: |
+          set -euo pipefail
+          payload=$(curl --silent --show-error --fail-with-body \
+            --max-time 15 http://localhost:3000/api/health/)
+          echo "$payload" | jq .
+          status=$(echo "$payload" | jq -r '.status')
+          in_sync=$(echo "$payload" | jq -r '.in_sync')
+          tenant=$(echo "$payload" | jq -r '.tenant_dev_present')
+          rules=$(echo "$payload" | jq -r '.rules_active_count')
+          applied=$(echo "$payload" | jq -r '.applied_migrations_count')
+          expected=$(echo "$payload" | jq -r '.expected_migrations_count')
+          if [ "$status" != "ok" ]; then echo "FAIL: status=$status (want ok)"; exit 1; fi
+          if [ "$in_sync" != "true" ]; then echo "FAIL: in_sync=$in_sync (want true)"; exit 1; fi
+          if [ "$tenant" != "true" ]; then echo "FAIL: tenant_dev_present=$tenant (want true)"; exit 1; fi
+          if [ "$applied" != "$expected" ]; then echo "FAIL: applied=$applied != expected=$expected"; exit 1; fi
+          if [ "$rules" -lt 1 ]; then echo "FAIL: rules_active_count=$rules (want >= 1)"; exit 1; fi
+          echo "OK: applied=$applied expected=$expected rules=$rules tenant=$tenant"
+      - name: Dump container logs on failure
+        if: failure()
+        run: |
+          docker compose ps || true
+          docker compose logs --no-color --tail=200 postgres api chatbot-py || true
+      - name: Compose down -v (cleanup)
+        if: always()
+        run: docker compose down -v || true
+
+  # =========================================================================
   # Docker build smoke (one job per image, parallel)
   # =========================================================================
   build-images:
