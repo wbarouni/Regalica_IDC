@@ -10,6 +10,7 @@ import { Dock } from '../components/Dock';
 import { EngineErrorArtefact } from '../components/EngineErrorArtefact';
 import { FailsTable } from '../components/FailsTable';
 import { LaunchErrorArtefact } from '../components/LaunchErrorArtefact';
+import { InvestigationArtefact } from '../components/InvestigationArtefact';
 import { ProgressBar } from '../components/ProgressBar';
 import { RegalicaRunSpeech } from '../components/RegalicaRunSpeech';
 import { SuggestionChips } from '../components/SuggestionChips';
@@ -22,6 +23,7 @@ import { useEventSource } from '../hooks/useEventSource';
 import { useNotifications } from '../hooks/useNotifications';
 import { useRunSummary } from '../hooks/useRunSummary';
 import { useStartRun } from '../hooks/useStartRun';
+import { useTopSevereFail } from '../hooks/useTopSevereFail';
 import { useUpload, type UploadDto } from '../hooks/useUpload';
 import type { Notification, RunAgentStep, ValidationRun } from '../types/api';
 import { groupByDay } from '../utils/groupByDay';
@@ -368,6 +370,13 @@ export default function Workspace() {
     // launch_validation to t1_runner with current_run_id non-null.
   } = useChat({ runId: currentRunId });
 
+  // C — top severe fail for the auto-mounted InvestigationArtefact.
+  // Fetched in parallel with the rest of the workspace, mounted only
+  // when summary.run.status === 'completed' AND a severe fail is
+  // returned (the route filter=fail returns severe + rounding; we
+  // gate on severity inside the JSX below to keep the hook simple).
+  const topFail = useTopSevereFail(currentRunId);
+
   const upload = useUpload();
   const startRun = useStartRun();
   // Pending upload: the user picked a file but hasn't yet pressed
@@ -548,6 +557,17 @@ export default function Workspace() {
                    rows persisted by /finalize so the user actually sees
                    the verdict beyond the KPI grid. */
                 <FailsTable runId={currentRunId} filter="all" />
+              )}
+            {summary !== null &&
+              summary.run.status === 'completed' &&
+              topFail.fail !== null &&
+              topFail.fail.severity === 'severe' && (
+                /* C — auto-mount the Investigation block on the top
+                   severe fail. Lights up the orphan .decomp / .calc-block
+                   / .inspector primitives and gives the user the LHS/RHS
+                   decomposition narrative without requiring a chat round
+                   trip. */
+                <InvestigationArtefact fail={topFail.fail} />
               )}
             {summary !== null && summary.run.status === 'completed' && (
               <T3LockBanner totalFailSevere={summary.run.total_fail_severe ?? 0} />

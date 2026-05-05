@@ -204,6 +204,47 @@
       }
     }
   },
+  "investigation": {
+    "title": "Investigation · Règle {{ax}}/{{num}}",
+    "subtitle": "Décomposition RDG · valeur attendue (RHS) vs valeur calculée (LHS)",
+    "decompositionLabel": "Décomposition terme à terme",
+    "calcBlockLabel": "Bloc de calcul",
+    "col": {
+      "rang": "Rang",
+      "role": "Rôle",
+      "address": "Adresse",
+      "context": "Contexte",
+      "value": "Valeur",
+      "cite": "Source"
+    },
+    "role": {
+      "rhs": "RHS",
+      "lhs": "LHS"
+    },
+    "context": {
+      "expected": "Valeur attendue",
+      "computed": "Somme calculée XML"
+    },
+    "calc": {
+      "comment": "// règle"
+    },
+    "inspector": {
+      "title": "Adresse RDG",
+      "rule": "Règle {{ax}}/{{num}}",
+      "severityLabel": "Sévérité",
+      "operatorLabel": "Opérateur",
+      "gapLabel": "Écart final",
+      "severity": {
+        "severe": "Sévère",
+        "rounding": "Arrondi"
+      }
+    },
+    "confidence": {
+      "low": "Hypothèse forte · cause à corriger",
+      "medium": "Écart d’arrondi · arbitrage opérateur",
+      "high": "Cohérence confirmée"
+    }
+  },
   "fails": {
     "title": "FAILs",
     "loading": "Chargement des FAILs…",

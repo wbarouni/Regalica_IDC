@@ -204,6 +204,47 @@
       }
     }
   },
+  "investigation": {
+    "title": "Investigation · Rule {{ax}}/{{num}}",
+    "subtitle": "RDG decomposition · expected (RHS) vs computed (LHS)",
+    "decompositionLabel": "Term-by-term decomposition",
+    "calcBlockLabel": "Calculation block",
+    "col": {
+      "rang": "Rank",
+      "role": "Role",
+      "address": "Address",
+      "context": "Context",
+      "value": "Value",
+      "cite": "Source"
+    },
+    "role": {
+      "rhs": "RHS",
+      "lhs": "LHS"
+    },
+    "context": {
+      "expected": "Expected value",
+      "computed": "Computed XML sum"
+    },
+    "calc": {
+      "comment": "// rule"
+    },
+    "inspector": {
+      "title": "RDG address",
+      "rule": "Rule {{ax}}/{{num}}",
+      "severityLabel": "Severity",
+      "operatorLabel": "Operator",
+      "gapLabel": "Final gap",
+      "severity": {
+        "severe": "Severe",
+        "rounding": "Rounding"
+      }
+    },
+    "confidence": {
+      "low": "Strong hypothesis · cause to fix",
+      "medium": "Rounding gap · operator arbitration",
+      "high": "Coherence confirmed"
+    }
+  },
   "fails": {
     "title": "FAILs",
     "loading": "Loading FAILs…",
