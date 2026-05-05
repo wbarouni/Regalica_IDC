@@ -20,6 +20,7 @@ import {
   isPlaceholderSecret,
   generateSecret,
   rewriteDatabaseUrlHost,
+  rewriteDatabaseUrlPassword,
 } from './bootstrap-env.js';
 
 describe('parseEnv', () => {
@@ -164,6 +165,51 @@ describe('rewriteDatabaseUrlHost', () => {
     assert.equal(
       rewriteDatabaseUrlHost('postgresql://u:p@db:5432/postgres?sslmode=require'),
       'postgresql://u:p@db:5432/postgres?sslmode=require',
+    );
+  });
+});
+
+describe('rewriteDatabaseUrlPassword', () => {
+  it('replaces the password segment between user: and @host', () => {
+    assert.equal(
+      rewriteDatabaseUrlPassword(
+        'postgresql://regalica_app:change_me_in_local_env@postgres:5432/regalica',
+        'F1RESHpW=',
+      ),
+      'postgresql://regalica_app:F1RESHpW=@postgres:5432/regalica',
+    );
+  });
+
+  it('preserves the rest of the URL (host, port, path, query)', () => {
+    assert.equal(
+      rewriteDatabaseUrlPassword(
+        'postgresql://u:old@db.internal:6543/regalica?sslmode=require',
+        'NEW',
+      ),
+      'postgresql://u:NEW@db.internal:6543/regalica?sslmode=require',
+    );
+  });
+
+  it('handles passwords containing special characters in the original URL', () => {
+    // The producer URL-encodes them, but our regex must still match.
+    assert.equal(
+      rewriteDatabaseUrlPassword('postgresql://u:abc%40123%2F%3D@host:5432/db', 'plain'),
+      'postgresql://u:plain@host:5432/db',
+    );
+  });
+
+  it('returns the URL unchanged when it does not match the userinfo shape', () => {
+    // Missing password segment.
+    assert.equal(
+      rewriteDatabaseUrlPassword('postgresql://host:5432/db', 'NEW'),
+      'postgresql://host:5432/db',
+    );
+  });
+
+  it('only replaces the userinfo password, not later occurrences in the path', () => {
+    assert.equal(
+      rewriteDatabaseUrlPassword('postgresql://u:p@h:5432/db?password=p', 'NEW'),
+      'postgresql://u:NEW@h:5432/db?password=p',
     );
   });
 });

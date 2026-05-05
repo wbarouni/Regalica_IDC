@@ -271,26 +271,58 @@ async function syncJwtSecret(targets: readonly EnvTarget[], log: Logger): Promis
   return canonical;
 }
 
-async function syncPostgresPassword(target: EnvTarget, log: Logger): Promise<void> {
-  const lines = await readEnv(target.envPath);
-  const current = getEnvValue(lines, 'POSTGRES_PASSWORD');
+/**
+ * Generate a fresh POSTGRES_PASSWORD on `root` if its value is still
+ * a placeholder, then propagate that exact value into the DATABASE_URL
+ * password segment of every target .env that declares the key. This
+ * keeps the postgres container init password (read from root .env by
+ * docker compose) in sync with the credentials embedded in the
+ * host-side DSNs (apps/api/.env, apps/chatbot-py/.env). The S1 L10
+ * e2e-fresh-machine CI run exposed the failure mode of NOT doing this:
+ * postgres init'd with the fresh password while the migrate CLI used
+ * the placeholder, so authentication failed for `regalica_app`.
+ *
+ * Idempotent: when root's POSTGRES_PASSWORD is already non-placeholder
+ * (re-run on a populated machine), the existing value is reused as
+ * the canonical password and propagated to the other targets so any
+ * drift is corrected without touching the postgres data dir.
+ */
+async function syncPostgresPasswordAcrossTargets(
+  targets: readonly EnvTarget[],
+  log: Logger,
+): Promise<void> {
+  const root = targets.find((t) => t.label === 'root');
+  if (root === undefined) {
+    return;
+  }
+  const rootLines = await readEnv(root.envPath);
+  const current = getEnvValue(rootLines, 'POSTGRES_PASSWORD');
   if (current === null) {
     return;
   }
-  if (!isPlaceholderSecret(current)) {
-    return;
+  let canonical: string;
+  if (isPlaceholderSecret(current)) {
+    canonical = generateSecret(24);
+    await writeEnv(root.envPath, rootLines, 'POSTGRES_PASSWORD', canonical);
+    log.info(`generated fresh POSTGRES_PASSWORD into ${root.label}`);
+  } else {
+    canonical = current;
   }
-  const fresh = generateSecret(24);
-  await writeEnv(target.envPath, lines, 'POSTGRES_PASSWORD', fresh);
-  log.info(`generated fresh POSTGRES_PASSWORD into ${target.label}`);
-  // Also propagate into DATABASE_URL of the same file if it embeds
-  // the placeholder password literally.
-  const updatedLines = await readEnv(target.envPath);
-  const dbUrl = getEnvValue(updatedLines, 'DATABASE_URL');
-  if (dbUrl !== null && /change_me/i.test(dbUrl)) {
-    const next = dbUrl.replace(/change_me[^@:]*/i, fresh);
-    await writeEnv(target.envPath, updatedLines, 'DATABASE_URL', next);
-    log.info(`updated DATABASE_URL with the fresh POSTGRES_PASSWORD in ${target.label}`);
+  // Propagate into DATABASE_URL of every target that declares it. The
+  // root .env may carry both POSTGRES_PASSWORD and DATABASE_URL; the
+  // others typically only carry DATABASE_URL.
+  for (const target of targets) {
+    const lines = await readEnv(target.envPath);
+    const dbUrl = getEnvValue(lines, 'DATABASE_URL');
+    if (dbUrl === null || dbUrl.trim() === '') {
+      continue;
+    }
+    const next = rewriteDatabaseUrlPassword(dbUrl, canonical);
+    if (next === dbUrl) {
+      continue;
+    }
+    await writeEnv(target.envPath, lines, 'DATABASE_URL', next);
+    log.info(`synced POSTGRES_PASSWORD into DATABASE_URL of ${target.label}`);
   }
 }
 
@@ -337,6 +369,20 @@ async function ensureGeminiApiKey(target: EnvTarget, log: Logger): Promise<void>
  */
 export function rewriteDatabaseUrlHost(dbUrl: string): string {
   return dbUrl.replace(/@postgres([:/])/, '@localhost$1');
+}
+
+/**
+ * Pure helper: replace the password segment of a DATABASE_URL. Returns
+ * the input unchanged when the URL does not match the expected
+ * `scheme://user:password@host…` shape. Anchored on `:` and `@` so
+ * usernames or hostnames containing those characters are not mangled.
+ */
+export function rewriteDatabaseUrlPassword(dbUrl: string, freshPassword: string): string {
+  // Match the userinfo block: scheme://user:password@host. The encoded
+  // password may itself contain URL-safe characters but the literal
+  // `@` and `:` separators are unambiguous because both userinfo and
+  // host segments are URL-encoded by the producer.
+  return dbUrl.replace(/^([a-z][a-z0-9+\-.]*:\/\/[^:/?#@]+):[^@]+@/i, `$1:${freshPassword}@`);
 }
 
 /**
@@ -409,11 +455,12 @@ export async function bootstrap(
   await syncJwtSecret(targets, log);
 
   // 3. Ensure POSTGRES_PASSWORD is non-placeholder in the root .env
-  //    (the only file that owns it — the others read DATABASE_URL).
-  const root = targets.find((t) => t.label === 'root');
-  if (root !== undefined) {
-    await syncPostgresPassword(root, log);
-  }
+  //    AND propagate it into the DATABASE_URL of every target that
+  //    declares one. Without the propagation step, postgres would
+  //    init with the fresh value (read from root .env by docker
+  //    compose) while host-side migrate / pytest still hold the
+  //    placeholder in their per-app .env DSN — failing auth.
+  await syncPostgresPasswordAcrossTargets(targets, log);
 
   // 3b. Normalize the host segment of DATABASE_URL across every .env
   //     that declares it. The baseline .env.example values point at
