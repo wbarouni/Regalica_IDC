@@ -190,6 +190,25 @@
     "title": "الإشعارات",
     "empty": "لا توجد إشعارات غير مقروءة."
   },
+  "fails": {
+    "title": "FAILs",
+    "loading": "جارٍ تحميل الإخفاقات…",
+    "empty": "لا توجد إخفاقات لعرضها.",
+    "error": "فشل تحميل الإخفاقات",
+    "col": {
+      "annexe": "الملحق",
+      "rule": "القاعدة",
+      "severity": "الخطورة",
+      "expected": "المتوقع (RHS)",
+      "computed": "المحسوب (LHS)",
+      "gap": "الفارق",
+      "gapRel": "الفارق %"
+    },
+    "severity": {
+      "severe": "حرج",
+      "rounding": "تقريب"
+    }
+  },
   "dock": {
     "placeholder": "اسأل Regalica…",
     "send": "إرسال",

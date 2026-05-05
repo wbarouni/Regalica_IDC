@@ -65,6 +65,18 @@ export function FailsTable({ runId, filter = 'all' }: FailsTableProps): JSX.Elem
               <th className="px-2 py-1">{t('fails.col.annexe', { defaultValue: 'Annexe' })}</th>
               <th className="px-2 py-1">{t('fails.col.rule', { defaultValue: 'Règle' })}</th>
               <th className="px-2 py-1">{t('fails.col.severity', { defaultValue: 'Sévérité' })}</th>
+              {/* A — RHS = expected_value (la valeur attendue par la règle RDG)
+                  LHS = computed_value (ce que le moteur a calculé sur l'XML).
+                  Ordre RHS|LHS|Gap|Gap% pour rester aligné sur la doctrine RDG
+                  (Right-Hand-Side = côté attestation, Left-Hand-Side = côté
+                  somme/calcul). Banking number format via fr-FR locale: espace
+                  milliers, virgule décimale (CLAUDE.md §11). */}
+              <th className="px-2 py-1 text-right">
+                {t('fails.col.expected', { defaultValue: 'Attendu (RHS)' })}
+              </th>
+              <th className="px-2 py-1 text-right">
+                {t('fails.col.computed', { defaultValue: 'Calculé (LHS)' })}
+              </th>
               <th className="px-2 py-1 text-right">
                 {t('fails.col.gap', { defaultValue: 'Écart' })}
               </th>
@@ -82,7 +94,13 @@ export function FailsTable({ runId, filter = 'all' }: FailsTableProps): JSX.Elem
                   <SeverityBadge severity={f.severity} />
                 </td>
                 <td className="px-2 py-1.5 text-right tabular-nums">
-                  {f.gap_absolute !== null ? Number(f.gap_absolute).toLocaleString('fr-FR') : '—'}
+                  {formatBankingNumber(f.expected_value)}
+                </td>
+                <td className="px-2 py-1.5 text-right tabular-nums">
+                  {formatBankingNumber(f.computed_value)}
+                </td>
+                <td className="px-2 py-1.5 text-right tabular-nums">
+                  {formatBankingNumber(f.gap_absolute)}
                 </td>
                 <td className="px-2 py-1.5 text-right tabular-nums">
                   {f.gap_relative !== null ? `${(Number(f.gap_relative) * 100).toFixed(2)} %` : '—'}
@@ -105,17 +123,42 @@ export function FailsTable({ runId, filter = 'all' }: FailsTableProps): JSX.Elem
   );
 }
 
+/**
+ * A — banking-canonical number formatter.
+ *
+ * fr-FR locale: thin-space thousands + comma decimal (CLAUDE.md §11
+ * "57 985,238"). 3 decimals max so RHS/LHS columns stay aligned with
+ * the engine's Decimal output (38-digit precision is preserved on
+ * server side; UI truncates for readability only). Null → em dash.
+ *
+ * Pure helper — no i18n key needed (locale is fixed to fr-FR for the
+ * banking convention regardless of UI language; the table headers ARE
+ * i18n'd, the cell values stay in canonical bank format per BCT
+ * convention §CC-tech).
+ */
+function formatBankingNumber(value: number | null): string {
+  if (value === null) return '—';
+  return Number(value).toLocaleString('fr-FR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 3,
+  });
+}
+
 function SeverityBadge({ severity }: { severity: 'severe' | 'rounding' }): JSX.Element {
+  const { t } = useTranslation();
+  // A — i18n strict: severity label read through fails.severity.* keys
+  // (parity verified by keys-coverage). The hardcoded FR strings the
+  // pre-A version carried violated CLAUDE.md §11 (no hardcoded user
+  // text); fixed in same commit per the D-Day "fix on path" rule.
   const styles =
     severity === 'severe'
       ? 'bg-vermilion-100 text-vermilion-800 border-vermilion-300'
       : 'bg-ochre-100 text-ochre-800 border-ochre-300';
-  const label = severity === 'severe' ? 'Sévère' : 'Arrondi';
   return (
     <span
       className={`inline-block rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-wider ${styles}`}
     >
-      {label}
+      {t(`fails.severity.${severity}`)}
     </span>
   );
 }

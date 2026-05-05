@@ -190,6 +190,25 @@
     "title": "Notifications",
     "empty": "No unread notifications."
   },
+  "fails": {
+    "title": "FAILs",
+    "loading": "Loading FAILs…",
+    "empty": "No FAIL to display.",
+    "error": "Failed to load FAILs",
+    "col": {
+      "annexe": "Annex",
+      "rule": "Rule",
+      "severity": "Severity",
+      "expected": "Expected (RHS)",
+      "computed": "Computed (LHS)",
+      "gap": "Gap",
+      "gapRel": "Gap %"
+    },
+    "severity": {
+      "severe": "Severe",
+      "rounding": "Rounding"
+    }
+  },
   "dock": {
     "placeholder": "Ask Regalica…",
     "send": "Send",

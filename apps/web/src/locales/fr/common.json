@@ -190,6 +190,25 @@
     "title": "Notifications",
     "empty": "Aucune notification non lue."
   },
+  "fails": {
+    "title": "FAILs",
+    "loading": "Chargement des FAILs…",
+    "empty": "Aucun FAIL à afficher.",
+    "error": "Échec du chargement des FAILs",
+    "col": {
+      "annexe": "Annexe",
+      "rule": "Règle",
+      "severity": "Sévérité",
+      "expected": "Attendu (RHS)",
+      "computed": "Calculé (LHS)",
+      "gap": "Écart",
+      "gapRel": "Écart %"
+    },
+    "severity": {
+      "severe": "Sévère",
+      "rounding": "Arrondi"
+    }
+  },
   "dock": {
     "placeholder": "Posez une question à Regalica…",
     "send": "Envoyer",
