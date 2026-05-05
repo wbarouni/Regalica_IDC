@@ -582,36 +582,32 @@ export default function Workspace() {
               </Artefact>
             )}
             {summary !== null && summary.run.status === 'completed' && (
-              /* B — Regalica conversational frame above the deliverables.
-                 Shapes the run output as Regalica's voice (msg-rega
-                 avatar + speech + ConfidenceBadge) before the rendered
-                 synthesis cards, matching the workspace v5 mockup
-                 narrative pattern. */
-              <RegalicaRunSpeech run={summary.run} />
+              /* Point 1 — Regalica's voice OWNS its artefacts.
+                 The maquette v5 (workspace-v5.html :626-697) places
+                 every <article class="artefact"> as a direct child
+                 of `.msg-rega__body`, so the avatar + intro + badge
+                 visually encapsulate the deliverables. We pass
+                 T1Deliverables, FailsTable and InvestigationArtefact
+                 as children so the RegalicaRunSpeech frame nests
+                 them inside the bubble. */
+              <RegalicaRunSpeech run={summary.run}>
+                <T1Deliverables run={summary.run} annexes={summary.annexes} />
+                {currentRunId !== null &&
+                  (summary.run.total_fail_severe ?? 0) + (summary.run.total_fail_rounding ?? 0) >
+                    0 && (
+                    /* Tranche 0.5 W2.2 — validation_fail_details rows
+                       persisted by /finalize, banking-format columns
+                       surfaced. */
+                    <FailsTable runId={currentRunId} filter="all" />
+                  )}
+                {topFail.fail !== null && topFail.fail.severity === 'severe' && (
+                  /* C — auto-mount the Investigation block on the top
+                     severe fail. Lights up the orphan .decomp /
+                     .calc-block / .inspector primitives. */
+                  <InvestigationArtefact fail={topFail.fail} />
+                )}
+              </RegalicaRunSpeech>
             )}
-            {summary !== null && summary.run.status === 'completed' && (
-              <T1Deliverables run={summary.run} annexes={summary.annexes} />
-            )}
-            {summary !== null &&
-              summary.run.status === 'completed' &&
-              currentRunId !== null &&
-              (summary.run.total_fail_severe ?? 0) + (summary.run.total_fail_rounding ?? 0) > 0 && (
-                /* Tranche 0.5 W2.2 — surface validation_fail_details
-                   rows persisted by /finalize so the user actually sees
-                   the verdict beyond the KPI grid. */
-                <FailsTable runId={currentRunId} filter="all" />
-              )}
-            {summary !== null &&
-              summary.run.status === 'completed' &&
-              topFail.fail !== null &&
-              topFail.fail.severity === 'severe' && (
-                /* C — auto-mount the Investigation block on the top
-                   severe fail. Lights up the orphan .decomp / .calc-block
-                   / .inspector primitives and gives the user the LHS/RHS
-                   decomposition narrative without requiring a chat round
-                   trip. */
-                <InvestigationArtefact fail={topFail.fail} />
-              )}
             {summary !== null && summary.run.status === 'completed' && (
               <T3LockBanner totalFailSevere={summary.run.total_fail_severe ?? 0} />
             )}

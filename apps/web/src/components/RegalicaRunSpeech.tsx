@@ -1,3 +1,4 @@
+import { type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { ValidationRun } from '../types/api';
@@ -46,9 +47,20 @@ function deriveConfidence(failSevere: number): 'high' | 'medium' | 'low' {
 
 export interface RegalicaRunSpeechProps {
   run: ValidationRun;
+  /**
+   * Point 1 — artefacts rendered INSIDE the msg-rega body (mockup
+   * pattern `docs/mockups/regalica-workspace-v5.html` :626-697 where
+   * `<article class="artefact">` is a direct child of
+   * `.msg-rega__body`). Caller passes T1Deliverables, FailsTable,
+   * InvestigationArtefact, etc. as children. The component nests them
+   * after the confidence badge so the avatar + voice frame visually
+   * encapsulates the deliverables — Regalica's voice owns its
+   * artefacts, not the surrounding thread.
+   */
+  children?: ReactNode;
 }
 
-export function RegalicaRunSpeech({ run }: RegalicaRunSpeechProps): JSX.Element | null {
+export function RegalicaRunSpeech({ run, children }: RegalicaRunSpeechProps): JSX.Element | null {
   const { t, i18n } = useTranslation();
   if (run.status !== 'completed') {
     return null;
@@ -112,6 +124,11 @@ export function RegalicaRunSpeech({ run }: RegalicaRunSpeechProps): JSX.Element 
             })}
           />
         </div>
+        {children !== undefined && (
+          <div className="msg-rega__artefacts" style={{ marginTop: '12px' }}>
+            {children}
+          </div>
+        )}
       </div>
     </div>
   );

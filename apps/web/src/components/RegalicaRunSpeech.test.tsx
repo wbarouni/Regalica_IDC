@@ -103,4 +103,28 @@ describe('<RegalicaRunSpeech> — B', () => {
     frame = container.querySelector('[data-testid="regalica-run-speech"]') as HTMLElement;
     expect(frame.textContent).toContain('اكتمل التحقق');
   });
+
+  // Point 1 — children render INSIDE msg-rega__body (not as siblings).
+  it('Point 1 — nests children inside msg-rega__body after the confidence badge', () => {
+    const { container } = renderWithI18n(
+      <RegalicaRunSpeech run={makeRun()}>
+        <div data-testid="nested-artefact">artefact body</div>
+      </RegalicaRunSpeech>,
+    );
+    const body = container.querySelector('.msg-rega__body');
+    const nested = container.querySelector('[data-testid="nested-artefact"]');
+    expect(body).not.toBeNull();
+    expect(nested).not.toBeNull();
+    // The nested artefact is a descendant of .msg-rega__body, not a
+    // sibling of the .msg-rega bubble.
+    expect(body?.contains(nested as Node)).toBe(true);
+    // The wrapping container has the .msg-rega__artefacts class so a
+    // future CSS rule can target it without coupling to children.
+    expect(container.querySelector('.msg-rega__artefacts')).not.toBeNull();
+  });
+
+  it('Point 1 — does not render the artefacts wrapper when children is undefined', () => {
+    const { container } = renderWithI18n(<RegalicaRunSpeech run={makeRun()} />);
+    expect(container.querySelector('.msg-rega__artefacts')).toBeNull();
+  });
 });
