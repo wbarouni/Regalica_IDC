@@ -190,6 +190,20 @@
     "title": "Notifications",
     "empty": "No unread notifications."
   },
+  "regalica": {
+    "name": "Regalica",
+    "runSpeech": {
+      "opening": "Validation completed in {{duration}} s.",
+      "openingNoTime": "Validation completed.",
+      "totals": "{{total}} rules evaluated · {{failSevere}} severe FAILs · {{failRounding}} rounding gaps.",
+      "outline": "Here is the synthesis, then the root-cause analysis, then the FAIL detail.",
+      "confidence": {
+        "high": "Validation complete · 0 severe FAIL",
+        "medium": "Validation complete · attention required",
+        "low": "Validation complete · priority review"
+      }
+    }
+  },
   "fails": {
     "title": "FAILs",
     "loading": "Loading FAILs…",

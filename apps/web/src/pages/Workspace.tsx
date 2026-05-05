@@ -11,6 +11,7 @@ import { EngineErrorArtefact } from '../components/EngineErrorArtefact';
 import { FailsTable } from '../components/FailsTable';
 import { LaunchErrorArtefact } from '../components/LaunchErrorArtefact';
 import { ProgressBar } from '../components/ProgressBar';
+import { RegalicaRunSpeech } from '../components/RegalicaRunSpeech';
 import { SuggestionChips } from '../components/SuggestionChips';
 import { LanguageSwitcher } from '../components/primitives/LanguageSwitcher';
 import { PersonaSidebar } from '../components/layout/PersonaSidebar';
@@ -527,6 +528,14 @@ export default function Workspace() {
                   </div>
                 )}
               </Artefact>
+            )}
+            {summary !== null && summary.run.status === 'completed' && (
+              /* B — Regalica conversational frame above the deliverables.
+                 Shapes the run output as Regalica's voice (msg-rega
+                 avatar + speech + ConfidenceBadge) before the rendered
+                 synthesis cards, matching the workspace v5 mockup
+                 narrative pattern. */
+              <RegalicaRunSpeech run={summary.run} />
             )}
             {summary !== null && summary.run.status === 'completed' && (
               <T1Deliverables run={summary.run} annexes={summary.annexes} />

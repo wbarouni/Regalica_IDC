@@ -190,6 +190,20 @@
     "title": "Notifications",
     "empty": "Aucune notification non lue."
   },
+  "regalica": {
+    "name": "Regalica",
+    "runSpeech": {
+      "opening": "Validation terminée en {{duration}} s.",
+      "openingNoTime": "Validation terminée.",
+      "totals": "{{total}} règles évaluées · {{failSevere}} FAIL sévères · {{failRounding}} arrondis.",
+      "outline": "Voici la synthèse, puis l’analyse de cause racine, puis le détail des FAIL.",
+      "confidence": {
+        "high": "Validation complète · 0 FAIL sévère",
+        "medium": "Validation complète · attention requise",
+        "low": "Validation complète · revue prioritaire"
+      }
+    }
+  },
   "fails": {
     "title": "FAILs",
     "loading": "Chargement des FAILs…",
