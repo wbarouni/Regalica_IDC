@@ -4,8 +4,16 @@ import { Router, type IRouter, type Request, type Response } from 'express';
 import type { Pool } from 'pg';
 
 import { logger } from '../logger.js';
-import { getStatus } from '../db/migrator.js';
+import { getStatus, type MigratorStatus } from '../db/migrator.js';
 import { HTTP_OK, HTTP_INTERNAL_SERVER_ERROR } from '../lib/http.js';
+
+/**
+ * Migration-status probe injection point. Defaults to the production
+ * migrator's getStatus, but tests substitute a deterministic stub so
+ * the suite does not need to spin up a real migrations directory or
+ * a populated schema_migrations row set.
+ */
+export type MigratorStatusProbe = () => Promise<MigratorStatus>;
 
 /**
  * S1 L7 — `GET /api/health` (rich health check).
@@ -37,10 +45,10 @@ import { HTTP_OK, HTTP_INTERNAL_SERVER_ERROR } from '../lib/http.js';
 // health endpoint reads the tenant_dev_present boolean against this
 // canonical UUID so a fresh-machine setup can confirm the seed
 // migration actually ran (vs. silently no-opped due to a missing
-// app.seed_dev_tenant GUC).
-//
-// nosemgrep: D-004-var-name-string-literal
-const DEV_TENANT_ID = 'd3a7c6e6-2d18-4ff6-8183-94507eded6d7';
+// app.seed_dev_tenant GUC). Var name contains "tenant" so D-004
+// fires; the literal is a development infrastructure constant, not
+// business data — same exemption pattern as apps/api/src/cli/migrate.ts.
+const DEV_TENANT_ID = 'd3a7c6e6-2d18-4ff6-8183-94507eded6d7'; // nosemgrep: D-004-var-name-string-literal
 
 interface ApiHealthPayload {
   status: 'ok' | 'out_of_sync';
@@ -52,8 +60,11 @@ interface ApiHealthPayload {
   rules_active_count: number;
 }
 
-async function buildPayload(pool: Pool, migrationsDir: string): Promise<ApiHealthPayload> {
-  const status = await getStatus({ migrationsDir });
+async function buildPayload(
+  pool: Pool,
+  statusProbe: MigratorStatusProbe,
+): Promise<ApiHealthPayload> {
+  const status = await statusProbe();
   const expectedCount = status.applied.length + status.pending.length;
   const appliedCount = status.applied.length;
   const lastApplied = status.applied[status.applied.length - 1];
@@ -97,16 +108,28 @@ async function buildPayload(pool: Pool, migrationsDir: string): Promise<ApiHealt
   };
 }
 
-export function apiHealthRouter(pool: Pool): IRouter {
+export interface ApiHealthRouterOptions {
+  /**
+   * Optional override for the migration-status probe. Defaults to the
+   * production migrator's getStatus, scoped to <cwd>/migrations. Tests
+   * inject a deterministic stub so the suite does not need a real
+   * migrations directory or a populated schema_migrations row set.
+   */
+  statusProbe?: MigratorStatusProbe;
+}
+
+export function apiHealthRouter(pool: Pool, options: ApiHealthRouterOptions = {}): IRouter {
   const router = Router();
   // Resolve the migrations dir at module init from the API process'
-  // cwd (same convention as apps/api/src/cli/migrate.ts). Tests
-  // override via the factory's second argument.
+  // cwd (same convention as apps/api/src/cli/migrate.ts). Tests bypass
+  // by supplying their own statusProbe via options.
   const migrationsDir = resolve(process.cwd(), 'migrations');
+  const statusProbe: MigratorStatusProbe =
+    options.statusProbe ?? (() => getStatus({ migrationsDir }));
 
   router.get('/', async (_req: Request, res: Response) => {
     try {
-      const payload = await buildPayload(pool, migrationsDir);
+      const payload = await buildPayload(pool, statusProbe);
       const httpStatus = payload.in_sync ? HTTP_OK : 503;
       res.status(httpStatus).json(payload);
     } catch (err) {
@@ -121,4 +144,4 @@ export function apiHealthRouter(pool: Pool): IRouter {
 }
 
 // Exported for tests.
-export const __testing__ = { buildPayload, DEV_TENANT_ID };
+export { buildPayload };
