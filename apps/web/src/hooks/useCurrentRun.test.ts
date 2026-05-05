@@ -41,6 +41,8 @@ function run(overrides: Partial<ValidationRun> = {}): ValidationRun {
     step3_rdg_status: null,
     initiated_at: '2026-04-30T00:00:00Z',
     completed_at: null,
+    error_code: null,
+    correlation_id: null,
     ...overrides,
   };
 }
@@ -127,5 +129,63 @@ describe('useCurrentRun', () => {
     const firstRef = result.current.refetch;
     rerender();
     expect(result.current.refetch).toBe(firstRef);
+  });
+
+  // K1 — Persisted error survives reload via /runs/current.
+  // The SSE 'error' frame is single-shot; the validation_runs row
+  // carries error_code + correlation_id since migration 073, and
+  // /runs/current now includes 'failed' status in its filter so the
+  // hook can rehydrate the artefact source after a page refresh.
+  it('K1 — exposes status=failed with error_code on a freshly loaded failed run', async () => {
+    fetchApiMock.mockResolvedValueOnce({
+      data: run({
+        status: 'failed',
+        error_code: 't0_xsd_invalid',
+        correlation_id: '00000000-0000-7000-8000-0000000000ee',
+        completed_at: '2026-04-30T00:00:05Z',
+      }),
+      meta: { ts: '', version: '1' },
+    });
+    const { result } = renderHook(() => useCurrentRun());
+    await waitFor(() => expect(result.current.run).not.toBeNull());
+    expect(result.current.run?.status).toBe('failed');
+    expect(result.current.run?.error_code).toBe('t0_xsd_invalid');
+    expect(result.current.run?.correlation_id).toBe('00000000-0000-7000-8000-0000000000ee');
+  });
+
+  it('K1 — error_code stays null on a successful (status=completed) run', async () => {
+    fetchApiMock.mockResolvedValueOnce({
+      data: run({
+        status: 'completed',
+        error_code: null,
+        correlation_id: '00000000-0000-7000-8000-0000000000ff',
+      }),
+      meta: { ts: '', version: '1' },
+    });
+    const { result } = renderHook(() => useCurrentRun());
+    await waitFor(() => expect(result.current.run?.status).toBe('completed'));
+    expect(result.current.run?.error_code).toBeNull();
+  });
+
+  it('K1 — failed run survives a refetch (reload simulation)', async () => {
+    // Simulate: SSE error frame consumed by Workspace state; the user
+    // refreshes the browser; useCurrentRun re-mounts and pulls the same
+    // failed row again — the artefact must rehydrate from run.error_code.
+    fetchApiMock.mockResolvedValue({
+      data: run({
+        status: 'failed',
+        error_code: 't1_engine_exception',
+        correlation_id: '00000000-0000-7000-8000-000000000a01',
+      }),
+      meta: { ts: '', version: '1' },
+    });
+    const { result } = renderHook(() => useCurrentRun());
+    await waitFor(() => expect(result.current.run?.error_code).toBe('t1_engine_exception'));
+    act(() => {
+      result.current.refetch();
+    });
+    await waitFor(() => expect(fetchApiMock).toHaveBeenCalledTimes(2));
+    expect(result.current.run?.status).toBe('failed');
+    expect(result.current.run?.error_code).toBe('t1_engine_exception');
   });
 });

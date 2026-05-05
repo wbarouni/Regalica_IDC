@@ -41,6 +41,8 @@ function summary(overrides: Partial<RunSummary['run']> = {}): RunSummary {
       step3_rdg_status: null,
       initiated_at: '2026-04-30T00:00:00Z',
       completed_at: null,
+      error_code: null,
+      correlation_id: null,
       ...overrides,
     },
     annexes: [],

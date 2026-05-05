@@ -343,6 +343,18 @@ export default function Workspace() {
     // prior run so the artefact does not haunt the next ribbon cycle.
     setEngineError(null);
   }, [currentRunId]);
+  // K1 — DB-persisted error fallback. The SSE 'error' frame above is
+  // single-shot: lost across reloads. validation_runs.error_code is
+  // populated by /finalize for every status='failed' row (migration
+  // 073) and now travels through /runs/current + /runs/:runId/summary,
+  // so a reload after a failed run can rehydrate the artefact from
+  // run.error_code with no re-emission. SSE stays the priority source
+  // (it carries the live message); the run row is the durable fallback.
+  const persistedEngineError =
+    engineError === null && run !== null && run.status === 'failed' && run.error_code !== null
+      ? { code: run.error_code, message: run.error_code }
+      : null;
+  const displayedEngineError = engineError ?? persistedEngineError;
   const {
     messages,
     loading: chatLoading,
@@ -466,8 +478,11 @@ export default function Workspace() {
               </Artefact>
             )}
 
-            {engineError !== null && (
-              <EngineErrorArtefact code={engineError.code} message={engineError.message} />
+            {displayedEngineError !== null && (
+              <EngineErrorArtefact
+                code={displayedEngineError.code}
+                message={displayedEngineError.message}
+              />
             )}
 
             {startRun.error !== null && (

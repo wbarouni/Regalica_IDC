@@ -82,10 +82,12 @@ export function workspaceRouter(pool: Pool): IRouter {
              step2_embedded_status,
              step3_rdg_status,
              initiated_at,
-             completed_at
+             completed_at,
+             error_code,
+             correlation_id
            FROM validation_runs
            WHERE tenant_id = $1
-             AND status IN ('running', 'completed')
+             AND status IN ('running', 'completed', 'failed')
            ORDER BY initiated_at DESC
            LIMIT 1`,
           [tenantId],
@@ -115,7 +117,8 @@ export function workspaceRouter(pool: Pool): IRouter {
              total_fail_severe, total_fail_rounding,
              execution_time_ms, initiated_at, completed_at,
              step1_xsd_status, step2_embedded_status, step3_rdg_status,
-             synthesis_artifact, deliverable_c_artifact
+             synthesis_artifact, deliverable_c_artifact,
+             error_code, correlation_id
            FROM validation_runs
            WHERE id = $1 AND tenant_id = $2`,
           [runId, tenantId],

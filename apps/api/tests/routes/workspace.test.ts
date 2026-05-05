@@ -12,7 +12,11 @@ describeIfDb('routes — workspace', () => {
   let firstStepId: string;
 
   beforeAll(async () => {
-    ctx = await setupRoutesContext(52);
+    // K1 — bumped from 52 to 73 because /runs/current and /runs/:runId/summary
+    // now SELECT validation_runs.error_code + correlation_id (added by
+    // migration 073_finalize_pipeline.sql). Tests pinned at tier 52 hit
+    // 42703 undefined_column → 501 COLUMN_NOT_FOUND.
+    ctx = await setupRoutesContext(73);
 
     // RLS-protected inserts: open a transaction, set the GUCs, then insert.
     const seed = ctx.testPool;

@@ -15,6 +15,14 @@ export interface ValidationRun {
   step3_rdg_status: string | null;
   initiated_at: string;
   completed_at: string | null;
+  // K1 — surfaced from validation_runs since migration 073
+  // (finalize_pipeline). error_code is FK to run_error_codes; populated
+  // only when status='failed'. correlation_id is the per-request UUID
+  // posted by chatbot-py /finalize. Both are persisted in DB so the
+  // frontend can hydrate the engine-error artefact AFTER a reload —
+  // the SSE 'error' frame is single-shot and ephemeral.
+  error_code: string | null;
+  correlation_id: string | null;
   // Populated by /summary only (the lightweight /current view skips
   // these large JSONB columns). Optional so /current consumers stay
   // type-safe.
