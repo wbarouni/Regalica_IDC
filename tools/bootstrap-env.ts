@@ -328,6 +328,42 @@ async function ensureGeminiApiKey(target: EnvTarget, log: Logger): Promise<void>
   }
 }
 
+/**
+ * Pure helper: rewrite the host segment of a DATABASE_URL from the
+ * docker service name `postgres` to `localhost`. Idempotent: a URL
+ * already pointing at localhost (or any other host) is returned
+ * unchanged. Anchored on `@postgres[:/`] so substrings inside paths
+ * or query parameters are not affected.
+ */
+export function rewriteDatabaseUrlHost(dbUrl: string): string {
+  return dbUrl.replace(/@postgres([:/])/, '@localhost$1');
+}
+
+/**
+ * Rewrite the host segment of DATABASE_URL to `localhost` when the file
+ * is consumed from outside the docker network. The .env.example baseline
+ * uses the docker-compose service name `postgres` because that worked
+ * historically when host-side tooling was rare; with the S1 setup-dev
+ * orchestrator, host-side migrate / pytest / jest are first-class and
+ * the only workable host for them is the published port of the
+ * postgres container (i.e. localhost:5432). The api/chatbot-py
+ * containers are unaffected — docker-compose.yml sets DATABASE_URL
+ * inline on those services so the file's value is never consumed there.
+ */
+async function normalizeDatabaseUrlHost(target: EnvTarget, log: Logger): Promise<void> {
+  const lines = await readEnv(target.envPath);
+  const dbUrl = getEnvValue(lines, 'DATABASE_URL');
+  if (dbUrl === null || dbUrl.trim() === '') {
+    return;
+  }
+  const next = rewriteDatabaseUrlHost(dbUrl);
+  if (next === dbUrl) {
+    return;
+  }
+  await writeEnv(target.envPath, lines, 'DATABASE_URL', next);
+  log.info(`normalized DATABASE_URL host postgres→localhost in ${target.label}`);
+}
+
 async function verifyJwtConsistency(targets: readonly EnvTarget[], log: Logger): Promise<void> {
   const observed = new Map<string, string[]>();
   for (const target of targets) {
@@ -377,6 +413,19 @@ export async function bootstrap(
   const root = targets.find((t) => t.label === 'root');
   if (root !== undefined) {
     await syncPostgresPassword(root, log);
+  }
+
+  // 3b. Normalize the host segment of DATABASE_URL across every .env
+  //     that declares it. The baseline .env.example values point at
+  //     the docker service name `postgres`; host-side tooling (jest,
+  //     migrate CLI, pytest) cannot resolve that and only sees the
+  //     published port at localhost:5432. The S1 L10 e2e-fresh-machine
+  //     CI job exposed this as `getaddrinfo EAI_AGAIN postgres` on
+  //     pnpm migrate:up:operator. The api/chatbot-py containers
+  //     override DATABASE_URL inline in docker-compose.yml so this
+  //     rewrite never reaches the runtime stack.
+  for (const target of targets) {
+    await normalizeDatabaseUrlHost(target, log);
   }
 
   // 4. Prompt for GEMINI_API_KEY in the chatbot-py and root .env (the

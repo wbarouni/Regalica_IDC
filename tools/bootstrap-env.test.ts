@@ -19,6 +19,7 @@ import {
   getEnvValue,
   isPlaceholderSecret,
   generateSecret,
+  rewriteDatabaseUrlHost,
 } from './bootstrap-env.js';
 
 describe('parseEnv', () => {
@@ -123,5 +124,46 @@ describe('generateSecret', () => {
     const a = generateSecret(24);
     const b = generateSecret(24);
     assert.notEqual(a, b);
+  });
+});
+
+describe('rewriteDatabaseUrlHost', () => {
+  it('rewrites @postgres:port → @localhost:port (canonical compose case)', () => {
+    assert.equal(
+      rewriteDatabaseUrlHost('postgresql://regalica_app:secret@postgres:5432/regalica'),
+      'postgresql://regalica_app:secret@localhost:5432/regalica',
+    );
+  });
+
+  it('rewrites @postgres/db (no port) → @localhost/db', () => {
+    assert.equal(
+      rewriteDatabaseUrlHost('postgresql://u:p@postgres/regalica'),
+      'postgresql://u:p@localhost/regalica',
+    );
+  });
+
+  it('is idempotent on already-localhost URLs', () => {
+    const url = 'postgresql://u:p@localhost:5432/regalica';
+    assert.equal(rewriteDatabaseUrlHost(url), url);
+  });
+
+  it('leaves other custom hosts intact (host.docker.internal, prod DSN)', () => {
+    assert.equal(
+      rewriteDatabaseUrlHost('postgresql://u:p@host.docker.internal:5432/regalica'),
+      'postgresql://u:p@host.docker.internal:5432/regalica',
+    );
+    assert.equal(
+      rewriteDatabaseUrlHost('postgresql://u:p@db.prod.internal:5432/regalica'),
+      'postgresql://u:p@db.prod.internal:5432/regalica',
+    );
+  });
+
+  it('does not rewrite the substring "postgres" elsewhere in the URL', () => {
+    // Path / query strings that happen to contain "postgres" must not
+    // be touched — only the host segment after `@` matters.
+    assert.equal(
+      rewriteDatabaseUrlHost('postgresql://u:p@db:5432/postgres?sslmode=require'),
+      'postgresql://u:p@db:5432/postgres?sslmode=require',
+    );
   });
 });
