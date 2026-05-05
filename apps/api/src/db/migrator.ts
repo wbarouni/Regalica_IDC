@@ -25,6 +25,11 @@ import { withConnection } from './pool.js';
 const META_TABLE = 'schema_migrations';
 const NO_TX_DIRECTIVE = /^--\s*migrator:\s*no-transaction\s*$/m;
 const FILENAME_RE = /^(\d{3}[a-z]?)_[a-z0-9][a-z0-9_]*\.sql$/;
+// S1 L3 — fingerprint of every migration that gates its DO block on
+// an operator-supplied GUC. Detected by file content grep so the runner
+// stays catalogue-free: any new GUC-gated migration is picked up
+// automatically without a registry edit.
+const GUC_GATED_FINGERPRINT = /current_setting\('app\.seed_/;
 
 export interface MigrationFile {
   id: string;
@@ -33,6 +38,12 @@ export interface MigrationFile {
   content: string;
   checksum: string;
   noTransaction: boolean;
+  // S1 L3 — true when the migration body references one of the
+  // operator-supplied GUCs (`current_setting('app.seed_*')`). The
+  // operator runner uses this flag to scope `SET LOCAL` to the
+  // migrations that actually need it; non-gated migrations apply
+  // identically in both modes.
+  gucGated: boolean;
 }
 
 export interface AppliedMigration {
@@ -45,6 +56,13 @@ export interface AppliedMigration {
 export interface MigratorOptions {
   migrationsDir: string;
   metaTable?: string;
+  // S1 L3 — when present and non-empty, every GUC-gated migration
+  // (cf. MigrationFile.gucGated) is wrapped with `set_config(key,
+  // value, true)` calls inside its transaction so the migration's
+  // `current_setting('app.seed_*', true)` checks see the values.
+  // Non-gated migrations are unaffected. Empty / undefined keeps the
+  // legacy no-GUC behaviour for backward compatibility.
+  sessionVars?: Readonly<Record<string, string>>;
 }
 
 export interface MigratorUpReport {
@@ -108,6 +126,7 @@ async function loadMigrationFiles(dir: string): Promise<MigrationFile[]> {
       content,
       checksum: sha256(content),
       noTransaction: NO_TX_DIRECTIVE.test(content),
+      gucGated: GUC_GATED_FINGERPRINT.test(content),
     });
   }
 
@@ -143,11 +162,32 @@ async function getApplied(client: PoolClient, metaTable: string): Promise<Applie
   }));
 }
 
-async function applyOne(client: PoolClient, file: MigrationFile, metaTable: string): Promise<void> {
+async function applyOne(
+  client: PoolClient,
+  file: MigrationFile,
+  metaTable: string,
+  sessionVars?: Readonly<Record<string, string>>,
+): Promise<void> {
   const shouldWrap = !file.noTransaction;
+  // SET LOCAL is transaction-scoped so it only matters when the
+  // migration body wraps in BEGIN/COMMIT. When the migration is
+  // marked `no-transaction`, `set_config(.., true)` is a no-op
+  // outside a transaction and the migration owns its own scoping
+  // — we skip the calls in that branch.
+  const applyVars =
+    shouldWrap && file.gucGated && sessionVars !== undefined && Object.keys(sessionVars).length > 0;
   try {
     if (shouldWrap) {
       await client.query('BEGIN');
+    }
+    if (applyVars) {
+      // Parameterised set_config keeps the values out of the SQL
+      // string so an operator-supplied UUID never mixes with literal
+      // SQL. The third arg `true` scopes the setting to the current
+      // transaction (mirrors `SET LOCAL`).
+      for (const [key, value] of Object.entries(sessionVars)) {
+        await client.query(`SELECT set_config($1, $2, true)`, [key, value]);
+      }
     }
     await client.query(file.content);
     await client.query(`INSERT INTO ${metaTable} (id, filename, checksum) VALUES ($1, $2, $3)`, [
@@ -183,7 +223,7 @@ export async function runUp(options: MigratorOptions): Promise<MigratorUpReport>
         report.skipped.push({ id: file.id, filename: file.filename });
         continue;
       }
-      await applyOne(client, file, metaTable);
+      await applyOne(client, file, metaTable, options.sessionVars);
       report.applied.push({ id: file.id, filename: file.filename });
     }
     return report;

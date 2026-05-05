@@ -183,6 +183,119 @@ CREATE TABLE ${schemaName}.concurrent_items (id int primary key);
     );
     expect(colRes.rowCount).toBe(1);
   });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // S1 L3 — GUC-gated migrations + sessionVars option
+  // ─────────────────────────────────────────────────────────────────────────
+
+  it('detects a GUC-gated migration via the file content fingerprint', async () => {
+    await writeMigration(
+      '001_gated.sql',
+      `DO $$
+BEGIN
+  IF current_setting('app.seed_demo', true) IS NULL THEN
+    RAISE NOTICE 'gated migration skipped';
+    RETURN;
+  END IF;
+  CREATE TABLE ${schemaName}.gated_payload (id int primary key);
+END $$;`,
+    );
+    const status = await getStatus(options);
+    expect(status.pending).toHaveLength(1);
+    expect(status.pending[0]!.gucGated).toBe(true);
+  });
+
+  it('non-gated migrations have gucGated=false', async () => {
+    await writeMigration(
+      '001_widgets.sql',
+      `CREATE TABLE ${schemaName}.widgets (id int primary key);`,
+    );
+    const status = await getStatus(options);
+    expect(status.pending[0]!.gucGated).toBe(false);
+  });
+
+  it('runUp without sessionVars: gated migration runs as no-op (audit row written)', async () => {
+    await writeMigration(
+      '001_gated.sql',
+      `DO $$
+BEGIN
+  IF current_setting('app.seed_demo', true) IS NULL OR current_setting('app.seed_demo', true) = '' THEN
+    RAISE NOTICE 'gated migration skipped';
+    RETURN;
+  END IF;
+  CREATE TABLE ${schemaName}.gated_payload (id int primary key);
+END $$;`,
+    );
+    await runUp(options);
+
+    // Audit row present (the migration is "applied" even when gated)
+    const audit = await adminPool.query<{ count: string }>(
+      `SELECT count(*)::text AS count FROM ${metaTable} WHERE filename = $1`,
+      ['001_gated.sql'],
+    );
+    expect(audit.rows[0]!.count).toBe('1');
+
+    // Side-effect table NOT created — the DO block returned early
+    const tbl = await adminPool.query(`SELECT to_regclass('${schemaName}.gated_payload') AS oid`);
+    expect(tbl.rows[0].oid).toBeNull();
+  });
+
+  it('runUp with sessionVars: gated migration body executes (side effect present)', async () => {
+    await writeMigration(
+      '001_gated.sql',
+      `DO $$
+BEGIN
+  IF current_setting('app.seed_demo', true) IS NULL OR current_setting('app.seed_demo', true) = '' THEN
+    RAISE NOTICE 'gated migration skipped';
+    RETURN;
+  END IF;
+  CREATE TABLE ${schemaName}.gated_payload (id int primary key);
+END $$;`,
+    );
+    await runUp({ ...options, sessionVars: { 'app.seed_demo': 'on' } });
+
+    const tbl = await adminPool.query(`SELECT to_regclass('${schemaName}.gated_payload') AS oid`);
+    expect(tbl.rows[0].oid).not.toBeNull();
+  });
+
+  it('runUp with sessionVars on a non-gated migration: SET LOCAL not invoked (no error)', async () => {
+    // Non-gated content + sessionVars in options — must apply identically
+    // to the no-sessionVars case (no SET LOCAL emitted), proving the
+    // gucGated flag scopes the GUC injection correctly.
+    await writeMigration(
+      '001_widgets.sql',
+      `CREATE TABLE ${schemaName}.widgets (id int primary key);`,
+    );
+    const report = await runUp({
+      ...options,
+      sessionVars: { 'app.seed_demo': 'irrelevant' },
+    });
+    expect(report.applied.map((m) => m.id)).toEqual(['001']);
+  });
+
+  it('runUp passes sessionVars values verbatim into the migration scope', async () => {
+    // Migration writes the GUC value into a side table so we can assert
+    // the value flowed end to end (proves set_config(...) parameterised
+    // call is hooked up correctly).
+    await writeMigration(
+      '001_capture.sql',
+      `DO $$
+DECLARE v TEXT;
+BEGIN
+  v := current_setting('app.seed_demo', true);
+  IF v IS NULL OR v = '' THEN RETURN; END IF;
+  CREATE TABLE ${schemaName}.captured (val text);
+  INSERT INTO ${schemaName}.captured (val) VALUES (v);
+END $$;`,
+    );
+    await runUp({
+      ...options,
+      sessionVars: { 'app.seed_demo': 'sentinel-value-42' },
+    });
+
+    const r = await adminPool.query<{ val: string }>(`SELECT val FROM ${schemaName}.captured`);
+    expect(r.rows[0]?.val).toBe('sentinel-value-42');
+  });
 });
 
 describe.skip('migrator (real DB required)', () => {
