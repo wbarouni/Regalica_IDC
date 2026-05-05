@@ -194,7 +194,12 @@
     "placeholder": "Ask Regalica…",
     "send": "Send",
     "hint_send": "↵ send",
-    "hint_newline": "⇧↵ new line"
+    "hint_newline": "⇧↵ new line",
+    "download_pdf": {
+      "label": "Download PDF",
+      "title": "Download the PDF validation report",
+      "trigger_message": "Download the PDF validation report"
+    }
   },
   "date": {
     "dayLabel": "{{date}}"

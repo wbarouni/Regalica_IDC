@@ -46,6 +46,13 @@ export interface DockProps {
   onFileSelect?: (file: File) => void;
   loading?: boolean;
   suggestions?: ReactNode;
+  // K2 — PDF download trigger. Visible iff parent passes a non-undefined
+  // callback (gated upstream on `run.status === 'completed'`). Click
+  // forwards a localised trigger message to onSend, which in turn pipes
+  // through useChat → /chat/message → router LLM → download_report
+  // intent → reporter_pdf specialist + static_response aggregator.
+  // Disabled while loading so a user does not stack multiple PDF requests.
+  onDownloadReport?: () => void;
 }
 
 export function Dock({
@@ -53,6 +60,7 @@ export function Dock({
   onFileSelect,
   loading = false,
   suggestions,
+  onDownloadReport,
 }: DockProps): JSX.Element {
   const { t } = useTranslation();
   const [text, setText] = useState<string>('');
@@ -196,6 +204,33 @@ export function Dock({
             onChange={onFileInputChange}
             data-testid="dock-file-input"
           />
+          {onDownloadReport !== undefined && (
+            <button
+              type="button"
+              className="dock__tool"
+              onClick={onDownloadReport}
+              disabled={loading}
+              title={t('dock.download_pdf.title')}
+              aria-label={t('dock.download_pdf.label')}
+              data-testid="dock-download-pdf"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M14 3v5h5M12 12v6m-3-3 3 3 3-3"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          )}
           <button
             type="button"
             className="dock__send"

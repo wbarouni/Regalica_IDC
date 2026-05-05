@@ -389,6 +389,14 @@ export default function Workspace() {
     [sendMessage],
   );
 
+  // K2 — wire the dock PDF button to the chat path. The trigger message
+  // matches the regalica/router prompt's intent classification heuristics
+  // (download_report) so the orchestrator dispatches reporter_pdf and
+  // surfaces the static_response markdown verbatim.
+  const handleDownloadReport = useCallback((): void => {
+    void sendMessage(t('dock.download_pdf.trigger_message'));
+  }, [sendMessage, t]);
+
   const handleMarkRead = useCallback(
     (id: string): void => {
       void markAsRead(id);
@@ -570,6 +578,7 @@ export default function Workspace() {
           onSend={handleSend}
           onFileSelect={handleFileSelect}
           loading={chatLoading || upload.uploading || startRun.starting}
+          onDownloadReport={run?.status === 'completed' ? handleDownloadReport : undefined}
           suggestions={
             <SuggestionChips
               runId={currentRunId}

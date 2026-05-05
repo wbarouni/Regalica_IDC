@@ -194,7 +194,12 @@
     "placeholder": "اسأل Regalica…",
     "send": "إرسال",
     "hint_send": "↵ إرسال",
-    "hint_newline": "⇧↵ سطر جديد"
+    "hint_newline": "⇧↵ سطر جديد",
+    "download_pdf": {
+      "label": "تنزيل PDF",
+      "title": "تنزيل تقرير التحقق بصيغة PDF",
+      "trigger_message": "تنزيل تقرير التحقق بصيغة PDF"
+    }
   },
   "date": {
     "dayLabel": "{{date}}"

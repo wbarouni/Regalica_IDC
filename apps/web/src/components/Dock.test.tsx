@@ -154,4 +154,32 @@ describe('<Dock>', () => {
     render(<Dock onSend={() => {}} suggestions={<div data-testid="my-chips">chips</div>} />);
     expect(screen.getByTestId('my-chips')).toBeInTheDocument();
   });
+
+  // K2 — PDF download trigger button.
+  it('K2 — hides the PDF download button when onDownloadReport is undefined', () => {
+    render(<Dock onSend={() => {}} />);
+    expect(screen.queryByTestId('dock-download-pdf')).toBeNull();
+  });
+
+  it('K2 — shows the PDF download button when onDownloadReport is provided', () => {
+    const onDownloadReport = vi.fn();
+    render(<Dock onSend={() => {}} onDownloadReport={onDownloadReport} />);
+    const btn = screen.getByTestId('dock-download-pdf');
+    expect(btn).toBeInTheDocument();
+    expect(btn).not.toBeDisabled();
+    expect(btn).toHaveAttribute('title');
+  });
+
+  it('K2 — invokes onDownloadReport when clicked', () => {
+    const onDownloadReport = vi.fn();
+    render(<Dock onSend={() => {}} onDownloadReport={onDownloadReport} />);
+    fireEvent.click(screen.getByTestId('dock-download-pdf'));
+    expect(onDownloadReport).toHaveBeenCalledTimes(1);
+  });
+
+  it('K2 — disables the PDF download button while loading', () => {
+    const onDownloadReport = vi.fn();
+    render(<Dock onSend={() => {}} loading onDownloadReport={onDownloadReport} />);
+    expect(screen.getByTestId('dock-download-pdf')).toBeDisabled();
+  });
 });
