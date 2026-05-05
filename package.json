@@ -25,7 +25,8 @@
     "typecheck": "pnpm -r --if-present typecheck",
     "bootstrap:env": "pnpm --filter @regflow/api exec tsx ../../tools/bootstrap-env.ts",
     "seed:fixtures": "pnpm --filter @regflow/api exec tsx ../../tools/seed-fixtures.ts",
-    "test:tools": "pnpm --filter @regflow/api exec tsx --test ../../tools/bootstrap-env.test.ts ../../tools/seed-fixtures.test.ts",
+    "setup:dev": "pnpm --filter @regflow/api exec tsx ../../tools/setup-dev.ts",
+    "test:tools": "pnpm --filter @regflow/api exec tsx --test ../../tools/bootstrap-env.test.ts ../../tools/seed-fixtures.test.ts ../../tools/setup-dev.test.ts",
     "golden:normalize": "uv run python tools/golden-normalizer/normalize.py --source-dir tests/fixtures-source --target-dir tests/fixtures --tenant-slug tenant-001 --bank-code-placeholder BANK-CODE --bank-id-placeholder BANK-ID --tenant-name-pattern \"QNB AL AHLI=TENANT-SUBSIDIARY\" --tenant-name-pattern \"QNB PARIS=TENANT-SUBSIDIARY\" --tenant-name-pattern \"QNB GROUP=TENANT-GROUP\" --tenant-name-pattern \"QNB=TENANT-NAME\" --validation-author \"Wissem Barouni\" --report-file tools/golden-normalizer/reports/normalization.json",
     "golden:verify": "uv run python tools/verify-golden-integrity/verify.py --fixtures-dir tests/fixtures/golden"
   },
