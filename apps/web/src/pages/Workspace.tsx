@@ -24,6 +24,7 @@ import { useNotifications } from '../hooks/useNotifications';
 import { useRunSummary } from '../hooks/useRunSummary';
 import { useStartRun } from '../hooks/useStartRun';
 import { useTopSevereFail } from '../hooks/useTopSevereFail';
+import { useTypewriter } from '../hooks/useTypewriter';
 import { useUpload, type UploadDto } from '../hooks/useUpload';
 import type { Notification, RunAgentStep, ValidationRun } from '../types/api';
 import { groupByDay } from '../utils/groupByDay';
@@ -218,8 +219,14 @@ function Ribbon({
   );
 }
 
-function ChatTurn({ message }: { message: ChatMessage }) {
+function ChatTurn({ message, isFresh }: { message: ChatMessage; isFresh: boolean }) {
   const { t } = useTranslation();
+  const trace = message.thinking_trace ?? null;
+  const { revealedThinking, revealedResponse, phase } = useTypewriter({
+    thinkingText: trace ?? '',
+    responseText: message.role === 'regalica' ? message.content : '',
+    enabled: message.role === 'regalica' && isFresh,
+  });
   if (message.role === 'user') {
     return (
       <div className="msg-user">
@@ -228,11 +235,15 @@ function ChatTurn({ message }: { message: ChatMessage }) {
       </div>
     );
   }
-  const trace = message.thinking_trace ?? null;
   const agents =
     message.agents_called !== undefined && message.agents_called.length > 0
       ? message.agents_called
       : null;
+  // Auto-collapse the thinking artefact once the response phase starts:
+  // open during phase==='thinking', collapsed afterwards. The user can
+  // re-open via click — Artefact tracks the override internally.
+  const thinkingControlled: 'expanded' | 'collapsed' =
+    phase === 'thinking' ? 'expanded' : 'collapsed';
   return (
     <div className="msg-rega">
       <div className="msg-rega__avatar">
@@ -252,22 +263,27 @@ function ChatTurn({ message }: { message: ChatMessage }) {
                      prose-code:rounded prose-code:font-mono prose-code:text-[0.85em]
                      prose-a:text-azure prose-a:underline-offset-2"
         >
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{revealedResponse}</ReactMarkdown>
         </div>
         {trace !== null && trace.length > 0 && (
-          /* Point 4 — thinking trace VISIBLE by default (state="standard")
-             instead of collapsed. Until this commit the trace was
-             technically rendered but hidden behind a click — the user
-             never saw "Regalica raisonne". The maquette v5
-             (workspace-v5.html :702-732) shows the thinking artefact
-             standard with 4-phase prose visible. We keep the system
-             variant + a dedicated thinking confidence label so the
-             user immediately reads the cognitive footprint. */
-          <Artefact type="system" state="standard" badgeKey="artefact.badge.trace">
+          /* Point 2C — thinking artefact is now controlled: it opens
+             automatically while the typewriter reveals the trace
+             ("thinking" phase) and collapses automatically once the
+             response phase starts. For historical messages mounted
+             before the current session (`isFresh=false`), the
+             typewriter is disabled and the artefact lands directly
+             collapsed. The user can always re-open via click; the
+             override sticks for the message's lifetime. */
+          <Artefact
+            type="system"
+            state="collapsed"
+            controlledState={thinkingControlled}
+            badgeKey="artefact.badge.trace"
+          >
             <div className="font-mono text-[10px] uppercase tracking-wider text-marigold-700 mb-2">
               {t('thinking.label', { defaultValue: 'Mode thinking · raisonnement Regalica' })}
             </div>
-            <p className="text-sm text-stone-800 whitespace-pre-line">{trace}</p>
+            <p className="text-sm text-stone-800 whitespace-pre-line">{revealedThinking}</p>
             {agents !== null && (
               <p className="mt-2 text-xs text-stone-600 font-mono">{agents.join(' / ')}</p>
             )}
@@ -279,6 +295,14 @@ function ChatTurn({ message }: { message: ChatMessage }) {
 }
 
 function ChatThread({ messages }: { messages: readonly ChatMessage[] }) {
+  // Snapshot the IDs present at first render: those are "history" and
+  // must NOT animate. Anything appended later is "fresh" and should be
+  // typewritten. The ref is initialised once and never mutated.
+  const initialIdsRef = useRef<Set<string> | null>(null);
+  if (initialIdsRef.current === null) {
+    initialIdsRef.current = new Set(messages.map((m) => m.id));
+  }
+  const initialIds = initialIdsRef.current;
   if (messages.length === 0) {
     return null;
   }
@@ -289,7 +313,7 @@ function ChatThread({ messages }: { messages: readonly ChatMessage[] }) {
         <div key={g.date.toISOString()} className="space-y-3">
           <DaySeparator date={g.date} />
           {g.items.map((m) => (
-            <ChatTurn key={m.id} message={m} />
+            <ChatTurn key={m.id} message={m} isFresh={!initialIds.has(m.id)} />
           ))}
         </div>
       ))}

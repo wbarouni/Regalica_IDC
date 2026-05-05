@@ -1,4 +1,4 @@
-import { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 /**
@@ -33,6 +33,13 @@ export type ArtefactState = 'expanded' | 'standard' | 'collapsed';
 export interface ArtefactProps {
   type: ArtefactType;
   state?: ArtefactState;
+  /**
+   * When provided, drives the visible state from outside the component
+   * (controlled mode). User clicks still call onToggle, which the parent
+   * decides how to honour. Falls back to internal state when omitted.
+   */
+  controlledState?: ArtefactState;
+  onToggle?: () => void;
   runId?: string;
   badgeKey?: string;
   children: ReactNode;
@@ -51,16 +58,36 @@ function nextState(current: ArtefactState): ArtefactState {
 export function Artefact({
   type,
   state: initialState = 'standard',
+  controlledState,
+  onToggle,
   runId,
   badgeKey,
   children,
 }: ArtefactProps): JSX.Element {
   const { t } = useTranslation();
-  const [state, setState] = useState<ArtefactState>(initialState);
+  const [internalState, setInternalState] = useState<ArtefactState>(initialState);
+  const userOverrodeRef = useRef<boolean>(false);
+
+  // Controlled mode: external state wins until the user clicks once,
+  // after which their choice is preserved (avoids the parent stealing
+  // the artefact open/closed away from the reader).
+  const state =
+    controlledState !== undefined && !userOverrodeRef.current ? controlledState : internalState;
+
+  // Keep internal state aligned with controlled state until the user
+  // takes manual control. This means an external transition from
+  // "expanded" to "collapsed" updates the displayed state seamlessly.
+  useEffect(() => {
+    if (controlledState !== undefined && !userOverrodeRef.current) {
+      setInternalState(controlledState);
+    }
+  }, [controlledState]);
 
   const toggle = useCallback(() => {
-    setState(nextState);
-  }, []);
+    userOverrodeRef.current = true;
+    setInternalState(nextState);
+    onToggle?.();
+  }, [onToggle]);
 
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLElement>) => {
