@@ -176,12 +176,17 @@ export function isPlaceholderSecret(value: string | null): boolean {
 }
 
 /**
- * Generate a cryptographically random base64 string of the requested
+ * Generate a cryptographically random URL-safe string of the requested
  * raw byte length. Used for JWT_SECRET (48 bytes) and POSTGRES_PASSWORD
- * fallback (24 bytes).
+ * fallback (24 bytes). `base64url` (RFC 4648 §5) avoids `/`, `+`, and
+ * `=` so the value can be embedded in a DATABASE_URL userinfo segment
+ * without URL-encoding — which would otherwise break `new URL(dbUrl)`
+ * and pg.Pool's connection-string parser. The S1 L10 e2e-fresh-machine
+ * CI run exposed this as `TypeError: Invalid URL` on a generated
+ * password whose first byte happened to encode as `/`.
  */
 export function generateSecret(byteLength: number): string {
-  return randomBytes(byteLength).toString('base64');
+  return randomBytes(byteLength).toString('base64url');
 }
 
 // ---------------------------------------------------------------------------

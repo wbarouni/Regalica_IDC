@@ -112,13 +112,16 @@ describe('isPlaceholderSecret', () => {
 });
 
 describe('generateSecret', () => {
-  it('returns a base64 string of the requested entropy', () => {
+  it('returns a URL-safe base64url string of the requested entropy', () => {
     const secret = generateSecret(48);
     assert.equal(typeof secret, 'string');
-    // 48 raw bytes -> 64 base64 chars (no padding needed since 48%3==0)
+    // 48 raw bytes -> 64 base64url chars (no padding because base64url
+    // omits trailing '='; 48%3==0 so no padding bytes are needed anyway)
     assert.equal(secret.length, 64);
-    // base64 alphabet: A-Z a-z 0-9 + /
-    assert.match(secret, /^[A-Za-z0-9+/]+=*$/);
+    // base64url alphabet: A-Z a-z 0-9 - _  (RFC 4648 §5 — no '/', '+', '=').
+    // The exclusions matter: the value embeds verbatim into a DATABASE_URL
+    // userinfo segment, where '/' or '+' would break URL parsing.
+    assert.match(secret, /^[A-Za-z0-9_-]+$/);
   });
 
   it('produces distinct values across calls (no static state)', () => {
