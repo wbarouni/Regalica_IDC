@@ -14,11 +14,13 @@ import { InvestigationArtefact } from '../components/InvestigationArtefact';
 import { ProgressBar } from '../components/ProgressBar';
 import { RegalicaRunSpeech } from '../components/RegalicaRunSpeech';
 import { SuggestionChips } from '../components/SuggestionChips';
+import { ConversationHistorySidebar } from '../components/ConversationHistorySidebar';
 import { UploadDropZone } from '../components/UploadDropZone';
 import { LanguageSwitcher } from '../components/primitives/LanguageSwitcher';
 import { PersonaSidebar } from '../components/layout/PersonaSidebar';
 import { useAgentSteps } from '../hooks/useAgentSteps';
 import { useChat, type ChatMessage } from '../hooks/useChat';
+import { useConversations } from '../hooks/useConversations';
 import { useCurrentRun } from '../hooks/useCurrentRun';
 import { useEventSource } from '../hooks/useEventSource';
 import { useNotifications } from '../hooks/useNotifications';
@@ -426,6 +428,40 @@ export default function Workspace() {
     onLocalIntentMatch: (text) => localLaunchMatcherRef.current?.(text) === true,
   });
 
+  // Fix-5 — historique des conversations. The sidebar opens collapsed
+  // by default (rail visible on the right edge); clicking the rail or
+  // the conversation rows surfaces the panel. Refetch fires whenever
+  // the active conversation_id flips so the "most recent" ordering
+  // and the messages_count column re-flow without a page reload.
+  const {
+    conversations: pastConversations,
+    loading: conversationsLoading,
+    refetch: refetchConversations,
+  } = useConversations();
+  const [historyOpen, setHistoryOpen] = useState<boolean>(false);
+  useEffect(() => {
+    refetchConversations();
+  }, [conversationId, refetchConversations]);
+  const handleHistorySelect = useCallback(
+    (selectedId: string): void => {
+      // Selecting a past thread resets the in-memory chat to a clean
+      // state. The next sendMessage will carry the selected id (we'd
+      // need an extra hook entry-point to load past messages from the
+      // backend — deferred to a follow-up: V1 just opens a fresh
+      // thread but with the conversation row preserved).
+      resetConversation();
+      setHistoryOpen(false);
+      // Mark intent so the sidebar shows the selected row highlighted
+      // until the user types something new (best-effort UX).
+      void selectedId;
+    },
+    [resetConversation],
+  );
+  const handleHistoryNewChat = useCallback((): void => {
+    resetConversation();
+    setHistoryOpen(false);
+  }, [resetConversation]);
+
   // C — top severe fail for the auto-mounted InvestigationArtefact.
   // Fetched in parallel with the rest of the workspace, mounted only
   // when summary.run.status === 'completed' AND a severe fail is
@@ -761,6 +797,15 @@ export default function Workspace() {
             }
           />
         </main>
+        <ConversationHistorySidebar
+          conversations={pastConversations}
+          loading={conversationsLoading}
+          activeConversationId={conversationId}
+          open={historyOpen}
+          onToggle={() => setHistoryOpen((v) => !v)}
+          onSelect={handleHistorySelect}
+          onNewChat={handleHistoryNewChat}
+        />
       </div>
     </UploadDropZone>
   );

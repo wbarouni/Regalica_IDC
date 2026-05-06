@@ -204,6 +204,15 @@
     "title": "الإشعارات",
     "empty": "لا توجد إشعارات غير مقروءة."
   },
+  "history": {
+    "title": "السجل",
+    "openLabel": "فتح السجل",
+    "closeLabel": "إغلاق السجل",
+    "newChat": "+ محادثة جديدة",
+    "empty": "لا توجد محادثات سابقة.",
+    "untitled": "محادثة بدون عنوان",
+    "messagesAbbrev": "رسالة"
+  },
   "regalica": {
     "name": "Regalica",
     "runSpeech": {

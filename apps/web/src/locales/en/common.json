@@ -204,6 +204,15 @@
     "title": "Notifications",
     "empty": "No unread notifications."
   },
+  "history": {
+    "title": "History",
+    "openLabel": "Open history",
+    "closeLabel": "Close history",
+    "newChat": "+ New chat",
+    "empty": "No past conversation.",
+    "untitled": "Untitled conversation",
+    "messagesAbbrev": "msg"
+  },
   "regalica": {
     "name": "Regalica",
     "runSpeech": {

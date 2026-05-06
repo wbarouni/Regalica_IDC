@@ -15,12 +15,20 @@ interface UseConversationsResult {
   loading: boolean;
   error: string | null;
   createConversation: (input: CreateConversationInput) => Promise<Conversation>;
+  /**
+   * Fix-5 — re-pulls the conversations list. Workspace calls this when
+   * a new chat turn lands so the sidebar's "most recent" ordering and
+   * the messages_count column stay coherent without a page reload.
+   */
+  refetch: () => void;
 }
 
 export function useConversations(): UseConversationsResult {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [tick, setTick] = useState<number>(0);
+  const refetch = useCallback((): void => setTick((t) => t + 1), []);
 
   useEffect(() => {
     if (!TENANT_ID) {
@@ -29,6 +37,7 @@ export function useConversations(): UseConversationsResult {
       return;
     }
     let cancelled = false;
+    setLoading(true);
     void fetchApi<Conversation[]>(`/api/tenants/${TENANT_ID}/conversations`)
       .then((r) => {
         if (!cancelled) {
@@ -50,7 +59,7 @@ export function useConversations(): UseConversationsResult {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [tick]);
 
   const createConversation = useCallback(
     async (input: CreateConversationInput): Promise<Conversation> => {
@@ -67,5 +76,5 @@ export function useConversations(): UseConversationsResult {
     [],
   );
 
-  return { conversations, loading, error, createConversation };
+  return { conversations, loading, error, createConversation, refetch };
 }
