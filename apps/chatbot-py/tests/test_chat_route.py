@@ -177,14 +177,25 @@ def test_post_chat_message_dispatches_through_orchestrator_and_returns_200(
     """Router -> general_help -> 200 with canonical ChatResponse."""
     mock_pool.fetchrow.side_effect = [
         _prompt_row("[REGALICA_ROUTER_V1]"),  # router prompt
-        _prompt_row("[REGALICA_AGGREGATE_GENERAL_HELP_V1]"),  # specialist prompt
+        _prompt_row("[REGALICA_AGGREGATE_GENERAL_HELP_V1]"),  # aggregator prompt
+        # Sub-Sprint 3 — orchestrator now also fetches the
+        # `regalica/thinking_reflection` prompt in parallel with the
+        # aggregator load, so the LLM-driven thinking trace replaces
+        # the deterministic 5-phase composer when present.
+        _prompt_row("[REGALICA_THINKING_REFLECTION_V1]"),  # thinking prompt
         {"id": "00000000-0000-0000-0000-0000000000aa"},  # _ensure_conversation
         {"next_seq": 1},  # _persist_message SELECT MAX
         {"id": "00000000-0000-0000-0000-0000000000bb"},  # _persist_message INSERT
     ]
     mock_llm.complete.side_effect = [
         _llm_response(json.dumps({"intent": "general_help", "confidence": 0.7})),  # router
-        _llm_response("Bonjour, je suis Regalica."),  # specialist (general_help path)
+        # Sub-Sprint 3 — the thinking reflection task runs concurrently
+        # with the aggregator load and completes its LLM round-trip
+        # BEFORE the aggregator's own LLM call (the aggregator only
+        # fires after `await thinking_prose_task` returns). The mock
+        # side_effect order therefore matches: router → thinking → aggregator.
+        _llm_response("La demande appelle une présentation sobre."),  # thinking
+        _llm_response("Bonjour, je suis Regalica."),  # aggregator (general_help path)
     ]
 
     response = client.post("/chat/message", json=_valid_request_payload())
@@ -195,13 +206,11 @@ def test_post_chat_message_dispatches_through_orchestrator_and_returns_200(
     assert body["message_id"] == "00000000-0000-0000-0000-0000000000bb"
     assert body["response_markdown"] == "Bonjour, je suis Regalica."
     assert body["agents_called"] == ["regalica/aggregate_general_help"]
-    # Correction 2 — thinking trace is now a 4-phase narrative starting
-    # with "1 · Compréhension de la demande" (Workspace.tsx renders the
-    # newlines via whitespace-pre-line). Phase 1 still embeds the
-    # "L'utilisateur demande" persona prefix.
-    assert body["thinking_trace"].startswith("1 · Compréhension de la demande")
-    assert "L'utilisateur demande" in body["thinking_trace"]
-    assert "general_help" in body["thinking_trace"]
+    # Sub-Sprint 3 — thinking trace is now LLM-driven prose. When the
+    # `regalica/thinking_reflection` prompt is active and the LLM call
+    # returns a non-empty body, the orchestrator surfaces that text
+    # verbatim instead of the deterministic 5-phase composer fallback.
+    assert body["thinking_trace"] == "La demande appelle une présentation sobre."
     # Tokens come from the specialist (general_help) LLM response, not the router.
     assert body["tokens_input"] == 42
     assert body["tokens_output"] == 18
@@ -252,6 +261,12 @@ def test_post_chat_message_absorbs_llm_failure_in_general_help_path(
     mock_pool.fetchrow.side_effect = [
         _prompt_row("[REGALICA_ROUTER_V1]"),
         _prompt_row("[REGALICA_AGGREGATE_GENERAL_HELP_V1]"),
+        # Sub-Sprint 3 — thinking_reflection prompt fetch in parallel
+        # with the aggregator load. Even though every LLM call raises
+        # in this test, the prompt fetch itself must succeed so the
+        # `_compose_prose_thinking` path returns None gracefully (LLM
+        # call inside it is the one that fails).
+        _prompt_row("[REGALICA_THINKING_REFLECTION_V1]"),
         {"id": "00000000-0000-0000-0000-0000000000ee"},
         {"next_seq": 1},
         {"id": "00000000-0000-0000-0000-0000000000ff"},
@@ -286,16 +301,19 @@ def test_post_chat_message_dispatches_self_introduction_to_static_response(
     mock_pool.fetchrow.side_effect = [
         _prompt_row("[REGALICA_ROUTER_V1]"),  # router prompt
         _prompt_row_static(canned_markdown, "[REGALICA_AGGREGATE_SELF_INTRODUCTION_V1]"),
+        # Sub-Sprint 3 — thinking_reflection prompt fetch (parallel
+        # task in the orchestrator).
+        _prompt_row("[REGALICA_THINKING_REFLECTION_V1]"),
         {"id": "00000000-0000-0000-0000-000000000111"},  # _ensure_conversation
         {"next_seq": 1},  # _persist_message SELECT MAX
         {"id": "00000000-0000-0000-0000-000000000222"},  # _persist_message INSERT
     ]
-    # Only the router LLM call should fire — the aggregator step is
-    # short-circuited by static_response. Provide a single response;
-    # if the orchestrator tries to call complete a second time the test
-    # fails with StopIteration.
+    # Two LLM calls fire: the router classification AND the
+    # thinking_reflection prose composer. The aggregator step is
+    # short-circuited by static_response so its LLM call is skipped.
     mock_llm.complete.side_effect = [
         _llm_response(json.dumps({"intent": "self_introduction", "confidence": 0.95})),
+        _llm_response("La demande appelle une présentation."),  # thinking
     ]
 
     payload = _valid_request_payload()
@@ -306,9 +324,9 @@ def test_post_chat_message_dispatches_self_introduction_to_static_response(
     body = response.json()
     assert body["response_markdown"] == canned_markdown
     assert body["agents_called"] == ["regalica/aggregate_self_introduction"]
-    # The router consumed exactly 1 LLM round-trip; the aggregator
-    # consumed 0. Token totals reflect the router-only spend.
-    assert mock_llm.complete.call_count == 1
+    # Two LLM round-trips: router classification + thinking reflection.
+    # The aggregator step is bypassed by static_response.
+    assert mock_llm.complete.call_count == 2
 
 
 def test_post_chat_message_503_when_pool_missing(

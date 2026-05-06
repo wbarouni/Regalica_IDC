@@ -1356,6 +1356,79 @@ async def _load_run_fails_context(
     }
 
 
+# ---------------------------------------------------------------------------
+# Sub-Sprint 3 — prose-driven thinking trace.
+#
+# Replaces the deterministic Python composer (`_build_thinking_trace`) with
+# a prompt-driven LLM call. The output is the prose paragraph stream the
+# Workspace renders inside the "Thinking" artefact: a reflection that
+# reformulates the demand, weighs framings, decides — flowing prose with
+# no list, no numbered phase, no internal-agent name leak. Failure modes
+# (prompt missing, LLM error) collapse to None so the caller falls back
+# to the deterministic 5-phase composer kept for resilience.
+# ---------------------------------------------------------------------------
+
+
+_THINKING_REFLECTION_AGENT_TYPE: Final[str] = "regalica"
+_THINKING_REFLECTION_FUNCTION_NAME: Final[str] = "thinking_reflection"
+
+
+async def _compose_prose_thinking(
+    *,
+    pool: asyncpg.Pool,
+    llm_client: LLMClient,
+    tenant_id: str,
+    user_message: str,
+    intent_type: str,
+    run_context: dict[str, Any] | None,
+) -> str | None:
+    """Return the prose thinking reflection or None on any failure.
+
+    Loads the `regalica/thinking_reflection` prompt (migration 087),
+    serialises (user_message, intent_type, run_context) as the user
+    payload, and asks Gemini for the reflection. On any failure path
+    (no active prompt, LLM exception, empty content) returns None so
+    the caller can fall back to `_build_thinking_trace`.
+    """
+    try:
+        meta = await load_active_prompt(
+            pool=pool,
+            tenant_id=tenant_id,
+            agent_type=_THINKING_REFLECTION_AGENT_TYPE,
+            function_name=_THINKING_REFLECTION_FUNCTION_NAME,
+        )
+    except Exception:
+        _logger.exception("thinking_reflection prompt load failed")
+        return None
+    if meta is None:
+        return None
+
+    payload = json.dumps(
+        {
+            "user_message": user_message,
+            "intent_type": intent_type,
+            "run_context": run_context or {},
+        },
+        ensure_ascii=False,
+    )
+    request = LLMRequest(
+        prompt=payload,
+        temperature=meta["temperature"],
+        max_tokens=meta["max_tokens"],
+        thinking_enabled=meta["thinking_enabled"],
+        system_prompt=meta["template"],
+    )
+    try:
+        response = await llm_client.complete(request)
+    except Exception:
+        _logger.warning("thinking_reflection LLM call failed", exc_info=True)
+        return None
+    text = (response.content or "").strip()
+    if text == "":
+        return None
+    return text
+
+
 async def orchestrate(
     message: str,
     tenant_id: str,
@@ -1506,15 +1579,31 @@ async def orchestrate(
     )
 
     aggregator_label = f"{intent_spec.aggregator_agent_type}/{intent_spec.aggregator_function_name}"
-    # Kick off the aggregator-prompt load concurrently with the
-    # specialists so the latency is bounded by max(specialists,
-    # aggregator-fetch) rather than their sum.
+    # Kick off the aggregator-prompt load + the prose thinking
+    # reflection concurrently with the specialists so the latency is
+    # bounded by max(specialists, aggregator-fetch, thinking) rather
+    # than their sum.
     aggregator_meta_task = asyncio.create_task(
         load_active_prompt(
             pool=pool,
             tenant_id=tenant_id,
             agent_type=intent_spec.aggregator_agent_type,
             function_name=intent_spec.aggregator_function_name,
+        )
+    )
+    # Sub-Sprint 3 — prose thinking. The reflection runs in parallel
+    # with the specialists so its latency is hidden under the
+    # aggregator's. On any failure (prompt missing, LLM error,
+    # unparseable response) we fall back to the deterministic
+    # `_build_thinking_trace` composer.
+    thinking_prose_task = asyncio.create_task(
+        _compose_prose_thinking(
+            pool=pool,
+            llm_client=llm_client,
+            tenant_id=tenant_id,
+            user_message=message,
+            intent_type=intent,
+            run_context=run_context,
         )
     )
     if specialist_ids:
@@ -1526,6 +1615,7 @@ async def orchestrate(
     else:
         specialist_outcomes = []
     aggregator_meta = await aggregator_meta_task
+    thinking_prose: str | None = await thinking_prose_task
 
     agents_called: list[str] = [outcome.bearer_label for outcome in specialist_outcomes]
     agents_called.append(aggregator_label)
@@ -1533,7 +1623,9 @@ async def orchestrate(
     # 4. Aggregator — compose the final user-facing response.
     if aggregator_meta is None:
         return OrchestratorResult(
-            thinking_trace=_build_thinking_trace(
+            thinking_trace=thinking_prose
+            if thinking_prose is not None
+            else _build_thinking_trace(
                 message=message,
                 intent=intent,
                 specialist_ids=specialist_ids,
@@ -1578,7 +1670,9 @@ async def orchestrate(
 
     # 5. Compose Regalica response.
     return OrchestratorResult(
-        thinking_trace=_build_thinking_trace(
+        thinking_trace=thinking_prose
+        if thinking_prose is not None
+        else _build_thinking_trace(
             message=message,
             intent=intent,
             specialist_ids=specialist_ids,
