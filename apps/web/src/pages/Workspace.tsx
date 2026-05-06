@@ -549,10 +549,7 @@ export default function Workspace() {
     // Sprint D — Point 5 — a manual Lancer click is the user opening
     // a NEW validation context. Reset the chat thread BEFORE kickoff
     // so the briefing / synthesis messages persisted by chatbot-py
-    // land in a fresh conversation (not appended to the previous
-    // run's narrative). The companion-follow-up case (Regalica asked
-    // the user to upload a missing annexe) routes through a separate
-    // path that does NOT call this handler.
+    // land in a fresh conversation.
     resetConversation();
     void startRun
       .start({
@@ -564,6 +561,22 @@ export default function Workspace() {
         setActiveRunId(res.run_id);
         setPendingUpload(null);
         upload.reset();
+        // P2 — fire a synthetic chat turn so the thinking_reflection
+        // prompt produces its prose at the moment of validation launch.
+        // The orchestrator routes "lance la validation" via the
+        // launch_validation intent → t1_runner specialist (already
+        // running on the server side via /upload's auto-chain) →
+        // aggregator that surfaces the verdict synthesis. The
+        // user-visible artefact is a Regalica bubble carrying both the
+        // prose thinking AND the verdict synthesis — exactly what the
+        // user requested:
+        //   "le mode thinking doit être au début de la discussion même
+        //    lors de lancement de la validation".
+        void sendMessage(
+          t('autoLaunch.triggerMessage', {
+            defaultValue: 'Lance la validation BCT T1 sur le fichier que je viens de charger.',
+          }),
+        );
       })
       .catch(() => {
         // No silent swallow: useStartRun stored {code, message} in
@@ -571,7 +584,7 @@ export default function Workspace() {
         // thread (Tranche 1.1). Local catch only prevents the
         // unhandled-rejection warning.
       });
-  }, [pendingUpload, resetConversation, startRun, upload]);
+  }, [pendingUpload, resetConversation, sendMessage, startRun, t, upload]);
 
   const handleCancelPending = useCallback((): void => {
     setPendingUpload(null);

@@ -232,7 +232,8 @@
     "triggerMessage": "Regarde ce FAIL : règle {{ax}}/{{num}} et explique la cause racine."
   },
   "autoLaunch": {
-    "acknowledgement": "Très bien. Je lance la validation BCT T1 sur le fichier que vous venez de charger."
+    "acknowledgement": "Très bien. Je lance la validation BCT T1 sur le fichier que vous venez de charger.",
+    "triggerMessage": "Lance la validation BCT T1 sur le fichier que je viens de charger."
   },
   "thinking": {
     "label": "Mode thinking · raisonnement Regalica"

@@ -232,7 +232,8 @@
     "triggerMessage": "Zoom on this FAIL: rule {{ax}}/{{num}} and explain the root cause."
   },
   "autoLaunch": {
-    "acknowledgement": "Understood. Launching the BCT T1 validation on the file you just uploaded."
+    "acknowledgement": "Understood. Launching the BCT T1 validation on the file you just uploaded.",
+    "triggerMessage": "Launch the BCT T1 validation on the file I just uploaded."
   },
   "thinking": {
     "label": "Thinking mode · Regalica reasoning"
