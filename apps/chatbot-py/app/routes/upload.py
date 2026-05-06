@@ -338,6 +338,16 @@ def _propagate_outputs(shared: dict[str, Any], step: _StepRow, result: AgentResu
         annexe = result.output.get("code_annexe")
         if isinstance(annexe, str) and annexe != "":
             shared["primary_annexe"] = annexe
+    elif step.agent_type == "dependency":
+        # Sprint C — Point 4 — surface the dependency check output to
+        # the briefing renderer so Regalica can react to the missing
+        # companion situation. The DependencyAgent.output shape:
+        #   {primary_annexe, required: [...], missing: [...], autonomous: bool}
+        # Only the three fields the briefing prompt consumes leak into
+        # `shared` to keep the dict surface small.
+        shared["dependency_required"] = result.output.get("required", [])
+        shared["dependency_missing"] = result.output.get("missing", [])
+        shared["dependency_autonomous"] = bool(result.output.get("autonomous", False))
 
 
 async def _finalize_t0_failure_best_effort(
@@ -398,6 +408,25 @@ async def _finalize_t0_failure_best_effort(
         )
 
 
+def _format_dependency_list(items: list[Any]) -> str:
+    """Render a list of dependency entries as a comma-separated annexe code list.
+
+    Each entry is the dict produced by `DependencyAgent.check`:
+    `{annexe_code, dependency_type, source_circulaire, source_article}`.
+    Returns "(aucun)" when the list is empty so the rendered briefing
+    prompt never carries a bare empty placeholder.
+    """
+    if not items:
+        return "(aucun)"
+    codes: list[str] = []
+    for item in items:
+        if isinstance(item, dict):
+            code = item.get("annexe_code")
+            if isinstance(code, str) and code != "":
+                codes.append(code)
+    return ", ".join(codes) if codes else "(aucun)"
+
+
 async def _render_briefing(
     pool: asyncpg.Pool,
     llm_client: LLMClient,
@@ -415,12 +444,23 @@ async def _render_briefing(
     if meta is None:
         return None
     primary_annexe = shared.get("primary_annexe", "")
+    # Sprint C — Point 4 — propagate the DependencyAgent output into the
+    # briefing prompt so Regalica's narrative can name missing companions
+    # and acknowledge multi-XML coherence. The placeholders below are
+    # silently no-op when the prompt template does not reference them
+    # (str.replace returns the input unchanged on a missing substring).
+    required_codes = _format_dependency_list(shared.get("dependency_required", []))
+    missing_codes = _format_dependency_list(shared.get("dependency_missing", []))
+    autonomous = "true" if shared.get("dependency_autonomous", False) else "false"
     rendered = (
         meta["template"]
         .replace("{upload_id}", payload.primary_upload_id)
         .replace("{filename}", "")
         .replace("{annexe_code}", str(primary_annexe))
         .replace("{arrete_date}", payload.arrete_date)
+        .replace("{required_companions}", required_codes)
+        .replace("{missing_companions}", missing_codes)
+        .replace("{autonomous}", autonomous)
     )
     response = await llm_client.complete(
         LLMRequest(
