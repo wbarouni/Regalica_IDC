@@ -105,6 +105,43 @@ describe('<InvestigationArtefact> — C', () => {
     );
   });
 
+  it('Sub-Sprint 4 — surfaces the rubrique codes block when the fail carries codes', () => {
+    const { container } = renderWithI18n(
+      <InvestigationArtefact
+        fail={makeFail({ rubrique_codes: ['AC010000000000', 'AC020000000000'] })}
+      />,
+    );
+    const flat = (container.textContent ?? '').replace(/\s/g, ' ');
+    expect(flat).toContain('Rubriques concernées');
+    expect(flat).toContain('AC010000000000');
+    expect(flat).toContain('AC020000000000');
+  });
+
+  it('Sub-Sprint 4 — omits the rubrique block when codes are empty', () => {
+    const { container } = renderWithI18n(
+      <InvestigationArtefact fail={makeFail({ rubrique_codes: [] })} />,
+    );
+    expect(container.textContent ?? '').not.toContain('Rubriques concernées');
+  });
+
+  it('Sub-Sprint 4 — renders the Regalica synthesis sentence at the bottom', () => {
+    renderWithI18n(
+      <InvestigationArtefact
+        fail={makeFail({
+          rubrique_codes: ['AC010000000000'],
+          expected_value: 21457.971,
+          computed_value: 0,
+          gap_absolute: 21457.971,
+        })}
+      />,
+    );
+    const synthesis = screen.getByTestId('investigation-synthesis');
+    expect(synthesis.textContent ?? '').toContain('Synthèse');
+    // The "écart total" branch fires when LHS=0 and RHS>0.
+    expect(synthesis.textContent ?? '').toContain('écart est total');
+    expect(synthesis.textContent ?? '').toContain('AC010000000000');
+  });
+
   it('renders cleanly in EN and AR locales (parity guard)', async () => {
     await i18n.changeLanguage('en');
     const { unmount } = renderWithI18n(<InvestigationArtefact fail={makeFail()} />);

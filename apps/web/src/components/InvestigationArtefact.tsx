@@ -43,6 +43,38 @@ function deriveConfidenceFromSeverity(severity: 'severe' | 'rounding'): 'high' |
   return severity === 'severe' ? 'low' : 'medium';
 }
 
+/**
+ * Sub-Sprint 4 — produce a one-sentence Regalica synthesis at the
+ * bottom of the investigation block. Pure deterministic composer;
+ * mirrors the assertive voice imposed on `aggregate_zoom_fail`
+ * (migration 086): no hedging, KTND-suffixed amount, rubrique codes
+ * folded into the prose. Falls back to a sober "élément absent"
+ * statement when the gap data is missing.
+ */
+function buildRegalicaSynthesis(fail: FailDetail): string {
+  const codes = fail.rubrique_codes;
+  const codesPhrase =
+    codes.length === 0
+      ? 'aucune rubrique addressée'
+      : codes.length === 1
+        ? `la rubrique \`${codes[0]}\``
+        : `${codes.length} rubriques (\`${codes[0]}\` et autres)`;
+  const gap = fail.gap_absolute;
+  const expected = fail.expected_value;
+  if (
+    gap !== null &&
+    expected !== null &&
+    Number(expected) !== 0 &&
+    Number(fail.computed_value ?? 0) === 0
+  ) {
+    return `Synthèse — l'écart est total sur ${codesPhrase} ; la rubrique n'est pas alimentée et le contrôle se résout par rechargement du fichier après correction de l'extraction. Aucune modification de règle BCT n'est requise.`;
+  }
+  if (fail.severity === 'rounding') {
+    return `Synthèse — l'écart porte sur ${codesPhrase} et reste dans le périmètre d'arrondi ; arbitrage opérateur attendu, aucune modification de règle nécessaire.`;
+  }
+  return `Synthèse — l'écart sévère porte sur ${codesPhrase} ; un audit du mapping et de l'extraction source précède toute modification de règle.`;
+}
+
 export interface InvestigationArtefactProps {
   fail: FailDetail;
 }
@@ -125,6 +157,32 @@ export function InvestigationArtefact({ fail }: InvestigationArtefactProps): JSX
               </div>
             </div>
 
+            {fail.rubrique_codes.length > 0 && (
+              <>
+                <h4>
+                  {t('investigation.rubriquesLabel', {
+                    defaultValue: 'Rubriques concernées',
+                  })}
+                </h4>
+                <div
+                  className="mono"
+                  style={{
+                    fontSize: '12px',
+                    color: 'var(--stone-700)',
+                    background: 'var(--stone-50)',
+                    border: '1px solid var(--stone-200)',
+                    borderRadius: '4px',
+                    padding: '8px 10px',
+                    whiteSpace: 'normal',
+                    wordBreak: 'break-all',
+                    lineHeight: '1.5',
+                  }}
+                >
+                  {fail.rubrique_codes.join(', ')}
+                </div>
+              </>
+            )}
+
             <h4>{t('investigation.calcBlockLabel', { defaultValue: 'Bloc de calcul' })}</h4>
             <div className="calc-block">
               <span className="c-comment">
@@ -206,6 +264,22 @@ export function InvestigationArtefact({ fail }: InvestigationArtefactProps): JSX
               />
             </div>
           </aside>
+        </div>
+
+        <div
+          data-testid="investigation-synthesis"
+          style={{
+            marginTop: '16px',
+            padding: '12px 14px',
+            background: 'var(--marigold-50)',
+            border: '1px solid var(--marigold-200)',
+            borderRadius: '4px',
+            fontSize: '13px',
+            lineHeight: '1.55',
+            color: 'var(--ink)',
+          }}
+        >
+          {buildRegalicaSynthesis(fail)}
         </div>
       </div>
     </article>

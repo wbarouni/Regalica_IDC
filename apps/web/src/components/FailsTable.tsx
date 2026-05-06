@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 
 import { useFails, type FailFilter } from '../hooks/useFails';
+import type { FailDetail } from '../types/api';
 import { formatBankingNumber, formatBankingPercent } from '../utils/banking';
 
 /**
@@ -23,9 +24,23 @@ import { formatBankingNumber, formatBankingPercent } from '../utils/banking';
 export interface FailsTableProps {
   runId: string;
   filter?: FailFilter;
+  /**
+   * Sub-Sprint 4 — when supplied, every row becomes a button that
+   * lifts the clicked fail to the parent so the InvestigationArtefact
+   * can re-render against it. The active row is highlighted via the
+   * `selectedFailId` prop. Both props are optional: callers that just
+   * need the read-only table omit them.
+   */
+  onFailClick?: (fail: FailDetail) => void;
+  selectedFailId?: string | null;
 }
 
-export function FailsTable({ runId, filter = 'all' }: FailsTableProps): JSX.Element {
+export function FailsTable({
+  runId,
+  filter = 'all',
+  onFailClick,
+  selectedFailId,
+}: FailsTableProps): JSX.Element {
   const { t } = useTranslation();
   const { fails, loading, error, total, page, setPage } = useFails(runId, filter);
 
@@ -87,27 +102,54 @@ export function FailsTable({ runId, filter = 'all' }: FailsTableProps): JSX.Elem
             </tr>
           </thead>
           <tbody>
-            {fails.map((f) => (
-              <tr key={f.id} className="border-b border-stone-200 last:border-0 hover:bg-stone-50">
-                <td className="px-2 py-1.5">{f.ax_term}</td>
-                <td className="px-2 py-1.5">{f.num_regle}</td>
-                <td className="px-2 py-1.5">
-                  <SeverityBadge severity={f.severity} />
-                </td>
-                <td className="px-2 py-1.5 text-right tabular-nums">
-                  {formatBankingNumber(f.expected_value)}
-                </td>
-                <td className="px-2 py-1.5 text-right tabular-nums">
-                  {formatBankingNumber(f.computed_value)}
-                </td>
-                <td className="px-2 py-1.5 text-right tabular-nums">
-                  {formatBankingNumber(f.gap_absolute)}
-                </td>
-                <td className="px-2 py-1.5 text-right tabular-nums">
-                  {formatBankingPercent(f.gap_relative)}
-                </td>
-              </tr>
-            ))}
+            {fails.map((f) => {
+              const isSelected = selectedFailId === f.id;
+              const interactive = onFailClick !== undefined;
+              const handleRowClick = (): void => {
+                if (interactive) onFailClick(f);
+              };
+              const handleRowKey = (e: React.KeyboardEvent<HTMLTableRowElement>): void => {
+                if (!interactive) return;
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onFailClick(f);
+                }
+              };
+              const baseClasses = 'border-b border-stone-200 last:border-0';
+              const interactClasses = interactive
+                ? 'cursor-pointer hover:bg-marigold-50'
+                : 'hover:bg-stone-50';
+              const selectedClasses = isSelected ? 'bg-marigold-100' : '';
+              return (
+                <tr
+                  key={f.id}
+                  className={`${baseClasses} ${interactClasses} ${selectedClasses}`}
+                  onClick={interactive ? handleRowClick : undefined}
+                  onKeyDown={interactive ? handleRowKey : undefined}
+                  role={interactive ? 'button' : undefined}
+                  tabIndex={interactive ? 0 : undefined}
+                  aria-pressed={interactive ? isSelected : undefined}
+                >
+                  <td className="px-2 py-1.5">{f.ax_term}</td>
+                  <td className="px-2 py-1.5">{f.num_regle}</td>
+                  <td className="px-2 py-1.5">
+                    <SeverityBadge severity={f.severity} />
+                  </td>
+                  <td className="px-2 py-1.5 text-right tabular-nums">
+                    {formatBankingNumber(f.expected_value)}
+                  </td>
+                  <td className="px-2 py-1.5 text-right tabular-nums">
+                    {formatBankingNumber(f.computed_value)}
+                  </td>
+                  <td className="px-2 py-1.5 text-right tabular-nums">
+                    {formatBankingNumber(f.gap_absolute)}
+                  </td>
+                  <td className="px-2 py-1.5 text-right tabular-nums">
+                    {formatBankingPercent(f.gap_relative)}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

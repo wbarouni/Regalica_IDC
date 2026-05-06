@@ -26,7 +26,7 @@ import { useStartRun } from '../hooks/useStartRun';
 import { useTopSevereFail } from '../hooks/useTopSevereFail';
 import { useTypewriter } from '../hooks/useTypewriter';
 import { useUpload, type UploadDto } from '../hooks/useUpload';
-import type { Notification, RunAgentStep, ValidationRun } from '../types/api';
+import type { FailDetail, Notification, RunAgentStep, ValidationRun } from '../types/api';
 import { groupByDay } from '../utils/groupByDay';
 
 function ConfigMissingState({ missing }: { missing: string }) {
@@ -431,6 +431,17 @@ export default function Workspace() {
   // gate on severity inside the JSX below to keep the hook simple).
   const topFail = useTopSevereFail(currentRunId);
 
+  // Sub-Sprint 4 — clicking a row in <FailsTable> selects that fail
+  // for the InvestigationArtefact below. Initial value null lets the
+  // existing top-severe auto-mount keep working (we fall back to
+  // `topFail.fail` when nothing is selected). Setter cleared via the
+  // run id reset below if currentRunId flips.
+  const [selectedFail, setSelectedFail] = useState<FailDetail | null>(null);
+  useEffect(() => {
+    setSelectedFail(null);
+  }, [currentRunId]);
+  const investigationFail = selectedFail ?? topFail.fail;
+
   // D — auto-zoom: when the run is completed AND a top severe fail
   // is loaded, fire ONCE per runId a synthetic chat turn that lets
   // Regalica explain the fail through the canonical zoom intent.
@@ -670,14 +681,23 @@ export default function Workspace() {
                     0 && (
                     /* Tranche 0.5 W2.2 — validation_fail_details rows
                        persisted by /finalize, banking-format columns
-                       surfaced. */
-                    <FailsTable runId={currentRunId} filter="all" />
+                       surfaced. Sub-Sprint 4: rows are now clickable
+                       and feed the InvestigationArtefact below. */
+                    <FailsTable
+                      runId={currentRunId}
+                      filter="all"
+                      onFailClick={setSelectedFail}
+                      selectedFailId={investigationFail?.id ?? null}
+                    />
                   )}
-                {topFail.fail !== null && topFail.fail.severity === 'severe' && (
-                  /* C — auto-mount the Investigation block on the top
-                     severe fail. Lights up the orphan .decomp /
-                     .calc-block / .inspector primitives. */
-                  <InvestigationArtefact fail={topFail.fail} />
+                {investigationFail !== null && (
+                  /* C — Investigation block. Defaults to the top severe
+                     fail (auto-mounted by useTopSevereFail) and switches
+                     to whatever row the user clicks in FailsTable above
+                     (Sub-Sprint 4). The artefact accepts both severities
+                     so a click on a rounding row also surfaces the
+                     decomposition. */
+                  <InvestigationArtefact fail={investigationFail} />
                 )}
                 <T3LockBanner totalFailSevere={summary.run.total_fail_severe ?? 0} />
               </RegalicaRunSpeech>
