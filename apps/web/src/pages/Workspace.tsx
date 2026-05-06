@@ -413,6 +413,12 @@ export default function Workspace() {
     // Tranche 0 E2 — pass the active run id so chatbot-py routes
     // launch_validation to t1_runner with current_run_id non-null.
     injectRegalicaMessage,
+    // Sprint D — Point 5 — manual upload of a fresh annexe opens a
+    // fresh chat thread (the prior conversation is dropped from the
+    // local view; archive sidebar arrives in a follow-up sprint). When
+    // Regalica requests a companion follow-up, the caller does NOT
+    // invoke this and the thread continues.
+    resetConversation,
   } = useChat({
     runId: currentRunId,
     onLocalIntentMatch: (text) => localLaunchMatcherRef.current?.(text) === true,
@@ -522,12 +528,19 @@ export default function Workspace() {
 
   const handleLaunchRun = useCallback((): void => {
     if (pendingUpload === null) return;
+    // Sprint D — Point 5 — a manual Lancer click is the user opening
+    // a NEW validation context. Reset the chat thread BEFORE kickoff
+    // so the briefing / synthesis messages persisted by chatbot-py
+    // land in a fresh conversation (not appended to the previous
+    // run's narrative). The companion-follow-up case (Regalica asked
+    // the user to upload a missing annexe) routes through a separate
+    // path that does NOT call this handler.
+    resetConversation();
     void startRun
       .start({
         upload_ids: [pendingUpload.upload_id],
         primary_upload_id: pendingUpload.upload_id,
         arrete_date: pendingUpload.arrete_date,
-        ...(conversationId !== null ? { conversation_id: conversationId } : {}),
       })
       .then((res) => {
         setActiveRunId(res.run_id);
@@ -540,7 +553,7 @@ export default function Workspace() {
         // thread (Tranche 1.1). Local catch only prevents the
         // unhandled-rejection warning.
       });
-  }, [pendingUpload, conversationId, startRun, upload]);
+  }, [pendingUpload, resetConversation, startRun, upload]);
 
   const handleCancelPending = useCallback((): void => {
     setPendingUpload(null);

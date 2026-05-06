@@ -138,3 +138,46 @@ describe('useChat — Point 2: local intent interceptor + injectRegalicaMessage'
     expect(result.current.messages[0]?.content).toBe('OK lancement…');
   });
 });
+
+describe('useChat — Sprint D Point 5: resetConversation lifecycle', () => {
+  it('clears messages, conversation_id and error when resetConversation fires', async () => {
+    fetchMock.mockResolvedValueOnce(chatResponseStub());
+    const { result } = renderHook(() => useChat());
+    await act(async () => {
+      await result.current.sendMessage('Bonjour');
+    });
+    await waitFor(() => expect(result.current.conversationId).toBe('cv'));
+    expect(result.current.messages.length).toBeGreaterThan(0);
+
+    act(() => {
+      result.current.resetConversation();
+    });
+
+    expect(result.current.messages).toHaveLength(0);
+    expect(result.current.conversationId).toBeNull();
+    expect(result.current.error).toBeNull();
+  });
+
+  it('next sendMessage after resetConversation omits conversation_id from the body', async () => {
+    fetchMock.mockResolvedValueOnce(chatResponseStub());
+    fetchMock.mockResolvedValueOnce(chatResponseStub());
+    const { result } = renderHook(() => useChat());
+    await act(async () => {
+      await result.current.sendMessage('first');
+    });
+    await waitFor(() => expect(result.current.conversationId).toBe('cv'));
+
+    act(() => {
+      result.current.resetConversation();
+    });
+
+    await act(async () => {
+      await result.current.sendMessage('second');
+    });
+    const [, init] = fetchMock.mock.calls[1]! as [string, RequestInit];
+    const body = JSON.parse(init.body as string) as Record<string, unknown>;
+    // After reset the next round-trip carries undefined conversation_id
+    // — JSON.stringify drops the key entirely.
+    expect(body).not.toHaveProperty('conversation_id');
+  });
+});

@@ -94,6 +94,14 @@ interface UseChatResult {
    * interceptor to acknowledge a chat-driven launch_validation.
    */
   injectRegalicaMessage: (content: string) => void;
+  /**
+   * Sprint D — Point 5 — clear messages + conversation_id so the next
+   * `sendMessage` opens a fresh chatbot-py conversation. Caller invokes
+   * this when the user manually launches a NEW upload (Lancer button)
+   * — NOT when Regalica is requesting a follow-up (companion upload),
+   * where the conversation must persist for thread continuity.
+   */
+  resetConversation: () => void;
 }
 
 export function useChat(options: UseChatOptions = {}): UseChatResult {
@@ -206,6 +214,12 @@ export function useChat(options: UseChatOptions = {}): UseChatResult {
 
   const clearError = useCallback(() => setError(null), []);
 
+  const resetConversation = useCallback((): void => {
+    setMessages([]);
+    setConversationId(null);
+    setError(null);
+  }, []);
+
   return {
     messages,
     loading,
@@ -214,5 +228,6 @@ export function useChat(options: UseChatOptions = {}): UseChatResult {
     sendMessage,
     clearError,
     injectRegalicaMessage,
+    resetConversation,
   };
 }
