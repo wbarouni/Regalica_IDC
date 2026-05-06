@@ -14,6 +14,7 @@ import { InvestigationArtefact } from '../components/InvestigationArtefact';
 import { ProgressBar } from '../components/ProgressBar';
 import { RegalicaRunSpeech } from '../components/RegalicaRunSpeech';
 import { SuggestionChips } from '../components/SuggestionChips';
+import { UploadDropZone } from '../components/UploadDropZone';
 import { LanguageSwitcher } from '../components/primitives/LanguageSwitcher';
 import { PersonaSidebar } from '../components/layout/PersonaSidebar';
 import { useAgentSteps } from '../hooks/useAgentSteps';
@@ -613,148 +614,155 @@ export default function Workspace() {
   const runIdShort = currentRunId !== null ? currentRunId.slice(0, 8) : null;
 
   return (
-    <div className="app">
-      <PersonaSidebar run={run} loading={runLoading} mode="workspace" />
+    <UploadDropZone
+      onFileAccepted={handleFileSelect}
+      disabled={upload.uploading || startRun.starting}
+    >
+      <div className="app">
+        <PersonaSidebar run={run} loading={runLoading} mode="workspace" />
 
-      <main className="canvas">
-        <header className="cmd">
-          <nav className="cmd__nav" aria-label={t('nav.workspace')}>
-            <a onClick={() => navigate('/filings')}>{t('nav.filings')}</a>
-            <a className="active">{t('nav.workspace')}</a>
-            <a onClick={() => navigate('/library')}>{t('nav.library')}</a>
-          </nav>
-          <div className="cmd__context">
-            <LanguageSwitcher />
-          </div>
-        </header>
+        <main className="canvas">
+          <header className="cmd">
+            <nav className="cmd__nav" aria-label={t('nav.workspace')}>
+              <a onClick={() => navigate('/filings')}>{t('nav.filings')}</a>
+              <a className="active">{t('nav.workspace')}</a>
+              <a onClick={() => navigate('/library')}>{t('nav.library')}</a>
+            </nav>
+            <div className="cmd__context">
+              <LanguageSwitcher />
+            </div>
+          </header>
 
-        <Ribbon steps={steps} run={run} runIdShort={runIdShort} />
-        {run?.status === 'running' && <ProgressBar runId={currentRunId} />}
+          <Ribbon steps={steps} run={run} runIdShort={runIdShort} />
+          {run?.status === 'running' && <ProgressBar runId={currentRunId} />}
 
-        <div className="thread-scroll">
-          <div className="thread">
-            {notifications.length > 0 && (
-              <Artefact type="notification" state="standard">
-                <ul className="space-y-2">
-                  {notifications.map((n) => (
-                    <NotificationRow key={n.id} notification={n} onMark={handleMarkRead} />
-                  ))}
-                </ul>
-              </Artefact>
-            )}
+          <div className="thread-scroll">
+            <div className="thread">
+              {notifications.length > 0 && (
+                <Artefact type="notification" state="standard">
+                  <ul className="space-y-2">
+                    {notifications.map((n) => (
+                      <NotificationRow key={n.id} notification={n} onMark={handleMarkRead} />
+                    ))}
+                  </ul>
+                </Artefact>
+              )}
 
-            {displayedEngineError !== null && (
-              <EngineErrorArtefact
-                code={displayedEngineError.code}
-                message={displayedEngineError.message}
-              />
-            )}
+              {displayedEngineError !== null && (
+                <EngineErrorArtefact
+                  code={displayedEngineError.code}
+                  message={displayedEngineError.message}
+                />
+              )}
 
-            {startRun.error !== null && (
-              <LaunchErrorArtefact code={startRun.error.code} message={startRun.error.message} />
-            )}
+              {startRun.error !== null && (
+                <LaunchErrorArtefact code={startRun.error.code} message={startRun.error.message} />
+              )}
 
-            {runLoading && <LoadingState />}
-            {!runLoading && run === null && runError === null && activeRunId === null && (
-              <NoActiveRun />
-            )}
-            {run !== null && summary !== null && summary.run.status !== 'completed' && (
-              /* Correction 1 — running run keeps the Synthèse external
+              {runLoading && <LoadingState />}
+              {!runLoading && run === null && runError === null && activeRunId === null && (
+                <NoActiveRun />
+              )}
+              {run !== null && summary !== null && summary.run.status !== 'completed' && (
+                /* Correction 1 — running run keeps the Synthèse external
                  because there is no Regalica bubble to nest it inside
                  yet (the run hasn't completed; no narrative + no
                  confidence to derive). Once status === 'completed' the
                  Synthèse moves INTO the bubble below. */
-              <RunSynthesisCard run={run} annexes={summary.annexes} />
-            )}
-            {summary !== null && summary.run.status === 'completed' && (
-              /* Point 1 + Correction 1 — Regalica's voice OWNS the
+                <RunSynthesisCard run={run} annexes={summary.annexes} />
+              )}
+              {summary !== null && summary.run.status === 'completed' && (
+                /* Point 1 + Correction 1 — Regalica's voice OWNS the
                  Synthèse, then the cause-root deliverable (Livrable C),
                  then the FailsTable, then the per-fail decomposition.
                  Everything sits as direct children of .msg-rega__body
                  to match the workspace v5 mockup pattern (:626-697)
                  where every <article class="artefact"> is rendered
                  inside the bubble. */
-              <RegalicaRunSpeech run={summary.run}>
-                <RunSynthesisCard run={summary.run} annexes={summary.annexes} />
-                <T1Deliverables run={summary.run} />
-                {currentRunId !== null &&
-                  (summary.run.total_fail_severe ?? 0) + (summary.run.total_fail_rounding ?? 0) >
-                    0 && (
-                    /* Tranche 0.5 W2.2 — validation_fail_details rows
+                <RegalicaRunSpeech run={summary.run}>
+                  <RunSynthesisCard run={summary.run} annexes={summary.annexes} />
+                  <T1Deliverables run={summary.run} />
+                  {currentRunId !== null &&
+                    (summary.run.total_fail_severe ?? 0) + (summary.run.total_fail_rounding ?? 0) >
+                      0 && (
+                      /* Tranche 0.5 W2.2 — validation_fail_details rows
                        persisted by /finalize, banking-format columns
                        surfaced. Sub-Sprint 4: rows are now clickable
                        and feed the InvestigationArtefact below. */
-                    <FailsTable
-                      runId={currentRunId}
-                      filter="all"
-                      onFailClick={setSelectedFail}
-                      selectedFailId={investigationFail?.id ?? null}
-                    />
-                  )}
-                {investigationFail !== null && (
-                  /* C — Investigation block. Defaults to the top severe
+                      <FailsTable
+                        runId={currentRunId}
+                        filter="all"
+                        onFailClick={setSelectedFail}
+                        selectedFailId={investigationFail?.id ?? null}
+                      />
+                    )}
+                  {investigationFail !== null && (
+                    /* C — Investigation block. Defaults to the top severe
                      fail (auto-mounted by useTopSevereFail) and switches
                      to whatever row the user clicks in FailsTable above
                      (Sub-Sprint 4). The artefact accepts both severities
                      so a click on a rounding row also surfaces the
                      decomposition. */
-                  <InvestigationArtefact fail={investigationFail} />
-                )}
-                <T3LockBanner totalFailSevere={summary.run.total_fail_severe ?? 0} />
-              </RegalicaRunSpeech>
-            )}
-            {run !== null && summary === null && (
-              /* Defensive: run row exists but /summary is still pending.
+                    <InvestigationArtefact fail={investigationFail} />
+                  )}
+                  <T3LockBanner totalFailSevere={summary.run.total_fail_severe ?? 0} />
+                </RegalicaRunSpeech>
+              )}
+              {run !== null && summary === null && (
+                /* Defensive: run row exists but /summary is still pending.
                  Show the KPI grid skeleton from the run row alone (no
                  annexes block until summary lands). */
-              <RunSynthesisCard run={run} annexes={[]} />
-            )}
+                <RunSynthesisCard run={run} annexes={[]} />
+              )}
 
-            <ChatThread messages={messages} />
+              <ChatThread messages={messages} />
 
-            {chatError !== null && (
-              <div
-                className="text-xs font-mono text-vermilion-700 flex items-center gap-2"
-                role="alert"
-              >
-                <span>
-                  {chatError === 'MISSING_CONFIG' ? t('chat.errorConfig') : t('chat.errorGeneric')}
-                </span>
-                <button type="button" onClick={clearError} className="underline hover:text-ink">
-                  ×
-                </button>
-              </div>
-            )}
+              {chatError !== null && (
+                <div
+                  className="text-xs font-mono text-vermilion-700 flex items-center gap-2"
+                  role="alert"
+                >
+                  <span>
+                    {chatError === 'MISSING_CONFIG'
+                      ? t('chat.errorConfig')
+                      : t('chat.errorGeneric')}
+                  </span>
+                  <button type="button" onClick={clearError} className="underline hover:text-ink">
+                    ×
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
 
-        {(upload.uploading || pendingUpload !== null || upload.error !== null) && (
-          <UploadStagedRow
-            uploading={upload.uploading}
-            progress={upload.progress}
-            uploadError={upload.error}
-            starting={startRun.starting}
-            pending={pendingUpload}
-            onLaunch={handleLaunchRun}
-            onCancel={handleCancelPending}
-          />
-        )}
-
-        <Dock
-          onSend={handleSend}
-          onFileSelect={handleFileSelect}
-          loading={chatLoading || upload.uploading || startRun.starting}
-          onDownloadReport={run?.status === 'completed' ? handleDownloadReport : undefined}
-          suggestions={
-            <SuggestionChips
-              runId={currentRunId}
-              onSelect={handleChipSelect}
-              disabled={chatLoading}
+          {(upload.uploading || pendingUpload !== null || upload.error !== null) && (
+            <UploadStagedRow
+              uploading={upload.uploading}
+              progress={upload.progress}
+              uploadError={upload.error}
+              starting={startRun.starting}
+              pending={pendingUpload}
+              onLaunch={handleLaunchRun}
+              onCancel={handleCancelPending}
             />
-          }
-        />
-      </main>
-    </div>
+          )}
+
+          <Dock
+            onSend={handleSend}
+            onFileSelect={handleFileSelect}
+            loading={chatLoading || upload.uploading || startRun.starting}
+            onDownloadReport={run?.status === 'completed' ? handleDownloadReport : undefined}
+            suggestions={
+              <SuggestionChips
+                runId={currentRunId}
+                onSelect={handleChipSelect}
+                disabled={chatLoading}
+              />
+            }
+          />
+        </main>
+      </div>
+    </UploadDropZone>
   );
 }
 

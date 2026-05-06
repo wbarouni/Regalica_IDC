@@ -37,7 +37,11 @@
     "staged": "الملف جاهز",
     "starting": "جارٍ البدء…",
     "deduplicated": "تم استيعابه مسبقًا",
-    "errorPrefix": "خطأ"
+    "errorPrefix": "خطأ",
+    "dropZone": {
+      "title": "أفلت ملحق XML الخاص بك",
+      "subtitle": "تنسيق XML BCT. سيتم استيعاب الملف ثم التحقق منه قبل التحقيق."
+    }
   },
   "status": {
     "draft": "مسودة",

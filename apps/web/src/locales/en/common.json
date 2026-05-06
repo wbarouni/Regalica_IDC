@@ -37,7 +37,11 @@
     "staged": "File ready",
     "starting": "Starting…",
     "deduplicated": "already ingested",
-    "errorPrefix": "Error"
+    "errorPrefix": "Error",
+    "dropZone": {
+      "title": "Drop your BCT XML annex",
+      "subtitle": "BCT XML format. The file will be ingested and verified before validation."
+    }
   },
   "status": {
     "draft": "Draft",

@@ -37,7 +37,11 @@
     "staged": "Fichier prêt",
     "starting": "Démarrage…",
     "deduplicated": "déjà ingéré",
-    "errorPrefix": "Erreur"
+    "errorPrefix": "Erreur",
+    "dropZone": {
+      "title": "Déposez votre annexe XML",
+      "subtitle": "Format XML BCT. Le fichier sera ingéré puis vérifié avant validation."
+    }
   },
   "status": {
     "draft": "Brouillon",
