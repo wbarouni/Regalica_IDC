@@ -153,7 +153,7 @@ async def build_run_context(
                 # tolerate KeyError defensively.
                 "rubrique_codes": (
                     list(r["rubrique_codes"])
-                    if "rubrique_codes" in r and r["rubrique_codes"]
+                    if r.get("rubrique_codes")
                     else []
                 ),
             }

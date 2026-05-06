@@ -1308,7 +1308,7 @@ async def _load_run_fails_context(
                 # columns rather than returning None).
                 "rubrique_codes": (
                     list(r["rubrique_codes"])
-                    if "rubrique_codes" in r and r["rubrique_codes"]
+                    if r.get("rubrique_codes")
                     else []
                 ),
             }
@@ -1604,10 +1604,7 @@ def _format_outcome_preview(output: dict[str, Any]) -> str:
 
 def _truncate_value(value: Any, *, max_chars: int) -> str:
     """Stringify a value and cap its length, leaving an ellipsis if cut."""
-    if isinstance(value, list | tuple):
-        s = ", ".join(str(v) for v in value)
-    else:
-        s = str(value)
+    s = ", ".join(str(v) for v in value) if isinstance(value, list | tuple) else str(value)
     if len(s) > max_chars:
         return s[: max_chars - 1] + "…"
     return s
@@ -1620,7 +1617,7 @@ def _build_thinking_trace(
     specialist_ids: list[str],
     aggregator_label: str,
     router_confidence: float | None = None,
-    specialist_outcomes: list["_SpecialistOutcome"] | None = None,
+    specialist_outcomes: list[_SpecialistOutcome] | None = None,
 ) -> str:
     """Compose the Regalica thinking trace as up to 5 verbose phases.
 
