@@ -52,6 +52,7 @@ function failRow(over: Partial<Record<string, unknown>> = {}): Record<string, un
     is_sentinel_iteration: false,
     iteration_index: null,
     created_at: '2026-05-04T10:00:00Z',
+    rubrique_codes: [],
     ...over,
   };
 }

@@ -31,6 +31,7 @@ function makeFail(over: Partial<FailDetail> = {}): FailDetail {
     is_sentinel_iteration: false,
     iteration_index: null,
     created_at: '2026-04-30T11:36:00Z',
+    rubrique_codes: [],
     ...over,
   };
 }

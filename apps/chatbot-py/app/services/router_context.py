@@ -86,20 +86,37 @@ async def build_run_context(
     if run_row is None:
         return {}
 
+    # Sprint B — Point 3 — surface the rubrique codes carried by the
+    # rule's `terms` JSONB column so they appear in the run context the
+    # router and aggregator prompts consume. Without this enrichment the
+    # LLM only saw `(ax_term, num_regle)` and could not name the rubrique
+    # in its response — exactly the gap the user flagged ("où sont les
+    # codes rubriques?"). The LATERAL unwrap deduplicates the rubrique
+    # values per fail; absent terms (defensive: rule_id may be missing
+    # for a synthetic fail) collapse to an empty array.
     fail_rows = await pool.fetch(
         """
         SELECT
-          ax_term,
-          num_regle,
-          severity,
-          expected_value::text  AS expected_value,
-          computed_value::text  AS computed_value,
-          gap_absolute::text    AS gap_absolute
-        FROM validation_fail_details
-        WHERE validation_run_id = $1::uuid AND tenant_id = $2::uuid
+          vfd.ax_term,
+          vfd.num_regle,
+          vfd.severity,
+          vfd.expected_value::text AS expected_value,
+          vfd.computed_value::text AS computed_value,
+          vfd.gap_absolute::text   AS gap_absolute,
+          COALESCE(
+            (
+              SELECT array_agg(DISTINCT t->>'rubrique')
+                FROM jsonb_array_elements(COALESCE(r.terms, '[]'::jsonb)) AS t
+               WHERE t ? 'rubrique' AND t->>'rubrique' <> ''
+            ),
+            ARRAY[]::text[]
+          ) AS rubrique_codes
+        FROM validation_fail_details vfd
+        LEFT JOIN rules_active r ON r.id = vfd.rule_id
+        WHERE vfd.validation_run_id = $1::uuid AND vfd.tenant_id = $2::uuid
         ORDER BY
-          CASE severity WHEN 'severe' THEN 0 WHEN 'rounding' THEN 1 ELSE 2 END,
-          ax_term, num_regle
+          CASE vfd.severity WHEN 'severe' THEN 0 WHEN 'rounding' THEN 1 ELSE 2 END,
+          vfd.ax_term, vfd.num_regle
         LIMIT $3
         """,
         run_id,
@@ -129,6 +146,16 @@ async def build_run_context(
                 "expected_value": r["expected_value"],
                 "computed_value": r["computed_value"],
                 "gap_absolute": r["gap_absolute"],
+                # Sprint B — distinct rubrique codes the rule references.
+                # asyncpg returns Postgres text[] as a Python list[str].
+                # `.get()` semantics on asyncpg.Record are unsafe; mock
+                # rows in unit tests may omit the key entirely so we
+                # tolerate KeyError defensively.
+                "rubrique_codes": (
+                    list(r["rubrique_codes"])
+                    if "rubrique_codes" in r and r["rubrique_codes"]
+                    else []
+                ),
             }
             for r in fail_rows
         ],

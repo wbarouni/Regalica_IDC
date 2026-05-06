@@ -53,6 +53,7 @@ describe('useTopSevereFail — D precondition', () => {
               is_sentinel_iteration: false,
               iteration_index: null,
               created_at: '2026-04-30T11:00:00Z',
+              rubrique_codes: [],
             },
           ],
           meta: { ts: '', version: '1', total: 1 },

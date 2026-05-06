@@ -347,6 +347,13 @@ export function workspaceRouter(pool: Pool): IRouter {
           : '';
     try {
       const data = await withConnection(pool, { tenantId, userId }, async (client) => {
+        // Sprint B — surface the distinct rubrique codes referenced by
+        // each rule's `terms` JSONB so the FailsTable shows the rubrique
+        // addressing alongside (ax_term, num_regle). The LATERAL unwrap
+        // deduplicates and collapses to an empty array when terms is
+        // missing or empty (defensive: rule_id may legitimately be NULL
+        // for a synthetic fail, although the JOIN above filters that
+        // case out).
         const rows = await client.query(
           `SELECT
              vfd.id,
@@ -362,7 +369,15 @@ export function workspaceRouter(pool: Pool): IRouter {
              vfd.cluster_id,
              vfd.is_sentinel_iteration,
              vfd.iteration_index,
-             vfd.created_at
+             vfd.created_at,
+             COALESCE(
+               (
+                 SELECT array_agg(DISTINCT t->>'rubrique')
+                   FROM jsonb_array_elements(COALESCE(r.terms, '[]'::jsonb)) AS t
+                  WHERE t ? 'rubrique' AND t->>'rubrique' <> ''
+               ),
+               ARRAY[]::text[]
+             ) AS rubrique_codes
            FROM validation_fail_details vfd
            JOIN rules r ON r.id = vfd.rule_id
            WHERE vfd.validation_run_id = $1

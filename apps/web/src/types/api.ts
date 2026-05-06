@@ -57,6 +57,11 @@ export interface FailDetail {
   is_sentinel_iteration: boolean;
   iteration_index: number | null;
   created_at: string;
+  // Sprint B — Point 3 — distinct rubrique codes the rule references.
+  // Sourced from `rules.terms` JSONB via the LATERAL unwrap in the
+  // /fails endpoint. Empty array when the rule has no rubrique terms
+  // (defensive — should not occur in production seed data).
+  rubrique_codes: readonly string[];
 }
 
 export interface Notification {

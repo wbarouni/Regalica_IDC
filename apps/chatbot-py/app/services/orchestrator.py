@@ -1248,23 +1248,37 @@ async def _load_run_fails_context(
     036.
     """
     try:
+        # Sprint B — Point 3 — JOIN rules_active to harvest the rubrique
+        # codes from the rule's `terms` JSONB so the investigator /
+        # citation / historical specialists see the rubrique addressing
+        # alongside the (ax_term, num_regle) pair. Without this enrichment
+        # the LLM cannot name the rubrique that bears the gap.
         rows = await pool.fetch(
             """
             SELECT
-                rule_id::text       AS rule_id,
-                ax_term,
-                num_regle,
-                severity,
-                expected_value::float AS expected_value,
-                computed_value::float AS computed_value,
-                gap_absolute::float   AS gap_absolute,
-                gap_relative::float   AS gap_relative
-            FROM validation_fail_details
-            WHERE validation_run_id = $1::uuid
-              AND tenant_id         = $2::uuid
+                vfd.rule_id::text       AS rule_id,
+                vfd.ax_term,
+                vfd.num_regle,
+                vfd.severity,
+                vfd.expected_value::float AS expected_value,
+                vfd.computed_value::float AS computed_value,
+                vfd.gap_absolute::float   AS gap_absolute,
+                vfd.gap_relative::float   AS gap_relative,
+                COALESCE(
+                  (
+                    SELECT array_agg(DISTINCT t->>'rubrique')
+                      FROM jsonb_array_elements(COALESCE(r.terms, '[]'::jsonb)) AS t
+                     WHERE t ? 'rubrique' AND t->>'rubrique' <> ''
+                  ),
+                  ARRAY[]::text[]
+                ) AS rubrique_codes
+            FROM validation_fail_details vfd
+            LEFT JOIN rules_active r ON r.id = vfd.rule_id
+            WHERE vfd.validation_run_id = $1::uuid
+              AND vfd.tenant_id         = $2::uuid
             ORDER BY
-                CASE severity WHEN 'severe' THEN 0 ELSE 1 END,
-                gap_absolute DESC NULLS LAST
+                CASE vfd.severity WHEN 'severe' THEN 0 ELSE 1 END,
+                vfd.gap_absolute DESC NULLS LAST
             LIMIT $3
             """,
             run_id,
@@ -1288,6 +1302,15 @@ async def _load_run_fails_context(
                 "computed_value": r["computed_value"],
                 "gap_absolute": r["gap_absolute"],
                 "gap_relative": r["gap_relative"],
+                # Sprint B — distinct rubrique codes the rule references.
+                # Defensive against unit-test mocks that omit the key
+                # entirely (asyncpg.Record raises KeyError on missing
+                # columns rather than returning None).
+                "rubrique_codes": (
+                    list(r["rubrique_codes"])
+                    if "rubrique_codes" in r and r["rubrique_codes"]
+                    else []
+                ),
             }
             for r in rows
         ],
