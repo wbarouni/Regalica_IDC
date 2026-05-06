@@ -117,6 +117,11 @@ async def test_ingestor_reports_failure_when_entete_missing() -> None:
 def _mock_pool_with_dependencies(rows: list[dict[str, str]]) -> MagicMock:
     pool = MagicMock()
     pool.fetch = AsyncMock(return_value=rows)
+    # P4 — DependencyAgent now also queries `rules_active` via fetchrow
+    # to count parasitic FAILs when companions are missing. Mock returns
+    # a row with `cnt=0` by default; tests that need a non-zero count
+    # can override `pool.fetchrow.return_value` after this factory.
+    pool.fetchrow = AsyncMock(return_value={"cnt": 0})
     return pool
 
 
@@ -180,6 +185,39 @@ async def test_dependency_reports_missing_companion_when_absent() -> None:
     missing_codes = [m["annexe_code"] for m in result.output["missing"]]
     assert missing_codes == ["51"]
     assert result.output["autonomous"] is False
+    # P4 — `parasitic_fail_count` exposed in the output. With the
+    # default mock fetchrow returning {cnt: 0}, no parasitic FAIL is
+    # surfaced. The non-zero path is covered by the next test.
+    assert result.output["parasitic_fail_count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_dependency_surfaces_parasitic_fail_count_when_companion_missing() -> None:
+    """P4 — when a companion is missing AND rules_active carries
+    cross-XML rules involving the missing annexe, the count surfaces in
+    the output payload so the briefing prompt can quantify the cost of
+    the "lancer dégradé" option ("80 règles parasites")."""
+    pool = _mock_pool_with_dependencies(
+        [
+            {
+                "target_annexe_code": "00",
+                "dependency_type": "structural",
+                "source_circulaire": "circ-2018-06",
+                "source_article": "art-7",
+            },
+        ]
+    )
+    pool.fetchrow = AsyncMock(return_value={"cnt": 80})
+    agent = DependencyAgent()
+    result = await agent.check(
+        primary_annexe="630",
+        available_annexes=["630"],  # 00 missing
+        pool=pool,
+        tenant_id="00000000-0000-0000-0000-000000000001",
+    )
+    assert result.success is True
+    assert result.output["parasitic_fail_count"] == 80
+    assert [m["annexe_code"] for m in result.output["missing"]] == ["00"]
 
 
 @pytest.mark.asyncio

@@ -73,11 +73,45 @@ class DependencyAgent:
             if target not in available_set:
                 missing.append(entry)
 
+        # P4 — Count the cross-XML rules that would FAIL parasitically
+        # if the validation runs without the missing companions. The
+        # count is sourced from `rules_active`: a rule is parasitically
+        # affected when it is `is_inter_annexe = true` AND any of its
+        # `involved_annexes` references the missing annexe code (the
+        # primary is always present by construction).
+        parasitic_fail_count = 0
+        if missing:
+            missing_codes = [m["annexe_code"] for m in missing if m["annexe_code"] is not None]
+            try:
+                parasitic_row = await pool.fetchrow(
+                    """
+                    SELECT COUNT(*)::int AS cnt
+                      FROM rules_active
+                     WHERE tenant_id      = $1::uuid
+                       AND is_inter_annexe = TRUE
+                       AND involved_annexes && $2::text[]
+                       AND $3 = ANY(involved_annexes)
+                    """,
+                    tenant_id,
+                    missing_codes,
+                    primary_annexe,
+                )
+                parasitic_fail_count = (
+                    int(parasitic_row["cnt"]) if parasitic_row is not None else 0
+                )
+            except (asyncpg.PostgresError, OSError):
+                # Defensive: a query failure on the parasitic-count
+                # subqueries must NOT mask the dependency check itself.
+                # We collapse to 0 so the briefing renders without the
+                # count rather than failing the whole T0 step.
+                parasitic_fail_count = 0
+
         output: dict[str, Any] = {
             "primary_annexe": primary_annexe,
             "required": required,
             "missing": missing,
             "autonomous": len(required) == 0,
+            "parasitic_fail_count": parasitic_fail_count,
         }
         return AgentResult(
             agent_name=self.name,

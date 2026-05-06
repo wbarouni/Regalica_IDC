@@ -342,12 +342,19 @@ def _propagate_outputs(shared: dict[str, Any], step: _StepRow, result: AgentResu
         # Sprint C — Point 4 — surface the dependency check output to
         # the briefing renderer so Regalica can react to the missing
         # companion situation. The DependencyAgent.output shape:
-        #   {primary_annexe, required: [...], missing: [...], autonomous: bool}
-        # Only the three fields the briefing prompt consumes leak into
+        #   {primary_annexe, required, missing, autonomous,
+        #    parasitic_fail_count}
+        # Only the four fields the briefing prompt consumes leak into
         # `shared` to keep the dict surface small.
         shared["dependency_required"] = result.output.get("required", [])
         shared["dependency_missing"] = result.output.get("missing", [])
         shared["dependency_autonomous"] = bool(result.output.get("autonomous", False))
+        # P4 — count of inter-annex rules that would FAIL parasitically
+        # if validation launches without the missing companions. The
+        # briefing prompt template surfaces this as `{parasitic_fails}`
+        # so Regalica can quantify the cost of the "lancer dégradé"
+        # option ("80 règles passeraient en FAIL parasites").
+        shared["dependency_parasitic_fails"] = int(result.output.get("parasitic_fail_count", 0))
 
 
 async def _finalize_t0_failure_best_effort(
@@ -452,6 +459,7 @@ async def _render_briefing(
     required_codes = _format_dependency_list(shared.get("dependency_required", []))
     missing_codes = _format_dependency_list(shared.get("dependency_missing", []))
     autonomous = "true" if shared.get("dependency_autonomous", False) else "false"
+    parasitic_fails = str(int(shared.get("dependency_parasitic_fails", 0)))
     rendered = (
         meta["template"]
         .replace("{upload_id}", payload.primary_upload_id)
@@ -461,6 +469,7 @@ async def _render_briefing(
         .replace("{required_companions}", required_codes)
         .replace("{missing_companions}", missing_codes)
         .replace("{autonomous}", autonomous)
+        .replace("{parasitic_fails}", parasitic_fails)
     )
     response = await llm_client.complete(
         LLMRequest(
