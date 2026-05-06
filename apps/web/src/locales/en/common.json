@@ -225,8 +225,9 @@
   },
   "investigation": {
     "title": "Investigation · Rule {{ax}}/{{num}}",
-    "subtitle": "RDG decomposition · expected (RHS) vs computed (LHS)",
+    "subtitle": "RDG decomposition · expected vs computed amount",
     "decompositionLabel": "Term-by-term decomposition",
+    "rubriquesLabel": "Items involved",
     "calcBlockLabel": "Calculation block",
     "col": {
       "rang": "Rank",
@@ -237,12 +238,12 @@
       "cite": "Source"
     },
     "role": {
-      "rhs": "RHS",
-      "lhs": "LHS"
+      "rhs": "Expected",
+      "lhs": "Computed"
     },
     "context": {
-      "expected": "Expected value",
-      "computed": "Computed XML sum"
+      "expected": "Expected amount (BCT)",
+      "computed": "Computed amount (XML)"
     },
     "calc": {
       "comment": "// rule"
@@ -273,8 +274,8 @@
       "annexe": "Annex",
       "rule": "Rule",
       "severity": "Severity",
-      "expected": "Expected (RHS)",
-      "computed": "Computed (LHS)",
+      "expected": "Expected amount",
+      "computed": "Computed amount",
       "gap": "Gap",
       "gapRel": "Gap %"
     },

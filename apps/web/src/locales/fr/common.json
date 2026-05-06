@@ -225,8 +225,9 @@
   },
   "investigation": {
     "title": "Investigation · Règle {{ax}}/{{num}}",
-    "subtitle": "Décomposition RDG · valeur attendue (RHS) vs valeur calculée (LHS)",
+    "subtitle": "Décomposition RDG · montant attendu vs montant calculé",
     "decompositionLabel": "Décomposition terme à terme",
+    "rubriquesLabel": "Rubriques concernées",
     "calcBlockLabel": "Bloc de calcul",
     "col": {
       "rang": "Rang",
@@ -237,12 +238,12 @@
       "cite": "Source"
     },
     "role": {
-      "rhs": "RHS",
-      "lhs": "LHS"
+      "rhs": "Attendu",
+      "lhs": "Calculé"
     },
     "context": {
-      "expected": "Valeur attendue",
-      "computed": "Somme calculée XML"
+      "expected": "Montant attendu (BCT)",
+      "computed": "Montant calculé (XML)"
     },
     "calc": {
       "comment": "// règle"
@@ -273,8 +274,8 @@
       "annexe": "Annexe",
       "rule": "Règle",
       "severity": "Sévérité",
-      "expected": "Attendu (RHS)",
-      "computed": "Calculé (LHS)",
+      "expected": "Montant attendu",
+      "computed": "Montant calculé",
       "gap": "Écart",
       "gapRel": "Écart %"
     },

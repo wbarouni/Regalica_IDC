@@ -157,8 +157,12 @@ describe('FailsTable', () => {
     // Gap → "43,138".
     expect(screen.getByText((c) => c.includes('43,138'))).toBeTruthy();
     // Headers translated through i18n (FR by default).
-    expect(screen.getByText('Attendu (RHS)')).toBeTruthy();
-    expect(screen.getByText('Calculé (LHS)')).toBeTruthy();
+    // Fix-1 — header labels migrated from "Attendu (RHS)" / "Calculé
+    // (LHS)" to "Montant attendu" / "Montant calculé" so the
+    // Compliance Officer sees a banker's vocabulary, not a math
+    // engineer's RDG jargon.
+    expect(screen.getByText('Montant attendu')).toBeTruthy();
+    expect(screen.getByText('Montant calculé')).toBeTruthy();
   });
 
   it('A — renders em dash for null expected/computed/gap values', async () => {

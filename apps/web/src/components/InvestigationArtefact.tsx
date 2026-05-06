@@ -43,36 +43,74 @@ function deriveConfidenceFromSeverity(severity: 'severe' | 'rounding'): 'high' |
   return severity === 'severe' ? 'low' : 'medium';
 }
 
+const BANKING_NUMBER_FMT = new Intl.NumberFormat('fr-FR', {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 3,
+});
+
+function rawBankingAmount(value: number | string | null): string | null {
+  if (value === null || value === '') return null;
+  const numeric = typeof value === 'string' ? Number(value) : value;
+  if (!Number.isFinite(numeric)) return null;
+  return `${BANKING_NUMBER_FMT.format(numeric)} KTND`;
+}
+
 /**
- * Sub-Sprint 4 — produce a one-sentence Regalica synthesis at the
- * bottom of the investigation block. Pure deterministic composer;
- * mirrors the assertive voice imposed on `aggregate_zoom_fail`
- * (migration 086): no hedging, KTND-suffixed amount, rubrique codes
- * folded into the prose. Falls back to a sober "élément absent"
- * statement when the gap data is missing.
+ * Fix-3 — produce a Regalica synthesis sentence anchored to the
+ * SELECTED rule (ax_term/num_regle) and its actual gap data, so the
+ * conclusion shifts cohérently when the user clicks a different row
+ * in the FailsTable above. The composer remains pure-deterministic
+ * (no LLM round-trip per artefact) but now weaves:
+ *   - the rule address `ax/num` in monospace,
+ *   - the rubrique code(s) involved,
+ *   - the actual KTND amounts of the gap when the data is present,
+ *   - a verdict-shaped conclusion that differentiates "écart total"
+ *     (LHS=0 / RHS≠0), "écart d'arrondi", "écart sévère partiel".
+ * Mirrors the assertive voice of `aggregate_zoom_fail` V3 (migration
+ * 086): no hedging, no placeholder, KTND suffix, monospace rubrique
+ * codes.
  */
 function buildRegalicaSynthesis(fail: FailDetail): string {
+  const ruleAddr = `${fail.ax_term}/${fail.num_regle}`;
   const codes = fail.rubrique_codes;
   const codesPhrase =
     codes.length === 0
-      ? 'aucune rubrique addressée'
+      ? 'aucune rubrique cartographiée'
       : codes.length === 1
         ? `la rubrique \`${codes[0]}\``
-        : `${codes.length} rubriques (\`${codes[0]}\` et autres)`;
+        : codes.length <= 3
+          ? `les rubriques ${codes.map((c) => `\`${c}\``).join(', ')}`
+          : `${codes.length} rubriques d'agrégat (dont \`${codes[0]}\`)`;
   const gap = fail.gap_absolute;
   const expected = fail.expected_value;
-  if (
-    gap !== null &&
-    expected !== null &&
-    Number(expected) !== 0 &&
-    Number(fail.computed_value ?? 0) === 0
-  ) {
-    return `Synthèse — l'écart est total sur ${codesPhrase} ; la rubrique n'est pas alimentée et le contrôle se résout par rechargement du fichier après correction de l'extraction. Aucune modification de règle BCT n'est requise.`;
+  const computed = fail.computed_value;
+  const expectedRaw = rawBankingAmount(expected);
+  const computedRaw = rawBankingAmount(computed);
+  const gapRaw = rawBankingAmount(gap);
+
+  const isFullGap = expected !== null && Number(expected) !== 0 && Number(computed ?? 0) === 0;
+
+  if (isFullGap) {
+    return (
+      `Synthèse — sur la règle \`${ruleAddr}\`, le montant calculé est nul alors ` +
+      `que ${expectedRaw ?? 'le montant attendu'} est requis sur ${codesPhrase}. ` +
+      `L'écart est total : la rubrique n'est pas alimentée. Le contrôle se résout par ` +
+      `rechargement du fichier après correction de l'extraction ; aucune modification ` +
+      `de règle BCT n'est requise.`
+    );
   }
   if (fail.severity === 'rounding') {
-    return `Synthèse — l'écart porte sur ${codesPhrase} et reste dans le périmètre d'arrondi ; arbitrage opérateur attendu, aucune modification de règle nécessaire.`;
+    return (
+      `Synthèse — sur la règle \`${ruleAddr}\`, l'écart de ${gapRaw ?? 'montant marginal'} ` +
+      `entre montant calculé et montant attendu sur ${codesPhrase} reste dans le ` +
+      `périmètre d'arrondi. Arbitrage opérateur attendu, aucune modification de règle nécessaire.`
+    );
   }
-  return `Synthèse — l'écart sévère porte sur ${codesPhrase} ; un audit du mapping et de l'extraction source précède toute modification de règle.`;
+  return (
+    `Synthèse — sur la règle \`${ruleAddr}\`, le montant calculé ${computedRaw ?? '(non transmis)'} ` +
+    `diverge de ${expectedRaw ?? 'la valeur attendue'} sur ${codesPhrase}. ` +
+    `Un audit du mapping et de l'extraction source précède toute modification de règle.`
+  );
 }
 
 export interface InvestigationArtefactProps {
@@ -103,7 +141,7 @@ export function InvestigationArtefact({ fail }: InvestigationArtefactProps): JSX
         </span>
         <span className="artefact__subtitle">
           {t('investigation.subtitle', {
-            defaultValue: 'Décomposition RDG · valeur attendue (RHS) vs valeur calculée (LHS)',
+            defaultValue: 'Décomposition RDG · montant attendu vs montant calculé',
           })}
         </span>
       </header>
@@ -127,7 +165,9 @@ export function InvestigationArtefact({ fail }: InvestigationArtefactProps): JSX
               </div>
               <div className="decomp__row">
                 <div className="decomp__rang">R1</div>
-                <div className="mono">{t('investigation.role.rhs', { defaultValue: 'RHS' })}</div>
+                <div className="mono">
+                  {t('investigation.role.rhs', { defaultValue: 'Attendu' })}
+                </div>
                 <div className="mono">
                   {fail.ax_term}/{fail.num_regle}
                 </div>
@@ -139,7 +179,9 @@ export function InvestigationArtefact({ fail }: InvestigationArtefactProps): JSX
               </div>
               <div className="decomp__row">
                 <div className="decomp__rang decomp__rang--2">R2</div>
-                <div className="mono">{t('investigation.role.lhs', { defaultValue: 'LHS' })}</div>
+                <div className="mono">
+                  {t('investigation.role.lhs', { defaultValue: 'Calculé' })}
+                </div>
                 <div className="mono">
                   {fail.ax_term}/{fail.num_regle}
                 </div>
@@ -190,10 +232,12 @@ export function InvestigationArtefact({ fail }: InvestigationArtefactProps): JSX
                 {fail.num_regle}
               </span>
               <br />
-              <span>R1 (RHS)</span> <span className="c-op">=</span>{' '}
+              <span>{t('investigation.role.rhs', { defaultValue: 'Attendu' })}</span>{' '}
+              <span className="c-op">=</span>{' '}
               <span className="c-num">{formatBankingNumber(expected)}</span>
               <br />
-              <span>R2 (LHS)</span> <span className="c-op">=</span>{' '}
+              <span>{t('investigation.role.lhs', { defaultValue: 'Calculé' })}</span>{' '}
+              <span className="c-op">=</span>{' '}
               <span className={fail.severity === 'severe' ? 'c-fail' : 'c-num'}>
                 {formatBankingNumber(computed)}
               </span>

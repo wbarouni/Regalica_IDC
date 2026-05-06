@@ -225,8 +225,9 @@
   },
   "investigation": {
     "title": "تحقيق · القاعدة {{ax}}/{{num}}",
-    "subtitle": "تحليل RDG · القيمة المتوقعة (RHS) مقابل القيمة المحسوبة (LHS)",
+    "subtitle": "تحليل RDG · المبلغ المتوقع مقابل المبلغ المحسوب",
     "decompositionLabel": "تحليل حدًّا حدًّا",
+    "rubriquesLabel": "البنود المعنية",
     "calcBlockLabel": "كتلة الحساب",
     "col": {
       "rang": "الرتبة",
@@ -237,12 +238,12 @@
       "cite": "المصدر"
     },
     "role": {
-      "rhs": "RHS",
-      "lhs": "LHS"
+      "rhs": "متوقع",
+      "lhs": "محسوب"
     },
     "context": {
-      "expected": "القيمة المتوقعة",
-      "computed": "المجموع المحسوب من XML"
+      "expected": "المبلغ المتوقع (BCT)",
+      "computed": "المبلغ المحسوب (XML)"
     },
     "calc": {
       "comment": "// القاعدة"
@@ -273,8 +274,8 @@
       "annexe": "الملحق",
       "rule": "القاعدة",
       "severity": "الخطورة",
-      "expected": "المتوقع (RHS)",
-      "computed": "المحسوب (LHS)",
+      "expected": "المبلغ المتوقع",
+      "computed": "المبلغ المحسوب",
       "gap": "الفارق",
       "gapRel": "الفارق %"
     },

@@ -235,10 +235,6 @@ function ChatTurn({ message, isFresh }: { message: ChatMessage; isFresh: boolean
       </div>
     );
   }
-  const agents =
-    message.agents_called !== undefined && message.agents_called.length > 0
-      ? message.agents_called
-      : null;
   // Auto-collapse the thinking artefact once the response phase starts:
   // open during phase==='thinking', collapsed afterwards. The user can
   // re-open via click — Artefact tracks the override internally.
@@ -283,10 +279,15 @@ function ChatTurn({ message, isFresh }: { message: ChatMessage; isFresh: boolean
             <div className="font-mono text-[10px] uppercase tracking-wider text-marigold-700 mb-2">
               {t('thinking.label', { defaultValue: 'Mode thinking · raisonnement Regalica' })}
             </div>
+            {/* Fix-4 — the thinking artefact carries ONLY the prose
+                reflection. The list of internal agent names
+                (`investigator/analyze_fail`, `citation/find_regulatory_source`,
+                …) was leaking below the prose and breaking the
+                "vous ne nommez aucun agent" contract of the
+                thinking_reflection prompt (migration 087). The agents
+                list stays accessible as `message.agents_called` for
+                debug telemetry but is not rendered to the reader. */}
             <p className="text-sm text-stone-800 whitespace-pre-line">{revealedThinking}</p>
-            {agents !== null && (
-              <p className="mt-2 text-xs text-stone-600 font-mono">{agents.join(' / ')}</p>
-            )}
           </Artefact>
         )}
       </div>
