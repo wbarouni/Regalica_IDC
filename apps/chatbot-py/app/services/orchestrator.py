@@ -38,6 +38,7 @@ import asyncio
 import contextlib
 import json
 import logging
+import re
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
@@ -209,6 +210,73 @@ class _SpecialistOutcome:
 # DB but absent from `_SPECIALIST_INVOKERS` surfaces as a clear error in
 # `_invoke_specialist`.
 # ---------------------------------------------------------------------------
+
+
+# P1 — extract the rule number the user named in their message so the
+# investigator focuses on THAT fail, not the largest-gap one. Common
+# patterns: "règle 102", "regle 102", "FAIL 380", "rule 27", "n°102".
+# `\d+` (not `\d{1,5}`) so the regex stays valid for any future BCT
+# annexe whose rule numbering exceeds the historical 4-5 digit corpus —
+# the orchestrator must work with ANY XML, no upper bound assumed.
+# Word-boundary delimiters keep "regle 1023" matching as 1023 (not 102)
+# and "regle1023" rejected (no anchor word).
+_RULE_NUMBER_PATTERN = re.compile(
+    r"\b(?:r[èeé]gle|regle|rule|fail|n[°o])\s*(?:n[°o]\s*)?(\d+)\b",
+    re.IGNORECASE,
+)
+
+
+def _extract_rule_number_from_message(message: str) -> int | None:
+    """Return the rule number the user explicitly named, or None.
+
+    P1 fix — when the user writes "regarde la règle 102" the
+    orchestrator must dispatch the investigator on rule 102, not on
+    the largest-gap fail. We scan the message text for a small set of
+    canonical patterns; the FIRST match wins so "compare la règle 102
+    à la 380" focuses on 102.
+    """
+    if not message:
+        return None
+    match = _RULE_NUMBER_PATTERN.search(message)
+    if match is None:
+        return None
+    try:
+        return int(match.group(1))
+    except (TypeError, ValueError):
+        return None
+
+
+def _narrow_fail_context_to_rule(
+    fail_ctx: dict[str, Any] | None,
+    target_num_regle: int | None,
+) -> dict[str, Any] | None:
+    """Return fail_ctx with `top_fails` narrowed to the named rule, or unchanged.
+
+    When the user message names a rule (`target_num_regle`) AND that rule
+    is present in `top_fails`, we project the context to a single-fail
+    list so the investigator receives a focused view. When the rule is
+    NOT in top_fails (e.g. user typed an invalid number, or the rule
+    passed without a fail), we leave the context unchanged so the LLM
+    can still respond using the available data and gracefully signal the
+    miss in its prose.
+    """
+    if fail_ctx is None or target_num_regle is None:
+        return fail_ctx
+    top_fails = fail_ctx.get("top_fails")
+    if not isinstance(top_fails, list) or not top_fails:
+        return fail_ctx
+    matched: list[dict[str, Any]] = [
+        f
+        for f in top_fails
+        if isinstance(f, dict) and f.get("num_regle") == target_num_regle
+    ]
+    if not matched:
+        return fail_ctx
+    narrowed = dict(fail_ctx)
+    narrowed["top_fails"] = matched
+    narrowed["total_count"] = len(matched)
+    narrowed["narrowed_to_rule"] = target_num_regle
+    return narrowed
 
 
 def _enrich_rule_context_with_rubriques(
@@ -1563,6 +1631,18 @@ async def orchestrate(
             pool,
             run_id=current_run_id,
             tenant_id=tenant_id,
+        )
+
+    # P1 — narrow the fail context to the rule the user named in their
+    # message. This makes "regarde la règle 102" route to the 102 fail
+    # rather than the top-1-by-gap (which would always be the largest-
+    # gap fail regardless of the user's intent). When the message names
+    # no rule OR the named rule is absent from top_fails, the context
+    # stays untouched and the LLM keeps the broader view.
+    target_num_regle = _extract_rule_number_from_message(message)
+    if target_num_regle is not None:
+        effective_fail_context = _narrow_fail_context_to_rule(
+            effective_fail_context, target_num_regle
         )
 
     # 3. Specialists (parallel) + aggregator-prompt fetch (parallel).
