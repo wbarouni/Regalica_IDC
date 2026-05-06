@@ -29,13 +29,13 @@ Doctrine reference: docs/10-ORCHESTRATION-REGALICA.md §15
 
 from __future__ import annotations
 
-import json
 import logging
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Final
 
 from app.llm.base import LLMClient, LLMRequest
+from app.utils.json_helpers import extract_first_json
 
 # Conservative fallback when the LLM returns an unparseable JSON
 # blob or an intent_type outside the enum. `general_help` keeps
@@ -49,11 +49,16 @@ FALLBACK_INTENT: Final[str] = "general_help"
 # Router LLM is deterministic per docs/05 §7 (temperature=0.0).
 _ROUTER_TEMPERATURE: Final[float] = 0.0
 
-# Router output is short — a single JSON object with exactly two keys
-# (`intent` + `confidence`). 64 tokens fits the closed enum value plus
-# the float; a truncated JSON makes `detect_intent` fall back to
-# FALLBACK_INTENT via the JSONDecodeError branch — safe.
-_ROUTER_MAX_TOKENS: Final[int] = 64
+# Router output is short — a single JSON object with `intent` +
+# `confidence`, optionally a `reasoning` field per the v3 router prompt
+# (migrations 077/079/080). However Gemini 2.5 Flash silently consumes
+# part of `max_output_tokens` on its internal "thinking" pass even when
+# `thinking_enabled=False`, so we bump the budget well above the visible
+# JSON footprint to leave room for both the hidden reasoning and the
+# fence-wrapped JSON body. 1024 tokens is still negligible cost-wise
+# and eliminates the systemic truncation that previously caused every
+# router classification to fall back to FALLBACK_INTENT silently.
+_ROUTER_MAX_TOKENS: Final[int] = 1024
 
 # Closed allow-list of keys the parser will read from the LLM payload.
 # Keys outside this set are tolerated (the response is not rejected)
@@ -105,12 +110,15 @@ async def detect_intent(
     except Exception:
         return _fallback_result()
 
-    try:
-        parsed = json.loads(response.content)
-    except json.JSONDecodeError:
-        return _fallback_result()
-
-    if not isinstance(parsed, dict):
+    # Gemini occasionally wraps the JSON payload in ```json … ``` markdown
+    # fences (or other prose) even when JSON mode is requested. Route the
+    # raw content through `extract_first_json` so we transparently recover
+    # the intended dict instead of falling back to `general_help`.
+    parsed = extract_first_json(response.content)
+    if parsed is None:
+        _logger.warning(
+            "router LLM produced no parsable JSON object: %r", response.content[:300]
+        )
         return _fallback_result()
 
     # Mirror the `additionalProperties: false` clause of the seed
