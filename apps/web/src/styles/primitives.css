@@ -530,7 +530,16 @@ body {
   border-radius: 4px;
 }
 .thread {
-  max-width: 940px;
+  /* Sub-Sprint 1 — widen the Regalica conversation area: the
+     workspace shell already devotes ~180px to the persona sidebar
+     plus the cmd nav + command strip. The 940px cap left huge
+     empty gutters left and right of the chat (visible in the user's
+     screenshot circling both flanks). 1280px keeps the typography
+     readable while reclaiming ~340px of horizontal space for the
+     Regalica bubble + artefacts (synthesis grid, fails table,
+     investigation block). The padding stays at 32px for breathing
+     room against the canvas edge. */
+  max-width: 1280px;
   margin: 0 auto;
   padding: 36px 32px 28px;
   display: flex;

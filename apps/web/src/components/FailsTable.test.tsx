@@ -100,8 +100,9 @@ describe('FailsTable', () => {
     // Severity badges
     expect(screen.getByText('Sévère')).toBeTruthy();
     expect(screen.getByText('Arrondi')).toBeTruthy();
-    // gap_relative formatted as percentage
-    expect(screen.getByText('23.00 %')).toBeTruthy();
+    // gap_relative formatted as percentage via shared `formatBankingPercent`
+    // helper. fr-FR locale uses comma decimal separator: "23,00 %".
+    expect(screen.getByText('23,00 %')).toBeTruthy();
   });
 
   it('hits /api/tenants/:tenantId/runs/:runId/fails with filter=all by default', async () => {

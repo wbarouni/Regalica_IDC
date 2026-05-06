@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 
 import { useFails, type FailFilter } from '../hooks/useFails';
+import { formatBankingNumber, formatBankingPercent } from '../utils/banking';
 
 /**
  * FailsTable — render the validation_fail_details rows persisted by
@@ -103,7 +104,7 @@ export function FailsTable({ runId, filter = 'all' }: FailsTableProps): JSX.Elem
                   {formatBankingNumber(f.gap_absolute)}
                 </td>
                 <td className="px-2 py-1.5 text-right tabular-nums">
-                  {f.gap_relative !== null ? `${(Number(f.gap_relative) * 100).toFixed(2)} %` : '—'}
+                  {formatBankingPercent(f.gap_relative)}
                 </td>
               </tr>
             ))}
@@ -121,27 +122,6 @@ export function FailsTable({ runId, filter = 'all' }: FailsTableProps): JSX.Elem
       )}
     </div>
   );
-}
-
-/**
- * A — banking-canonical number formatter.
- *
- * fr-FR locale: thin-space thousands + comma decimal (CLAUDE.md §11
- * "57 985,238"). 3 decimals max so RHS/LHS columns stay aligned with
- * the engine's Decimal output (38-digit precision is preserved on
- * server side; UI truncates for readability only). Null → em dash.
- *
- * Pure helper — no i18n key needed (locale is fixed to fr-FR for the
- * banking convention regardless of UI language; the table headers ARE
- * i18n'd, the cell values stay in canonical bank format per BCT
- * convention §CC-tech).
- */
-function formatBankingNumber(value: number | null): string {
-  if (value === null) return '—';
-  return Number(value).toLocaleString('fr-FR', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 3,
-  });
 }
 
 function SeverityBadge({ severity }: { severity: 'severe' | 'rounding' }): JSX.Element {

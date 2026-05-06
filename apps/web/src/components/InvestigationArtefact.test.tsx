@@ -62,15 +62,18 @@ describe('<InvestigationArtefact> — C', () => {
     // a narrow no-break space (U+202F) for thousands; normalize all
     // whitespace to a regular space before asserting.
     const flat = (decomp?.textContent ?? '').replace(/\s/g, ' ');
-    expect(flat).toContain('57 985,238');
-    expect(flat).toContain('58 028,376');
+    // The shared `formatBankingNumber` helper appends the BCT unit
+    // suffix " KTND" by default (per Sub-Sprint 1: thousand-dinar
+    // values declared in the BCT reporting convention).
+    expect(flat).toContain('57 985,238 KTND');
+    expect(flat).toContain('58 028,376 KTND');
   });
 
   it('renders the .calc-block with banking-format gap and severity coloring', () => {
     const { container } = renderWithI18n(<InvestigationArtefact fail={makeFail()} />);
     const calc = container.querySelector('.calc-block');
     expect(calc).not.toBeNull();
-    expect((calc?.textContent ?? '').replace(/\s/g, ' ')).toContain('43,138');
+    expect((calc?.textContent ?? '').replace(/\s/g, ' ')).toContain('43,138 KTND');
     // Severity = 'severe' → at least one .c-fail span on R2 + Δ.
     const fails = container.querySelectorAll('.c-fail');
     expect(fails.length).toBeGreaterThanOrEqual(2);

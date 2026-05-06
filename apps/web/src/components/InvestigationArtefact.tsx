@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 
 import type { FailDetail } from '../types/api';
+import { formatBankingNumber } from '../utils/banking';
 
 import { ConfidenceBadge } from './ConfidenceBadge';
 
@@ -37,16 +38,6 @@ import { ConfidenceBadge } from './ConfidenceBadge';
  * every numeric cell (CLAUDE.md §11). Locale fixed to fr-FR for the
  * cell values; headers + labels resolve via i18n.
  */
-
-const BANKING_NUMBER_FMT = new Intl.NumberFormat('fr-FR', {
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 3,
-});
-
-function formatBankingNumber(value: number | null): string {
-  if (value === null) return '—';
-  return BANKING_NUMBER_FMT.format(Number(value));
-}
 
 function deriveConfidenceFromSeverity(severity: 'severe' | 'rounding'): 'high' | 'medium' | 'low' {
   return severity === 'severe' ? 'low' : 'medium';
