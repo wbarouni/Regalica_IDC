@@ -30,6 +30,7 @@ import asyncpg
 from app.agents.base import AgentResult
 from app.agents.base_specialist import BaseSpecialistAgent
 from app.llm.base import LLMClient, LLMRequest
+from app.utils.json_helpers import extract_first_json
 
 if TYPE_CHECKING:
     from app.services.orchestrator import _SpecialistContext
@@ -150,13 +151,16 @@ class HistoricalAgent(BaseSpecialistAgent):
                 latency_ms=int((time.monotonic() - start) * 1000),
             )
 
-        try:
-            parsed: dict[str, Any] = json.loads(response.content)
-        except json.JSONDecodeError as exc:
+        # Gemini occasionally wraps JSON in ```json … ``` markdown fences
+        # even with JSON mode requested. Route through `extract_first_json`
+        # so a fenced response parses cleanly instead of triggering the
+        # silent "LLM returned invalid JSON" error path.
+        parsed = extract_first_json(response.content)
+        if parsed is None:
             return AgentResult(
                 agent_name=self.name,
                 success=False,
-                error=f"LLM returned invalid JSON: {exc}",
+                error="LLM returned no parseable JSON object",
                 latency_ms=int((time.monotonic() - start) * 1000),
             )
 

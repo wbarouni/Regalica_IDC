@@ -113,7 +113,11 @@ async def test_investigator_reports_failure_on_invalid_json() -> None:
     )
     assert result.success is False
     assert result.error is not None
-    assert "invalid JSON" in result.error
+    # New error message reflects the fence-tolerant `extract_first_json`
+    # path: when the LLM returns prose that contains no JSON object at
+    # all, the helper returns None and the agent surfaces the canonical
+    # "no parseable JSON object" error.
+    assert "no parseable JSON" in result.error
 
 
 @pytest.mark.asyncio
