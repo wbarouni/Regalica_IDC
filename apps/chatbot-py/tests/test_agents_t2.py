@@ -94,7 +94,9 @@ async def test_investigator_passes_template_and_payload_to_llm() -> None:
     assert sent_request.temperature == 0.3
     assert sent_request.max_tokens == 4096
     payload = json.loads(sent_request.prompt)
-    assert payload["fail"]["annexeCode"] == "139"
+    # Top-level key renamed `fail` → `verdict` to match the investigator
+    # prompt template's documented input shape (verdict.* and rule.*).
+    assert payload["verdict"]["annexeCode"] == "139"
     assert payload["rule"]["axTerm"] == "139"
 
 

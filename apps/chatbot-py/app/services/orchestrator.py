@@ -211,10 +211,48 @@ class _SpecialistOutcome:
 # ---------------------------------------------------------------------------
 
 
+def _enrich_rule_context_with_rubriques(
+    rule_ctx: dict[str, Any] | None,
+    fail_ctx: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Build the `rule` payload the specialist prompts expect.
+
+    The investigator + citation prompts contract `rule.rubriques[]` as
+    `[{code, libelle}]`. We harvest the rubrique codes that
+    `_load_run_fails_context` attached to the top fail (Sprint B
+    Point 3) and project them into that shape so Gemini can name the
+    rubrique inside the cause-racine prose (Sprint B follow-up).
+    Libellés stay empty until the rubriques referential is enriched
+    (`label IS NULL` for the dev-tenant seed today); the LLM gracefully
+    omits the libellé when absent.
+    """
+    base: dict[str, Any] = dict(rule_ctx) if rule_ctx else {}
+    if "rubriques" in base and isinstance(base["rubriques"], list) and base["rubriques"]:
+        return base
+    if not fail_ctx:
+        return base
+    top_fails = fail_ctx.get("top_fails", [])
+    if not isinstance(top_fails, list) or not top_fails:
+        return base
+    codes_seen: set[str] = set()
+    rubriques: list[dict[str, str]] = []
+    for top in top_fails:
+        if not isinstance(top, dict):
+            continue
+        for code in top.get("rubrique_codes", []) or []:
+            if isinstance(code, str) and code != "" and code not in codes_seen:
+                codes_seen.add(code)
+                rubriques.append({"code": code, "libelle": ""})
+    if rubriques:
+        base["rubriques"] = rubriques
+    return base
+
+
 async def _call_investigator(meta: PromptMeta, ctx: _SpecialistContext) -> AgentResult:
+    rule_payload = _enrich_rule_context_with_rubriques(ctx.rule_context, ctx.fail_context)
     return await InvestigatorAgent().analyze(
         fail=ctx.fail_context or {},
-        rule=ctx.rule_context or {},
+        rule=rule_payload,
         llm_client=ctx.llm_client,
         prompt_template=meta["template"],
         temperature=meta["temperature"],
@@ -224,8 +262,9 @@ async def _call_investigator(meta: PromptMeta, ctx: _SpecialistContext) -> Agent
 
 
 async def _call_citation(meta: PromptMeta, ctx: _SpecialistContext) -> AgentResult:
+    rule_payload = _enrich_rule_context_with_rubriques(ctx.rule_context, ctx.fail_context)
     return await CitationAgent().find_source(
-        rule=ctx.rule_context or {},
+        rule=rule_payload,
         llm_client=ctx.llm_client,
         prompt_template=meta["template"],
         temperature=meta["temperature"],

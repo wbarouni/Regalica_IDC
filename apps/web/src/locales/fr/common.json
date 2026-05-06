@@ -272,7 +272,6 @@
     "col": {
       "annexe": "Annexe",
       "rule": "Règle",
-      "rubrique": "Rubrique",
       "severity": "Sévérité",
       "expected": "Attendu (RHS)",
       "computed": "Calculé (LHS)",

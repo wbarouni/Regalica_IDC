@@ -272,7 +272,6 @@
     "col": {
       "annexe": "الملحق",
       "rule": "القاعدة",
-      "rubrique": "البند",
       "severity": "الخطورة",
       "expected": "المتوقع (RHS)",
       "computed": "المحسوب (LHS)",

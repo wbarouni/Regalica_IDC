@@ -64,7 +64,6 @@ export function FailsTable({ runId, filter = 'all' }: FailsTableProps): JSX.Elem
             <tr className="border-b border-stone-300 text-left text-[10px] uppercase tracking-wider text-stone-600">
               <th className="px-2 py-1">{t('fails.col.annexe', { defaultValue: 'Annexe' })}</th>
               <th className="px-2 py-1">{t('fails.col.rule', { defaultValue: 'Règle' })}</th>
-              <th className="px-2 py-1">{t('fails.col.rubrique', { defaultValue: 'Rubrique' })}</th>
               <th className="px-2 py-1">{t('fails.col.severity', { defaultValue: 'Sévérité' })}</th>
               {/* A — RHS = expected_value (la valeur attendue par la règle RDG)
                   LHS = computed_value (ce que le moteur a calculé sur l'XML).
@@ -91,9 +90,6 @@ export function FailsTable({ runId, filter = 'all' }: FailsTableProps): JSX.Elem
               <tr key={f.id} className="border-b border-stone-200 last:border-0 hover:bg-stone-50">
                 <td className="px-2 py-1.5">{f.ax_term}</td>
                 <td className="px-2 py-1.5">{f.num_regle}</td>
-                <td className="px-2 py-1.5 text-stone-700">
-                  {f.rubrique_codes.length > 0 ? f.rubrique_codes.join(', ') : '—'}
-                </td>
                 <td className="px-2 py-1.5">
                   <SeverityBadge severity={f.severity} />
                 </td>

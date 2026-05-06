@@ -64,7 +64,12 @@ class InvestigatorAgent(BaseSpecialistAgent):
     ) -> AgentResult:
         """Return an AgentResult parsed from the LLM JSON response."""
         start = time.monotonic()
-        user_message = json.dumps({"fail": fail, "rule": rule}, ensure_ascii=False)
+        # The investigator prompt body contracts top-level keys
+        # `verdict.*` (fail data) and `rule.*` (rule definition). Align
+        # the user_message shape with that contract so Gemini does not
+        # silently fail to parse a `fail.ax_term` field that the system
+        # prompt never documents.
+        user_message = json.dumps({"verdict": fail, "rule": rule}, ensure_ascii=False)
         request = LLMRequest(
             prompt=user_message,
             temperature=temperature,
@@ -89,6 +94,12 @@ class InvestigatorAgent(BaseSpecialistAgent):
         # silent "LLM returned invalid JSON" error path.
         parsed = extract_first_json(response.content)
         if parsed is None:
+            import logging
+
+            logging.getLogger(__name__).warning(
+                "investigator LLM produced no parseable JSON object: %r",
+                response.content[:500],
+            )
             return AgentResult(
                 agent_name=self.name,
                 success=False,
