@@ -156,10 +156,11 @@
     "byAnnexe": "By annex"
   },
   "t3": {
-    "unlockedLabel": "T3 open",
-    "unlocked": "No severe FAIL detected — signature and T3 submission available.",
-    "lockedLabel": "T3 locked",
-    "lockedMessage": "{{count}} severe FAIL must be corrected before signature and T3 submission."
+    "unlockedLabel": "Submission ready",
+    "unlocked": "Validation passed — signature and BCT transmission are available.",
+    "lockedLabel": "Submission pending",
+    "lockedMessage_one": "{{count}} severe gap to correct before signature and BCT transmission.",
+    "lockedMessage_other": "{{count}} severe gaps to correct before signature and BCT transmission."
   },
   "orchestration": {
     "title": "Orchestration"

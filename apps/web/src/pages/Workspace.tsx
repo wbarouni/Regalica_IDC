@@ -480,48 +480,17 @@ export default function Workspace() {
   }, [currentRunId]);
   const investigationFail = selectedFail ?? topFail.fail;
 
-  // D — auto-zoom: when the run is completed AND a top severe fail
-  // is loaded, fire ONCE per runId a synthetic chat turn that lets
-  // Regalica explain the fail through the canonical zoom intent.
-  // The orchestrator routes the message via `regalica/router` →
-  // `zoom` intent → [investigator, citation] specialists → aggregator
-  // `aggregate_zoom_fail` → markdown response that flows into the
-  // existing ChatThread render path.
-  //
-  // Idempotency layered:
-  //   1. `autoZoomFiredFor` ref guards the in-session re-render path
-  //      (a state change on currentRunId stays put unless the run
-  //      itself rotates).
-  //   2. `messages.length === 0` guard prevents a re-fire on a full
-  //      page reload: useChat re-mounts with an empty thread, but if
-  //      the user already scrolled or clicked anything they'll have
-  //      a turn in the chat — the gate then holds. After reload, with
-  //      thread empty, the auto-zoom DOES re-fire — accepted because
-  //      the conversation history is per-session in chatbot-py and
-  //      reload starts a new session anyway. Phase 4 may persist
-  //      chat threads via /conversations and tighten this further.
-  //
-  // Failure mode: the chat layer already swallows Gemini exceptions
-  // into ChatMessage error state without crashing the UI; D inherits
-  // that resilience at no extra cost.
-  const autoZoomFiredFor = useRef<string | null>(null);
-  useEffect(() => {
-    if (currentRunId === null) return;
-    if (run?.status !== 'completed') return;
-    if (topFail.fail === null || topFail.fail.severity !== 'severe') return;
-    if (autoZoomFiredFor.current === currentRunId) return;
-    if (messages.length > 0) return;
-    autoZoomFiredFor.current = currentRunId;
-    const ax = topFail.fail.ax_term;
-    const num = topFail.fail.num_regle;
-    void sendMessage(
-      t('autoZoom.triggerMessage', {
-        ax,
-        num,
-        defaultValue: 'Regarde ce FAIL : règle {{ax}}/{{num}} et explique la cause racine.',
-      }),
-    );
-  }, [currentRunId, run?.status, topFail.fail, sendMessage, t, messages.length]);
+  // P1 — auto-zoom REMOVED. The previous behaviour fired a synthetic
+  // chat turn ("Regarde ce FAIL : règle X/Y…") on every completed run
+  // with at least one severe fail. The user's reported friction:
+  //   "aucune personne n'a demandé […] pourtant je le trouve
+  //    automatiquement, cette question doit être posée par
+  //    l'utilisateur ou click sur le bouton dans le dock concernant
+  //    sur le zoom de fail".
+  // The Zoom chip in the dock (T1 "Zoom sur un FAIL") + the clickable
+  // FailsTable rows are now the canonical way to trigger an
+  // investigation. Regalica no longer narrates without an explicit
+  // user signal.
 
   const upload = useUpload();
   const startRun = useStartRun();
@@ -930,6 +899,13 @@ function extractMarkdownFromArtifact(value: unknown): string | null {
 
 function T3LockBanner({ totalFailSevere }: { totalFailSevere: number }) {
   const { t } = useTranslation();
+  // P3 — banking-grade banner. The previous text leaked internal
+  // codes ("T3 ouvert", "T3 verrouillé", "dépôt T3") into the
+  // Compliance Officer's surface. The user reported: "T3 T11 T2
+  // l'utilisateur s'enfout, rédige quelque chose banking grade".
+  // The new copy speaks the banker's vocabulary ("Dépôt autorisé",
+  // "Dépôt en attente", "transmission à la BCT") and uses i18n
+  // pluralisation so 1 / N is rendered correctly.
   if (totalFailSevere <= 0) {
     return (
       <div className="rounded border border-evergreen-200 bg-evergreen-50 px-3 py-2 text-sm">
@@ -950,7 +926,15 @@ function T3LockBanner({ totalFailSevere }: { totalFailSevere: number }) {
         {t('t3.lockedLabel')}
       </span>
       <span className="text-vermilion-800">
-        {t('t3.lockedMessage', { count: totalFailSevere })}
+        {t('t3.lockedMessage', {
+          count: totalFailSevere,
+          // i18next plural rule fallback when the locale provides
+          // both `_one` and `_other` variants.
+          defaultValue:
+            totalFailSevere === 1
+              ? '{{count}} écart sévère à corriger avant la signature et la transmission à la BCT.'
+              : '{{count}} écarts sévères à corriger avant la signature et la transmission à la BCT.',
+        })}
       </span>
     </div>
   );

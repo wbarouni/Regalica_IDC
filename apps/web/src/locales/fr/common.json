@@ -156,10 +156,11 @@
     "byAnnexe": "Par annexe"
   },
   "t3": {
-    "unlockedLabel": "T3 ouvert",
-    "unlocked": "Aucun FAIL sévère détecté — la signature et le dépôt T3 sont disponibles.",
-    "lockedLabel": "T3 verrouillé",
-    "lockedMessage": "{{count}} FAIL sévère(s) à corriger avant la signature et le dépôt T3."
+    "unlockedLabel": "Dépôt autorisé",
+    "unlocked": "Validation conforme — la signature et la transmission à la BCT sont disponibles.",
+    "lockedLabel": "Dépôt en attente",
+    "lockedMessage_one": "{{count}} écart sévère à corriger avant la signature et la transmission à la BCT.",
+    "lockedMessage_other": "{{count}} écarts sévères à corriger avant la signature et la transmission à la BCT."
   },
   "orchestration": {
     "title": "Orchestration"
