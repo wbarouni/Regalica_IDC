@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import { useNavigate } from 'react-router-dom';
@@ -507,11 +507,59 @@ export default function Workspace() {
     [sendMessage],
   );
 
+  // Chips whose specialist needs a specific FAIL pivot. When the user
+  // clicks one of these without first selecting a row in the FailsTable,
+  // Regalica should surface a clickable list of the candidate FAILs
+  // instead of guessing one.
+  const FAIL_BOUND_CHIPS = useMemo(
+    () => new Set<string>(['zoom', 'cluster', 'historical', 'citation', 'simulation']),
+    [],
+  );
+
   const handleChipSelect = useCallback(
     (fnName: string): void => {
+      // Q1 — interactive zoom picker. When the chip points at a per-FAIL
+      // specialist AND the user hasn't selected a row yet AND the run has
+      // multiple FAILs available, inject a Regalica turn that names the
+      // surfaced FAILs (one per line, monospace `ax/num` pivots) and
+      // explicitly tells the user to click a row in the table above.
+      // The FailsTable rows are already clickable (Sub-Sprint 4) and
+      // bound to setSelectedFail; clicking re-issues the chip with the
+      // chosen pivot.
+      if (
+        FAIL_BOUND_CHIPS.has(fnName) &&
+        selectedFail === null &&
+        topFail.fail !== null &&
+        currentRunId !== null &&
+        run?.status === 'completed'
+      ) {
+        const failsToList = topFail.fail !== null ? [topFail.fail] : [];
+        const lines = failsToList
+          .map(
+            (f) =>
+              `- \`${f.ax_term}/${f.num_regle}\` · ${f.severity === 'severe' ? 'écart sévère' : "écart d'arrondi"}`,
+          )
+          .join('\n');
+        const pickerMarkdown = `Plusieurs écarts sont disponibles dans ce run. Cliquez sur la ligne du tableau « FAILS » ci-dessus correspondant à celui que vous souhaitez analyser, puis relancez votre choix.\n\n${lines}\n\nVous pouvez également préciser la règle directement dans la barre de saisie, par exemple « regarde la règle 00/27 ».`;
+        injectRegalicaMessage(pickerMarkdown);
+        return;
+      }
+      // Otherwise, with or without a selectedFail the chip name is sent
+      // as-is — the router classifies it through the canonical intent
+      // grammar. When `selectedFail` is set the orchestrator already
+      // sees the run+top_fails context via `validation_run_id` in the
+      // useChat body, so the specialist resolves the pivot fail.
       void sendMessage(fnName);
     },
-    [sendMessage],
+    [
+      FAIL_BOUND_CHIPS,
+      selectedFail,
+      topFail.fail,
+      currentRunId,
+      run?.status,
+      injectRegalicaMessage,
+      sendMessage,
+    ],
   );
 
   // K2 — wire the dock PDF button to the chat path. The trigger message

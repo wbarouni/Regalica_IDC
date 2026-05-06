@@ -147,11 +147,18 @@ async def post_chat_message(
             detail=f"Orchestration failed: {exc}",
         ) from exc
 
+    # Q3 — auto-generate the conversation title from the active run
+    # context so the history sidebar shows readable labels like
+    # "Annexe 00 · 31/03/2024" rather than "Conversation sans titre".
+    # The title is set ONLY on the very first turn (existing_id is None);
+    # later turns reuse the row and never overwrite the operator's
+    # manual title if they have set one.
     conversation_id = await _ensure_conversation(
         pool=pool,
         existing_id=chat_request.conversation_id,
         tenant_id=chat_request.tenant_id,
         user_id=chat_request.user_id,
+        run_id=context.validation_run_id if context is not None else None,
     )
     persisted_agent_label = (
         result.agents_called[0] if result.agents_called else "regalica/orchestrator"
@@ -186,19 +193,58 @@ async def _ensure_conversation(
     existing_id: str | None,
     tenant_id: str,
     user_id: str,
+    run_id: str | None = None,
 ) -> str:
-    """Return the conversation id, creating a new row when none provided."""
+    """Return the conversation id, creating a new row when none provided.
+
+    Q3 — when a `run_id` is provided AND a fresh conversation is being
+    created, we resolve the linked annexe + arrêté date from
+    `validation_runs` and stamp the conversation title with a banker-
+    readable label "Annexe XX · DD/MM/YYYY". Failure to resolve the run
+    is non-fatal (the title stays NULL and the sidebar falls back to
+    the i18n "Conversation sans titre" placeholder).
+    """
     if existing_id is not None:
         return existing_id
+
+    title: str | None = None
+    linked_run_id: str | None = None
+    if run_id is not None:
+        try:
+            run_row = await pool.fetchrow(
+                """
+                SELECT primary_annexe_code, arrete_date
+                  FROM validation_runs
+                 WHERE id::text = $1 AND tenant_id::text = $2
+                """,
+                run_id,
+                tenant_id,
+            )
+        except Exception:
+            run_row = None
+        if run_row is not None:
+            ax = run_row["primary_annexe_code"]
+            arrete = run_row["arrete_date"]
+            if ax is not None and arrete is not None:
+                title = f"Annexe {ax} · {arrete.strftime('%d/%m/%Y')}"
+            linked_run_id = run_id
+
     row = await pool.fetchrow(
         """
-        INSERT INTO conversations (tenant_id, user_id, language)
-        VALUES ($1::uuid, $2::uuid, $3)
+        INSERT INTO conversations (
+            tenant_id, user_id, language, title, linked_validation_run_id
+        )
+        VALUES (
+            $1::uuid, $2::uuid, $3, $4,
+            CASE WHEN $5::text IS NULL THEN NULL ELSE $5::uuid END
+        )
         RETURNING id::text AS id
         """,
         tenant_id,
         user_id,
         _DEFAULT_LANGUAGE,
+        title,
+        linked_run_id,
     )
     if row is None:
         raise HTTPException(
