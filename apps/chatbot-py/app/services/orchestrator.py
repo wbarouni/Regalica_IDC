@@ -1476,6 +1476,8 @@ async def orchestrate(
                 intent=intent,
                 specialist_ids=specialist_ids,
                 aggregator_label=aggregator_label,
+                router_confidence=intent_result.confidence,
+                specialist_outcomes=specialist_outcomes,
             ),
             response_markdown=_no_aggregator_prompt_message(
                 intent_spec.aggregator_agent_type,
@@ -1519,6 +1521,8 @@ async def orchestrate(
             intent=intent,
             specialist_ids=specialist_ids,
             aggregator_label=aggregator_label,
+            router_confidence=intent_result.confidence,
+            specialist_outcomes=specialist_outcomes,
         ),
         response_markdown=str(aggregator_outcome["response_markdown"]),
         agents_called=agents_called,
@@ -1529,14 +1533,73 @@ async def orchestrate(
     )
 
 
+_THINKING_OUTPUT_PRIORITY_KEYS: Final[tuple[str, ...]] = (
+    "cause_racine",
+    "rubrique_incriminee",
+    "colonne_incriminee",
+    "suggestion_correction",
+    "circulaire_reference",
+    "circulaire",
+    "article",
+    "paragraphe",
+    "niveau_confiance",
+    "confidence",
+    "explication_ecart",
+    "trend",
+    "comparison",
+    "summary",
+    "regles_liees",
+    "texte_pertinent",
+)
+
+
+def _format_outcome_preview(output: dict[str, Any]) -> str:
+    """Surface a specialist output as 2-4 readable bullet lines.
+
+    Walks `_THINKING_OUTPUT_PRIORITY_KEYS` first (the canonical fields
+    declared in the seed prompt JSON contracts) so the trace shows the
+    most useful keys when present, then falls back to the first two
+    keys of the dict if no priority key matched.
+    """
+    if not output:
+        return "  → (aucun output exploitable)"
+    lines: list[str] = []
+    seen: set[str] = set()
+    for key in _THINKING_OUTPUT_PRIORITY_KEYS:
+        if key in output and key not in seen:
+            seen.add(key)
+            preview = _truncate_value(output[key], max_chars=180)
+            lines.append(f"  → {key} : {preview}")
+            if len(lines) >= 4:
+                break
+    if not lines:
+        for key in list(output.keys())[:2]:
+            preview = _truncate_value(output[key], max_chars=180)
+            lines.append(f"  → {key} : {preview}")
+    return "\n".join(lines)
+
+
+def _truncate_value(value: Any, *, max_chars: int) -> str:
+    """Stringify a value and cap its length, leaving an ellipsis if cut."""
+    if isinstance(value, list | tuple):
+        s = ", ".join(str(v) for v in value)
+    else:
+        s = str(value)
+    if len(s) > max_chars:
+        return s[: max_chars - 1] + "…"
+    return s
+
+
 def _build_thinking_trace(
     *,
     message: str,
     intent: str,
     specialist_ids: list[str],
     aggregator_label: str,
+    router_confidence: float | None = None,
+    specialist_outcomes: list["_SpecialistOutcome"] | None = None,
 ) -> str:
-    """Compose the Regalica thinking trace as 4 verbose phases.
+    """Compose the Regalica thinking trace as up to 5 verbose phases.
 
     Correction 2 — the previous one-line trace was too terse for the
     workspace v5 mockup which renders the trace with 4 explicit phases
@@ -1544,6 +1607,15 @@ def _build_thinking_trace(
     Options, Arbitrages, Décision. The trace is still deterministic
     (no LLM call) but reads as cognitive narrative — exactly what the
     user expects from "thinking mode".
+
+    Sprint A — when `specialist_outcomes` is provided AND at least one
+    specialist actually ran, a fifth phase is appended that surfaces
+    each specialist's REAL JSON output (or its failure error) so the
+    thinking trace becomes an audit trail of what each agent returned,
+    not just a plan of what they were SUPPOSED to be asked. This lifts
+    the trace closer to the Claude-style cognitive transparency the
+    user requested. `router_confidence`, when supplied, is folded into
+    Phase 1 to expose the LLM's self-assessed certainty.
 
     Each phase is a paragraph; the frontend renders them with
     `whitespace-pre-line` so the `\\n\\n` separators show as visible
@@ -1559,10 +1631,13 @@ def _build_thinking_trace(
         joined_specialists = ""
 
     # Phase 1 — Compréhension (re-state the user's request verbatim).
+    confidence_hint = (
+        f" (confiance routeur {router_confidence:.2f})" if router_confidence is not None else ""
+    )
     phase_1 = (
         f"1 · Compréhension de la demande\n"
         f"{_THINKING_PREFIX} : « {message} ». "
-        f"L'intention détectée par le routeur Regalica est « {intent} » — "
+        f"L'intention détectée par le routeur Regalica est « {intent} »{confidence_hint} — "
         f"je dois m'aligner sur cette catégorisation avant de répondre."
     )
 
@@ -1643,7 +1718,22 @@ def _build_thinking_trace(
         "la doctrine Regalica (docs/05 §22-25)."
     )
 
-    return f"{phase_1}\n\n{phase_2}\n\n{phase_3}\n\n{phase_4}"
+    base_trace = f"{phase_1}\n\n{phase_2}\n\n{phase_3}\n\n{phase_4}"
+
+    # Phase 5 — Sprint A: surface real specialist outputs when present.
+    if not specialist_outcomes:
+        return base_trace
+
+    phase_5_lines: list[str] = ["5 · Synthèse des spécialistes consultés"]
+    for outcome in specialist_outcomes:
+        if not outcome.success:
+            err = outcome.error if outcome.error else "non spécifiée"
+            phase_5_lines.append(f"\n• {outcome.bearer_label} → échec ({err})")
+            continue
+        phase_5_lines.append(f"\n• {outcome.bearer_label}")
+        phase_5_lines.append(_format_outcome_preview(outcome.output))
+    phase_5 = "\n".join(phase_5_lines)
+    return f"{base_trace}\n\n{phase_5}"
 
 
 def _build_no_router_result(message: str, start: float) -> OrchestratorResult:
