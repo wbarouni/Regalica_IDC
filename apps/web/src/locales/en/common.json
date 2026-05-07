@@ -318,7 +318,8 @@
     "errorGeneric": "An error occurred. Please try again.",
     "errorConfig": "Configuration missing (TENANT_ID / USER_ID / CHATBOT_URL).",
     "sendButton": "Send",
-    "inputPlaceholder": "Ask Regalica…"
+    "inputPlaceholder": "Ask Regalica…",
+    "welcomeGreeting": "Hello. To get started, drop your regulatory filings (BCT XML files) into the window, or use the attach button below. I'll launch the BCT T1 validation as soon as your filing is received."
   },
   "error": {
     "generic": "An error occurred",

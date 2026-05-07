@@ -318,7 +318,8 @@
     "errorGeneric": "Une erreur est survenue. Réessayez.",
     "errorConfig": "Configuration manquante (TENANT_ID / USER_ID / CHATBOT_URL).",
     "sendButton": "Envoyer",
-    "inputPlaceholder": "Posez une question à Regalica…"
+    "inputPlaceholder": "Posez une question à Regalica…",
+    "welcomeGreeting": "Bonjour. Pour démarrer, déposez vos rapports réglementaires (fichiers XML BCT) en glisser-déposer dans la fenêtre, ou utilisez le bouton de pièce jointe ci-dessous. Je lancerai la validation BCT T1 dès réception du dépôt."
   },
   "error": {
     "generic": "Une erreur est survenue",

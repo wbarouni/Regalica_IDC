@@ -318,7 +318,8 @@
     "errorGeneric": "حدث خطأ. حاول مرة أخرى.",
     "errorConfig": "إعدادات ناقصة (TENANT_ID / USER_ID / CHATBOT_URL).",
     "sendButton": "إرسال",
-    "inputPlaceholder": "اسأل Regalica…"
+    "inputPlaceholder": "اسأل Regalica…",
+    "welcomeGreeting": "مرحبًا. للبدء، أفلت تقاريرك التنظيمية (ملفات XML الخاصة بـ BCT) في النافذة أو استخدم زر الإرفاق أدناه. سأطلق التحقق BCT T1 فور استلام الإيداع."
   },
   "error": {
     "generic": "حدث خطأ",

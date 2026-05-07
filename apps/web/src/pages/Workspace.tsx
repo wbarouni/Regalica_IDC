@@ -370,6 +370,70 @@ export default function Workspace() {
   const { summary, refetch: refetchSummary } = useRunSummary(currentRunId);
   const { notifications, markAsRead } = useNotifications();
 
+  // Issue 2 (2026-05-08) — initial-mount welcome bubble. When the
+  // user lands on the workspace with no active run AND no prior
+  // chat thread (fresh tenant, or after Nouveau chat resets every
+  // surface), Regalica greets first, names the next concrete action
+  // (drag-drop or attach), and waits. Mirrors the Claude / GPT
+  // onboarding pattern. The greeting is a localised string from
+  // `chat.welcomeGreeting` (FR/EN/AR via apps/web/src/locales) so
+  // the contract stays zero-hardcoding. The ref guard ensures the
+  // bubble fires AT MOST once per session — subsequent state
+  // transitions (e.g. user uploads then clears) don't re-spam the
+  // thread.
+  const initialGreetingFiredRef = useRef<boolean>(false);
+  // (effect declared further down once messages + injectRegalicaMessage
+  // are in scope.)
+
+  // UX 2026-05-08 — Issue 1 — `lastRunInChat` gates the rendering of
+  // the run-completed canvas (Synthèse + KPI grid + FailsTable +
+  // InvestigationArtefact + T3LockBanner). The user's diagnostic was
+  // that "Nouveau chat" cleared the chat thread but the run summary
+  // stayed on the canvas — a half-reset, not a true conversation
+  // restart. By tying the canvas-side run UI to `lastRunInChat`
+  // instead of `currentRunId`, the operator gets a true blank slate
+  // when starting a new chat:
+  //   - Initial mount: the existing current run (if any) is auto-
+  //     bound so a page reload mid-investigation doesn't lose the
+  //     workspace state. Effect below seeds `lastRunInChat` from
+  //     `currentRunId` once on hydration.
+  //   - "Lancer la validation" click: lastRunInChat is set to the
+  //     new run id immediately (handleLaunchRun below).
+  //   - "Nouveau chat" click: lastRunInChat is cleared so the
+  //     canvas is empty until a fresh run starts (handleHistoryNewChat
+  //     below).
+  //   - Past-conversation hydration: lastRunInChat tracks the
+  //     conversation's linked_validation_run_id (handleHistorySelect
+  //     below) — clicking a thread about run X surfaces run X again.
+  const [lastRunInChat, setLastRunInChat] = useState<string | null>(null);
+  // Run ids the user has explicitly dismissed via "Nouveau chat".
+  // Once an id lands here, the auto-bind effect MUST NOT re-bind it
+  // even if `currentRunId` keeps pointing at it. Without this set the
+  // auto-bind would resurrect the canvas immediately after the user
+  // dismissed it (the effect re-fires on every render where
+  // `lastRunInChat === null && currentRunId !== null`, defeating the
+  // explicit reset). The set lives across the workspace mount so a
+  // dismissed id stays dismissed until the user navigates away.
+  const dismissedRunIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    // First hydration only — bind the server's current run to the
+    // chat surface so a page reload preserves visibility. Subsequent
+    // changes are explicit (Lancer / Nouveau chat / history pick).
+    // The `dismissedRunIdsRef` guard prevents the effect from
+    // resurrecting an explicitly-dismissed id.
+    if (
+      lastRunInChat === null &&
+      currentRunId !== null &&
+      run?.status === 'completed' &&
+      !dismissedRunIdsRef.current.has(currentRunId)
+    ) {
+      setLastRunInChat(currentRunId);
+    }
+    // The dependency on `run?.status` keeps the seeding from firing
+    // mid-run — we only auto-bind on completed runs to mirror what a
+    // returning user would expect.
+  }, [currentRunId, lastRunInChat, run?.status]);
+
   // SSE 'complete' event => the engine just persisted final
   // synthesis_artifact + deliverable_c_artifact + KPIs to
   // validation_runs. Re-pull /summary AND /current so both the
@@ -549,23 +613,40 @@ export default function Workspace() {
   const handleHistoryNewChat = useCallback((): void => {
     resetConversation();
     setHistoryOpen(false);
-    // Bug 1 — surface a visible Regalica greeting so the user sees an
-    // immediate impact when they click "Nouveau chat". Without this,
-    // resetConversation() empties the in-memory thread and closes the
-    // sidebar but the canvas (run summary, FailsTable, …) does not
-    // change, leaving the user wondering whether the click registered.
-    // The injected turn ALSO seeds the typewriter snapshot in
-    // ChatThread so the next user message animates as fresh
-    // (initialIdsRef keeps this id at first render, but the user's
-    // following message lands AFTER the snapshot and is treated as
-    // fresh — exactly the desired behaviour).
-    injectRegalicaMessage(
-      t('chat.newChatGreeting', {
-        defaultValue:
-          'Conversation initialisée. Je vous écoute — posez votre question sur le run en cours, une règle précise, ou les annexes inter-dépendantes.',
-      }),
-    );
-  }, [resetConversation, injectRegalicaMessage, t]);
+    // Issue 1 (2026-05-08) — clear the run-completed canvas binding
+    // so the workspace returns to a TRUE blank-slate state, not a
+    // half-reset where the chat thread cleared but the run summary
+    // (Synthèse + KPIs + FailsTable + InvestigationArtefact) stayed
+    // visible. Server-side run data is untouched: a quick "history"
+    // pick reattaches the prior run if needed.
+    //
+    // ALSO record the dismissed id in the ref so the auto-bind effect
+    // does not resurrect the canvas on the next render (without this,
+    // the effect re-fires whenever lastRunInChat===null && currentRunId
+    // !== null && run.status==='completed' — defeating the dismissal).
+    if (currentRunId !== null) {
+      dismissedRunIdsRef.current.add(currentRunId);
+    }
+    setLastRunInChat(null);
+    setSelectedFail(null);
+    // Bug 1 + Issue 2 — surface a Regalica greeting that ALSO
+    // restates the upload affordance (drag-drop or attach button).
+    // Mirrors the canonical Claude / GPT chat onboarding pattern: the
+    // assistant opens, names what it can do, and points the user at
+    // the next concrete action. The same key fires on initial mount
+    // (when no prior conversation + no run is loaded) — see the
+    // useEffect below.
+    injectRegalicaMessage(t('chat.welcomeGreeting'));
+    // Lift the ref guard so the initial-mount effect does not fire a
+    // SECOND greeting on top of this one. The ref is global to the
+    // workspace lifecycle, not per-conversation, so flagging it true
+    // here is correct: any future "first chat" on this page mount
+    // came through this handler.
+    initialGreetingFiredRef.current = true;
+  }, [resetConversation, injectRegalicaMessage, t, currentRunId]);
+
+  // (initial welcome effect declared further down once `pendingUpload`
+  // state is in scope — see "Issue 2 — welcome bubble effect" block.)
 
   // Feature 3 — soft-delete a past thread from the sidebar. When the
   // deleted id is the one currently in view, also reset the in-memory
@@ -639,6 +720,28 @@ export default function Workspace() {
   // file + a launch button. Cleared on either successful run start or
   // explicit reset.
   const [pendingUpload, setPendingUpload] = useState<UploadDto | null>(null);
+
+  // Issue 2 (2026-05-08) — initial-mount welcome bubble effect.
+  // Fires once when the four conditions are met:
+  //   - the chat thread is empty (messages.length === 0)
+  //   - no run is bound to the chat (lastRunInChat === null)
+  //   - no upload is currently staged (pendingUpload === null)
+  //   - the run loader has finished (!runLoading) so we don't race
+  //     against the auto-bind effect that sets lastRunInChat from a
+  //     server-side current run
+  // The greeting string is the same key as Nouveau chat (see
+  // handleHistoryNewChat above) so the user experiences identical
+  // onboarding regardless of the entry point. The ref guard keeps it
+  // single-shot for the workspace mount.
+  useEffect(() => {
+    if (initialGreetingFiredRef.current) return;
+    if (runLoading) return;
+    if (messages.length > 0) return;
+    if (lastRunInChat !== null) return;
+    if (pendingUpload !== null) return;
+    initialGreetingFiredRef.current = true;
+    injectRegalicaMessage(t('chat.welcomeGreeting'));
+  }, [messages.length, runLoading, lastRunInChat, pendingUpload, injectRegalicaMessage, t]);
 
   const handleSend = useCallback(
     (text: string): void => {
@@ -751,6 +854,14 @@ export default function Workspace() {
       })
       .then((res) => {
         setActiveRunId(res.run_id);
+        // Issue 1 (UX) — bind this run to the chat surface so the
+        // run-completed canvas (Synthèse + KPIs + FailsTable +
+        // InvestigationArtefact) is gated to it. When the user later
+        // clicks "Nouveau chat", lastRunInChat is cleared and this
+        // canvas disappears, giving a true blank slate. The run's
+        // data stays in the DB and can be re-attached via the
+        // history sidebar.
+        setLastRunInChat(res.run_id);
         setPendingUpload(null);
         upload.reset();
         // P2 — fire a synthetic chat turn so the thinking_reflection
@@ -873,55 +984,73 @@ export default function Workspace() {
               {!runLoading && run === null && runError === null && activeRunId === null && (
                 <NoActiveRun />
               )}
-              {run !== null && summary !== null && summary.run.status !== 'completed' && (
-                /* Correction 1 — running run keeps the Synthèse external
+              {run !== null &&
+                summary !== null &&
+                summary.run.status !== 'completed' &&
+                lastRunInChat === currentRunId && (
+                  /* Correction 1 — running run keeps the Synthèse external
                  because there is no Regalica bubble to nest it inside
                  yet (the run hasn't completed; no narrative + no
                  confidence to derive). Once status === 'completed' the
-                 Synthèse moves INTO the bubble below. */
-                <RunSynthesisCard run={run} annexes={summary.annexes} />
-              )}
-              {summary !== null && summary.run.status === 'completed' && (
-                /* Point 1 + Correction 1 — Regalica's voice OWNS the
+                 Synthèse moves INTO the bubble below.
+                 Issue 1 (2026-05-08) — gated on `lastRunInChat ===
+                 currentRunId`: when the user clicks "Nouveau chat",
+                 lastRunInChat is cleared and this card disappears even
+                 though the server-side run is still loaded. Returning
+                 to the run via the history sidebar restores it. */
+                  <RunSynthesisCard run={run} annexes={summary.annexes} />
+                )}
+              {summary !== null &&
+                summary.run.status === 'completed' &&
+                lastRunInChat === currentRunId && (
+                  /* Point 1 + Correction 1 — Regalica's voice OWNS the
                  Synthèse, then the cause-root deliverable (Livrable C),
                  then the FailsTable, then the per-fail decomposition.
                  Everything sits as direct children of .msg-rega__body
                  to match the workspace v5 mockup pattern (:626-697)
                  where every <article class="artefact"> is rendered
-                 inside the bubble. */
-                <RegalicaRunSpeech run={summary.run}>
-                  <RunSynthesisCard run={summary.run} annexes={summary.annexes} />
-                  <T1Deliverables run={summary.run} />
-                  {currentRunId !== null &&
-                    (summary.run.total_fail_severe ?? 0) + (summary.run.total_fail_rounding ?? 0) >
-                      0 && (
-                      /* Tranche 0.5 W2.2 — validation_fail_details rows
+                 inside the bubble.
+                 Issue 1 (2026-05-08) — same lastRunInChat gate as the
+                 running variant above. The bubble + all its children
+                 disappear from the canvas on Nouveau chat, giving a
+                 true blank slate. The data stays in the DB and is
+                 reattached if the user picks the conversation in the
+                 history sidebar. */
+                  <RegalicaRunSpeech run={summary.run}>
+                    <RunSynthesisCard run={summary.run} annexes={summary.annexes} />
+                    <T1Deliverables run={summary.run} />
+                    {currentRunId !== null &&
+                      (summary.run.total_fail_severe ?? 0) +
+                        (summary.run.total_fail_rounding ?? 0) >
+                        0 && (
+                        /* Tranche 0.5 W2.2 — validation_fail_details rows
                        persisted by /finalize, banking-format columns
                        surfaced. Sub-Sprint 4: rows are now clickable
                        and feed the InvestigationArtefact below. */
-                      <FailsTable
-                        runId={currentRunId}
-                        filter="all"
-                        onFailClick={setSelectedFail}
-                        selectedFailId={investigationFail?.id ?? null}
-                      />
-                    )}
-                  {investigationFail !== null && (
-                    /* C — Investigation block. Defaults to the top severe
+                        <FailsTable
+                          runId={currentRunId}
+                          filter="all"
+                          onFailClick={setSelectedFail}
+                          selectedFailId={investigationFail?.id ?? null}
+                        />
+                      )}
+                    {investigationFail !== null && (
+                      /* C — Investigation block. Defaults to the top severe
                      fail (auto-mounted by useTopSevereFail) and switches
                      to whatever row the user clicks in FailsTable above
                      (Sub-Sprint 4). The artefact accepts both severities
                      so a click on a rounding row also surfaces the
                      decomposition. */
-                    <InvestigationArtefact fail={investigationFail} />
-                  )}
-                  <T3LockBanner totalFailSevere={summary.run.total_fail_severe ?? 0} />
-                </RegalicaRunSpeech>
-              )}
-              {run !== null && summary === null && (
+                      <InvestigationArtefact fail={investigationFail} />
+                    )}
+                    <T3LockBanner totalFailSevere={summary.run.total_fail_severe ?? 0} />
+                  </RegalicaRunSpeech>
+                )}
+              {run !== null && summary === null && lastRunInChat === currentRunId && (
                 /* Defensive: run row exists but /summary is still pending.
                  Show the KPI grid skeleton from the run row alone (no
-                 annexes block until summary lands). */
+                 annexes block until summary lands).
+                 Issue 1 (2026-05-08) — same lastRunInChat gate. */
                 <RunSynthesisCard run={run} annexes={[]} />
               )}
 
