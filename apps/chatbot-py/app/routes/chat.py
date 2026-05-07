@@ -173,6 +173,10 @@ async def post_chat_message(
         tokens_output=result.tokens_output,
         tokens_thinking=result.tokens_thinking,
         latency_ms=result.latency_ms,
+        # B7 — propagate the validation_run_id so the message row
+        # carries the run context. History hydration on the frontend
+        # uses it to rebind the run-completed canvas.
+        linked_run_id=context.validation_run_id if context is not None else None,
     )
 
     return ChatResponse(
@@ -264,8 +268,22 @@ async def _persist_message(
     tokens_output: int,
     tokens_thinking: int,
     latency_ms: int,
+    linked_run_id: str | None = None,
 ) -> str:
-    """Insert one Regalica response message and return its id."""
+    """Insert one Regalica response message and return its id.
+
+    B7 (2026-05-08, migration 104) — `linked_run_id` ties the message
+    to the validation_run that produced it. When the user re-opens
+    this conversation later via the history sidebar, the frontend
+    reads the latest linked_run_id from the message rows and rebinds
+    the workspace canvas (Synthèse + KPIs + FailsTable + ...) to
+    that run. Without this column, history hydration only restored
+    the chat thread; the run-completed canvas stayed empty.
+
+    `linked_run_id` is OPTIONAL — chat turns that don't carry a run
+    context (general help, citation lookup with no active run)
+    persist with NULL, identical to legacy behaviour.
+    """
     seq_row = await pool.fetchrow(
         """
         SELECT COALESCE(MAX(sequence_number), 0) + 1 AS next_seq
@@ -281,11 +299,13 @@ async def _persist_message(
         INSERT INTO messages (
             tenant_id, conversation_id, sequence_number, role,
             content_markdown, produced_by_agent,
-            tokens_input, tokens_output, tokens_thinking, latency_ms
+            tokens_input, tokens_output, tokens_thinking, latency_ms,
+            linked_run_id
         ) VALUES (
             $1::uuid, $2::uuid, $3, $4,
             $5, $6,
-            $7, $8, $9, $10
+            $7, $8, $9, $10,
+            CASE WHEN $11::text IS NULL THEN NULL ELSE $11::uuid END
         )
         RETURNING id::text AS id
         """,
@@ -299,6 +319,7 @@ async def _persist_message(
         tokens_output,
         tokens_thinking,
         latency_ms,
+        linked_run_id,
     )
     if msg_row is None:
         raise HTTPException(

@@ -191,7 +191,8 @@ export function conversationsRouter(pool: Pool): IRouter {
         }
         const msgs = await client.query(
           `SELECT id, sequence_number, role, content_markdown,
-                  thinking_trace, produced_by_agent, created_at
+                  thinking_trace, produced_by_agent, created_at,
+                  linked_run_id::text AS linked_run_id
              FROM messages
             WHERE conversation_id = $1
               AND role = ANY($2::text[])

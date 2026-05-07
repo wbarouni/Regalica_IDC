@@ -562,11 +562,19 @@ export function engineRouter(pool: Pool): IRouter {
             [conversationId],
           );
           const nextSeq = seqRow.rows[0]?.next_seq ?? 1;
+          // B7 (2026-05-08, migration 104) — propagate run_id from
+          // the body into the new messages.linked_run_id column so
+          // history hydration on the frontend can rebind the run-
+          // completed canvas to the conversation. The column is FK
+          // to validation_runs(id); body.run_id is already validated
+          // as a UUID by the zod schema.
           const ins = await client.query<{ id: string; created_at: Date }>(
             `INSERT INTO messages
                  (tenant_id, conversation_id, sequence_number, role,
-                  content_markdown, content_json, produced_by_agent)
-               VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7)
+                  content_markdown, content_json, produced_by_agent,
+                  linked_run_id)
+               VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7,
+                       CASE WHEN $8::text IS NULL THEN NULL ELSE $8::uuid END)
                RETURNING id, created_at`,
             [
               claimTenantId,
@@ -576,6 +584,7 @@ export function engineRouter(pool: Pool): IRouter {
               body.content,
               body.metadata !== undefined ? JSON.stringify(body.metadata) : null,
               body.produced_by_agent ?? null,
+              body.run_id ?? null,
             ],
           );
           return {

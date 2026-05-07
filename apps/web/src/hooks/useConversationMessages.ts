@@ -21,6 +21,16 @@ export interface PersistedMessage {
   thinking_trace: unknown;
   produced_by_agent: string | null;
   created_at: string;
+  /**
+   * B7 (2026-05-08, migration 104) — id of the validation_run that
+   * produced this message, or null when the turn carried no run
+   * context. Workspace.handleHistorySelect reads the LATEST non-null
+   * value across the loaded thread to rebind `lastRunInChat`, so the
+   * run-completed canvas (Synthèse + KPIs + FailsTable +
+   * InvestigationArtefact) reattaches to the right run when the user
+   * picks a past conversation in the history sidebar.
+   */
+  linked_run_id: string | null;
 }
 
 interface UseConversationMessagesResult {

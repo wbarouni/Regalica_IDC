@@ -44,6 +44,7 @@ describe('useConversationMessages — P5 hydration', () => {
         thinking_trace: null,
         produced_by_agent: null,
         created_at: '2026-05-01T10:00:00Z',
+        linked_run_id: null,
       },
       {
         id: 'm2',
@@ -53,6 +54,7 @@ describe('useConversationMessages — P5 hydration', () => {
         thinking_trace: null,
         produced_by_agent: 'regalica/aggregate_zoom_fail',
         created_at: '2026-05-01T10:00:01Z',
+        linked_run_id: '00000000-0000-7000-8000-00000000aaaa',
       },
     ];
     fetchMock.mockResolvedValueOnce(

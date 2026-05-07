@@ -616,6 +616,32 @@ export default function Workspace() {
             timestamp: r.created_at,
           }));
           loadConversation(selectedId, hydrated);
+          // B7 (2026-05-08, migration 104) — find the LATEST
+          // non-null linked_run_id across the loaded turns and bind
+          // the run-completed canvas to it. Rows are ordered by
+          // sequence_number ASC, so we scan from the end to grab the
+          // most recent run reference. When every row carries NULL
+          // (pre-B7 conversations or general-help-only threads), the
+          // canvas stays empty — `dismissedRunIdsRef` is also
+          // primed with the previously-bound id so the auto-bind
+          // effect doesn't resurrect the wrong run.
+          let restoredRunId: string | null = null;
+          for (let i = rows.length - 1; i >= 0; i -= 1) {
+            const candidate = rows[i]?.linked_run_id ?? null;
+            if (candidate !== null) {
+              restoredRunId = candidate;
+              break;
+            }
+          }
+          if (lastRunInChat !== null && lastRunInChat !== restoredRunId) {
+            dismissedRunIdsRef.current.add(lastRunInChat);
+          }
+          setLastRunInChat(restoredRunId);
+          if (restoredRunId !== null) {
+            // Allow the auto-bind effect to keep this id active —
+            // history pick is an explicit re-attach, not a dismiss.
+            dismissedRunIdsRef.current.delete(restoredRunId);
+          }
         })
         .catch(() => {
           // useConversationMessages stores the error code; the rail
@@ -623,7 +649,7 @@ export default function Workspace() {
           // here — the silent catch keeps the optimistic close UX).
         });
     },
-    [conversationMessages, loadConversation],
+    [conversationMessages, loadConversation, lastRunInChat],
   );
   const handleHistoryNewChat = useCallback((): void => {
     resetConversation();
