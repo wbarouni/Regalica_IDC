@@ -79,6 +79,19 @@ export interface UseChatOptions {
    * `injectRegalicaMessage`.
    */
   onLocalIntentMatch?: (text: string) => boolean | undefined;
+  /**
+   * P1 frontend — at every send, if the caller exposes a "currently
+   * focused FAIL" through this getter, the hook attaches it as
+   * `context.fail` on the chat POST body. chatbot-py orchestrator
+   * uses `context.fail` directly as `fail_context`, bypassing the
+   * generic `_load_run_fails_context` SQL preload — so the
+   * investigator analyses THE clicked row, not the largest-gap one.
+   *
+   * Returning `null` means "no row is currently selected" → the
+   * chat falls back to the default backend preload + the regex-
+   * extracted rule number from the message text.
+   */
+  failContextProvider?: () => Record<string, unknown> | null;
 }
 
 interface UseChatResult {
@@ -105,7 +118,7 @@ interface UseChatResult {
 }
 
 export function useChat(options: UseChatOptions = {}): UseChatResult {
-  const { initialConversationId, runId = null, onLocalIntentMatch } = options;
+  const { initialConversationId, runId = null, onLocalIntentMatch, failContextProvider } = options;
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -161,11 +174,21 @@ export function useChat(options: UseChatOptions = {}): UseChatResult {
           user_id: USER_ID,
           conversation_id: conversationId ?? undefined,
         };
+        // Build the per-turn `context` block. validation_run_id is set
+        // whenever the workspace has an active run; `fail` is set when
+        // a FailsTable row was clicked and the parent's
+        // failContextProvider() returns it. Both are independent: a
+        // chat turn can carry only the run id, only the fail, or both.
+        const turnContext: Record<string, unknown> = {};
         if (runId !== null && runId !== '') {
-          // ChatContext (Pydantic) accepts validation_run_id as the
-          // sole field we care about here. Other fields stay implicit
-          // null so chatbot-py treats them as absent.
-          requestBody.context = { validation_run_id: runId };
+          turnContext.validation_run_id = runId;
+        }
+        const focusedFail = failContextProvider?.() ?? null;
+        if (focusedFail !== null) {
+          turnContext.fail = focusedFail;
+        }
+        if (Object.keys(turnContext).length > 0) {
+          requestBody.context = turnContext;
         }
         const res = await fetch(`${CHATBOT_URL}/chat/message`, {
           method: 'POST',
@@ -209,7 +232,7 @@ export function useChat(options: UseChatOptions = {}): UseChatResult {
         setLoading(false);
       }
     },
-    [conversationId, loading, runId, onLocalIntentMatch],
+    [conversationId, loading, runId, onLocalIntentMatch, failContextProvider],
   );
 
   const clearError = useCallback(() => setError(null), []);

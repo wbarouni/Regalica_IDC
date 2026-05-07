@@ -407,6 +407,12 @@ export default function Workspace() {
   // body from the useChat setup order, since handleLaunchRun depends
   // on later state (pendingUpload, conversationId, startRun).
   const localLaunchMatcherRef = useRef<((text: string) => boolean) | null>(null);
+  // P1 frontend — `selectedFailRef` mirrors the `selectedFail` state
+  // so the failContextProvider closure (passed once to useChat) reads
+  // the latest selection at every send-time without forcing useChat
+  // to re-memoize. The state itself is declared further below and
+  // synced into the ref via `useEffect`.
+  const selectedFailRef = useRef<FailDetail | null>(null);
   const {
     messages,
     loading: chatLoading,
@@ -426,6 +432,25 @@ export default function Workspace() {
   } = useChat({
     runId: currentRunId,
     onLocalIntentMatch: (text) => localLaunchMatcherRef.current?.(text) === true,
+    // P1 frontend — propagate the user's currently selected FAIL to
+    // chatbot-py via `context.fail`. The orchestrator uses it as a
+    // direct override of the SQL preload, so the investigator analyses
+    // the clicked row instead of the largest-gap default.
+    failContextProvider: () => {
+      const f = selectedFailRef.current;
+      if (f === null) return null;
+      return {
+        id: f.id,
+        ax_term: f.ax_term,
+        num_regle: f.num_regle,
+        severity: f.severity,
+        expected_value: f.expected_value,
+        computed_value: f.computed_value,
+        gap_absolute: f.gap_absolute,
+        gap_relative: f.gap_relative,
+        rubrique_codes: f.rubrique_codes,
+      };
+    },
   });
 
   // Fix-5 — historique des conversations. The sidebar opens collapsed
@@ -478,6 +503,11 @@ export default function Workspace() {
   useEffect(() => {
     setSelectedFail(null);
   }, [currentRunId]);
+  // Keep the ref in lockstep with the state so the failContextProvider
+  // closure passed to useChat reads the freshest selection at send-time.
+  useEffect(() => {
+    selectedFailRef.current = selectedFail;
+  }, [selectedFail]);
   const investigationFail = selectedFail ?? topFail.fail;
 
   // P1 — auto-zoom REMOVED. The previous behaviour fired a synthetic
