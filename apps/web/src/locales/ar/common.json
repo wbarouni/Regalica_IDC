@@ -321,6 +321,11 @@
     "inputPlaceholder": "اسأل Regalica…",
     "welcomeGreeting": "مرحبًا. للبدء، أفلت تقاريرك التنظيمية (ملفات XML الخاصة بـ BCT) في النافذة أو استخدم زر الإرفاق أدناه. سأطلق التحقق BCT T1 فور استلام الإيداع."
   },
+  "launchSequence": {
+    "userIntent": "أطلق التحقق BCT T1 على {{fileName}}.",
+    "regalicaAckWithEta": "حسنًا. أطلق التحقق BCT T1 على {{fileName}} (تاريخ الإيداع {{arreteDate}}). يستغرق الفحص حوالي {{etaSeconds}} ثانية — الشريط يتابع التقدم في الوقت الفعلي.",
+    "regalicaAck": "حسنًا. أطلق التحقق BCT T1 على {{fileName}} (تاريخ الإيداع {{arreteDate}}). الشريط يتابع التقدم في الوقت الفعلي."
+  },
   "error": {
     "generic": "حدث خطأ",
     "noActiveRun": "لا توجد عملية تحقق جارية لهذه المؤسسة.",

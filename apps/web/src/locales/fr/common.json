@@ -321,6 +321,11 @@
     "inputPlaceholder": "Posez une question à Regalica…",
     "welcomeGreeting": "Bonjour. Pour démarrer, déposez vos rapports réglementaires (fichiers XML BCT) en glisser-déposer dans la fenêtre, ou utilisez le bouton de pièce jointe ci-dessous. Je lancerai la validation BCT T1 dès réception du dépôt."
   },
+  "launchSequence": {
+    "userIntent": "Lance la validation BCT T1 sur {{fileName}}.",
+    "regalicaAckWithEta": "Très bien. Je lance la validation BCT T1 sur {{fileName}} (arrêté {{arreteDate}}). Le contrôle prend environ {{etaSeconds}} secondes — la ribbon vous suit en temps réel.",
+    "regalicaAck": "Très bien. Je lance la validation BCT T1 sur {{fileName}} (arrêté {{arreteDate}}). La ribbon vous suit en temps réel."
+  },
   "error": {
     "generic": "Une erreur est survenue",
     "noActiveRun": "Aucune validation en cours pour cet établissement.",

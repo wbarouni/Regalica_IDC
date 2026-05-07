@@ -103,30 +103,7 @@ describe('useChat — Tranche 0 E1: runId propagation', () => {
   });
 });
 
-describe('useChat — Point 2: local intent interceptor + injectRegalicaMessage', () => {
-  it('skips the LLM round-trip when onLocalIntentMatch returns true', async () => {
-    const matcher = vi.fn().mockReturnValue(true);
-    const { result } = renderHook(() => useChat({ onLocalIntentMatch: matcher }));
-    await act(async () => {
-      await result.current.sendMessage('lance la validation');
-    });
-    expect(matcher).toHaveBeenCalledWith('lance la validation');
-    expect(fetchMock).not.toHaveBeenCalled();
-    // The user message stays visible in the thread.
-    expect(result.current.messages.some((m) => m.content === 'lance la validation')).toBe(true);
-  });
-
-  it('falls through to the chatbot-py POST when matcher returns false', async () => {
-    fetchMock.mockResolvedValueOnce(chatResponseStub());
-    const matcher = vi.fn().mockReturnValue(false);
-    const { result } = renderHook(() => useChat({ onLocalIntentMatch: matcher }));
-    await act(async () => {
-      await result.current.sendMessage('Bonjour');
-    });
-    expect(matcher).toHaveBeenCalledWith('Bonjour');
-    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
-  });
-
+describe('useChat — B3: programmatic message injection (no LLM round-trip)', () => {
   it('injectRegalicaMessage appends a synthetic assistant turn without fetching', async () => {
     const { result } = renderHook(() => useChat());
     act(() => {
@@ -136,6 +113,17 @@ describe('useChat — Point 2: local intent interceptor + injectRegalicaMessage'
     expect(result.current.messages).toHaveLength(1);
     expect(result.current.messages[0]?.role).toBe('regalica');
     expect(result.current.messages[0]?.content).toBe('OK lancement…');
+  });
+
+  it('injectUserMessage appends a synthetic user turn without fetching', async () => {
+    const { result } = renderHook(() => useChat());
+    act(() => {
+      result.current.injectUserMessage('Lance la validation BCT T1 sur file.xml.');
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result.current.messages).toHaveLength(1);
+    expect(result.current.messages[0]?.role).toBe('user');
+    expect(result.current.messages[0]?.content).toBe('Lance la validation BCT T1 sur file.xml.');
   });
 });
 

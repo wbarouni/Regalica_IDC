@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 import { config } from '../config.js';
 import { handleDbError } from '../db/errors.js';
-import { getPlatformConfig } from '../lib/platformConfig.js';
+import { getPlatformConfig, getPlatformConfigNumber } from '../lib/platformConfig.js';
 import { logger } from '../logger.js';
 import { withConnection } from '../db/withConnection.js';
 import { HTTP_BAD_REQUEST, HTTP_CREATED, HTTP_FORBIDDEN } from '../lib/http.js';
@@ -103,6 +103,36 @@ function kickoffEngineAsync(payload: ChatbotPyKickoffPayload, correlationId: str
 
 export function runsRouter(pool: Pool): IRouter {
   const router = Router({ mergeParams: true });
+
+  // B3 (2026-05-08) — GET /runs/eta
+  // Returns the platform-wide p50 latency estimate (seconds) for a
+  // complete T1 validation. The frontend renders the Lancer ack
+  // message ETA from this value so the constant never lives in
+  // source. Seeded by migration 104; future refresh by a percentile
+  // computation over validation_runs (planned Phase 2). The value is
+  // tenant-agnostic for now — every tenant uses the same engine path.
+  router.get('/runs/eta', async (_req: Request, res: Response) => {
+    try {
+      const seconds = await getPlatformConfigNumber(pool, 't1_run_eta_p50_seconds');
+      res.json({
+        data: { seconds },
+        meta: { ts: new Date().toISOString(), version: '1' },
+      });
+    } catch (err) {
+      // The key is seeded by migration 104; if it's missing the
+      // tenant has been bootstrapped on a stale schema. Surface a
+      // 200 with seconds=null so the frontend renders the ack
+      // without an ETA clause rather than crashing.
+      logger.warn(
+        { err: err instanceof Error ? err.message : String(err) },
+        't1_run_eta_p50_seconds platform_config lookup failed',
+      );
+      res.json({
+        data: { seconds: null },
+        meta: { ts: new Date().toISOString(), version: '1' },
+      });
+    }
+  });
 
   router.post('/runs', async (req: Request, res: Response) => {
     const tenantId = req.params['tenantId'] as string;

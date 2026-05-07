@@ -321,6 +321,11 @@
     "inputPlaceholder": "Ask Regalica…",
     "welcomeGreeting": "Hello. To get started, drop your regulatory filings (BCT XML files) into the window, or use the attach button below. I'll launch the BCT T1 validation as soon as your filing is received."
   },
+  "launchSequence": {
+    "userIntent": "Launch the BCT T1 validation on {{fileName}}.",
+    "regalicaAckWithEta": "Understood. I'm launching the BCT T1 validation on {{fileName}} (filing date {{arreteDate}}). The check takes about {{etaSeconds}} seconds — the ribbon tracks progress in real time.",
+    "regalicaAck": "Understood. I'm launching the BCT T1 validation on {{fileName}} (filing date {{arreteDate}}). The ribbon tracks progress in real time."
+  },
   "error": {
     "generic": "An error occurred",
     "noActiveRun": "No active validation for this institution.",

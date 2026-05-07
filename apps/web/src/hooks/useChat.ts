@@ -56,29 +56,21 @@ interface ChatResponseBody {
 export interface UseChatOptions {
   initialConversationId?: string;
   runId?: string | null;
-  /**
-   * Point 2 — Local intent interceptor.
-   *
-   * Invoked SYNCHRONOUSLY before the chat POST when the user types
-   * a message. Returns true to short-circuit the network call (the
-   * caller has handled the intent locally, e.g. by calling the same
-   * imperative path the LANCER button calls). Returns false (or
-   * undefined) to fall through to the standard chatbot-py round-trip.
-   *
-   * Use case: the user types "lance la validation" / "démarre" while
-   * a pendingUpload exists in the workspace state — Workspace.tsx
-   * intercepts the phrase, calls handleLaunchRun(), injects a
-   * synthetic Regalica acknowledgement, and skips the LLM call.
-   * Without this hook, the message would route through chatbot-py's
-   * launch_validation intent → t1_runner, which short-circuits with
-   * "Aucun run actif" because no run row has been created yet.
-   *
-   * The user message is still appended to the thread (so the
-   * acknowledgement reads as a chat turn). The synthetic Regalica
-   * response is the caller's responsibility, surfaced via
-   * `injectRegalicaMessage`.
-   */
-  onLocalIntentMatch?: (text: string) => boolean | undefined;
+  // B1 (2026-05-08) — `onLocalIntentMatch` REMOVED. The previous
+  // pattern intercepted launch verbs ("lance", "démarre", …) via a
+  // hardcoded regex on the frontend, then called handleLaunchRun()
+  // directly to skip the chatbot-py round-trip. Two problems:
+  //   1. The regex was hardcoded — every new locale or phrasing
+  //      meant a code change. Violated CLAUDE.md zero-hardcoding.
+  //   2. Stale closures around pendingUpload caused recursive
+  //      handleLaunchRun() calls (commit a4faa16 trace), creating
+  //      duplicate validation_runs rows.
+  // The replacement: the explicit Lancer button is the canonical
+  // entry point. When the user TYPES a launch verb, the message
+  // routes normally through chatbot-py /chat/message → router LLM
+  // → launch_validation intent. The orchestrator's T1 short-circuit
+  // (B2, intent_specialists.requires_run_uniqueness) handles the
+  // dedup if a run is already in progress.
   /**
    * P1 frontend — at every send, if the caller exposes a "currently
    * focused FAIL" through this getter, the hook attaches it as
@@ -108,6 +100,17 @@ interface UseChatResult {
    */
   injectRegalicaMessage: (content: string) => void;
   /**
+   * B3 (2026-05-08) — programmatic injection of a USER bubble.
+   * Used by handleLaunchRun to render the user's intent ("Lance la
+   * validation BCT T1...") in the thread BEFORE the POST /api/runs
+   * fires, so the chat reads as a clean causal sequence:
+   *   user msg → Regalica ack → ribbon animates → synthesis arrives.
+   * The injected message has the same shape as a normal user turn
+   * (role='user', timestamp now) so groupByDay + DaySeparator
+   * handle it without a special path.
+   */
+  injectUserMessage: (content: string) => void;
+  /**
    * Sprint D — Point 5 — clear messages + conversation_id so the next
    * `sendMessage` opens a fresh chatbot-py conversation. Caller invokes
    * this when the user manually launches a NEW upload (Lancer button)
@@ -133,7 +136,7 @@ interface UseChatResult {
 }
 
 export function useChat(options: UseChatOptions = {}): UseChatResult {
-  const { initialConversationId, runId = null, onLocalIntentMatch, failContextProvider } = options;
+  const { initialConversationId, runId = null, failContextProvider } = options;
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -155,6 +158,18 @@ export function useChat(options: UseChatOptions = {}): UseChatResult {
     ]);
   }, []);
 
+  const injectUserMessage = useCallback((content: string): void => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        role: 'user',
+        content,
+        timestamp: new Date().toISOString(),
+      },
+    ]);
+  }, []);
+
   const sendMessage = useCallback(
     async (text: string): Promise<void> => {
       const trimmed = text.trim();
@@ -171,13 +186,10 @@ export function useChat(options: UseChatOptions = {}): UseChatResult {
       };
       setMessages((prev) => [...prev, userMsg]);
 
-      // Point 2 — local intent interceptor. The user's message stays
-      // visible in the thread; the LLM round-trip is skipped if the
-      // caller acknowledges the intent. Caller is responsible for any
-      // synthetic Regalica response via injectRegalicaMessage.
-      if (onLocalIntentMatch !== undefined && onLocalIntentMatch(trimmed) === true) {
-        return;
-      }
+      // B1 (2026-05-08) — the local intent interceptor was removed.
+      // Every typed message now routes through chatbot-py /chat/message.
+      // Launch verbs are handled there via the launch_validation
+      // intent + the orchestrator's T1 short-circuit (B2).
 
       setLoading(true);
       setError(null);
@@ -247,7 +259,7 @@ export function useChat(options: UseChatOptions = {}): UseChatResult {
         setLoading(false);
       }
     },
-    [conversationId, loading, runId, onLocalIntentMatch, failContextProvider],
+    [conversationId, loading, runId, failContextProvider],
   );
 
   const clearError = useCallback(() => setError(null), []);
@@ -272,6 +284,7 @@ export function useChat(options: UseChatOptions = {}): UseChatResult {
     sendMessage,
     clearError,
     injectRegalicaMessage,
+    injectUserMessage,
     resetConversation,
     loadConversation,
   };

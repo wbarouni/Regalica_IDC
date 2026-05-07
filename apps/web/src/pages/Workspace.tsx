@@ -26,6 +26,7 @@ import { useCurrentRun } from '../hooks/useCurrentRun';
 import { useEventSource } from '../hooks/useEventSource';
 import { useFails } from '../hooks/useFails';
 import { useNotifications } from '../hooks/useNotifications';
+import { useRunEta } from '../hooks/useRunEta';
 import { useRunSummary } from '../hooks/useRunSummary';
 import { useStartRun } from '../hooks/useStartRun';
 import { useTopSevereFail } from '../hooks/useTopSevereFail';
@@ -495,14 +496,23 @@ export default function Workspace() {
       ? { code: run.error_code, message: run.error_code }
       : null;
   const displayedEngineError = engineError ?? persistedEngineError;
-  // Point 2 — local intent matcher ref. Invoked synchronously inside
-  // useChat.sendMessage BEFORE the LLM round-trip. Returns true to
-  // short-circuit (the caller — Workspace — has handled the intent
-  // locally, e.g. by calling handleLaunchRun for a chat-driven
-  // launch_validation phrase). The ref pattern decouples the matcher's
-  // body from the useChat setup order, since handleLaunchRun depends
-  // on later state (pendingUpload, conversationId, startRun).
-  const localLaunchMatcherRef = useRef<((text: string) => boolean) | null>(null);
+  // B1 (2026-05-08) — `localLaunchMatcherRef` REMOVED with its
+  // hardcoded `/\b(lance|démarre|valide|...)\b/i` regex. Two reasons:
+  //   1. The regex was hardcoded vocabulary that violated CLAUDE.md
+  //      §10 (zero hardcoding).
+  //   2. Stale closures around pendingUpload caused recursive
+  //      handleLaunchRun() invocations → duplicate validation_runs.
+  // The Lancer button is the sole entry point for launching from a
+  // staged upload; typed launch verbs route normally through
+  // chatbot-py /chat/message → router → launch_validation intent →
+  // T1 short-circuit (B2, gated on validation_runs.status +
+  // intent_specialists.requires_run_uniqueness).
+  //
+  // `launchInFlightRef` (B1+B5) replaces the regex matcher's role
+  // for guarding against duplicate launches — if a POST /api/runs
+  // is already in flight, subsequent Lancer clicks are no-ops until
+  // the promise resolves.
+  const launchInFlightRef = useRef<boolean>(false);
   // P1 frontend — `selectedFailRef` mirrors the `selectedFail` state
   // so the failContextProvider closure (passed once to useChat) reads
   // the latest selection at every send-time without forcing useChat
@@ -519,6 +529,12 @@ export default function Workspace() {
     // Tranche 0 E2 — pass the active run id so chatbot-py routes
     // launch_validation to t1_runner with current_run_id non-null.
     injectRegalicaMessage,
+    // B3 — programmatic injection of a USER bubble. Used by
+    // handleLaunchRun to render the user's intent ("Lance la
+    // validation BCT T1...") in the thread BEFORE the POST /api/runs
+    // fires, so the chat reads as a clean causal sequence:
+    //   user msg → Regalica ack → ribbon animates → synthesis arrives.
+    injectUserMessage,
     // Sprint D — Point 5 — manual upload of a fresh annexe opens a
     // fresh chat thread (the prior conversation is dropped from the
     // local view; archive sidebar arrives in a follow-up sprint). When
@@ -532,7 +548,6 @@ export default function Workspace() {
     loadConversation,
   } = useChat({
     runId: currentRunId,
-    onLocalIntentMatch: (text) => localLaunchMatcherRef.current?.(text) === true,
     // P1 frontend — propagate the user's currently selected FAIL to
     // chatbot-py via `context.fail`. The orchestrator uses it as a
     // direct override of the SQL preload, so the investigator analyses
@@ -715,6 +730,10 @@ export default function Workspace() {
 
   const upload = useUpload();
   const startRun = useStartRun();
+  // B3 — fetch the platform-wide T1 ETA so the Lancer ack message
+  // can render "le contrôle prend environ X secondes" without a
+  // hardcoded value. Falls back to null (clause omitted) on failure.
+  const runEta = useRunEta();
   // Pending upload: the user picked a file but hasn't yet pressed
   // "Lancer". Tracked locally so the Dock area can render the staged
   // file + a launch button. Cleared on either successful run start or
@@ -841,11 +860,62 @@ export default function Workspace() {
 
   const handleLaunchRun = useCallback((): void => {
     if (pendingUpload === null) return;
-    // Sprint D — Point 5 — a manual Lancer click is the user opening
-    // a NEW validation context. Reset the chat thread BEFORE kickoff
-    // so the briefing / synthesis messages persisted by chatbot-py
-    // land in a fresh conversation.
+    // B1+B5 (2026-05-08) — guard against duplicate launches caused
+    // by double-clicks on the Lancer button OR by a chat-driven
+    // launch_validation intent firing in parallel. Once the ref is
+    // true, the function returns immediately until the POST resolves
+    // (success or failure both clear the flag).
+    if (launchInFlightRef.current) return;
+    launchInFlightRef.current = true;
+
+    const fileName = pendingUpload.filename;
+    const arreteDate = pendingUpload.arrete_date;
+    const etaSeconds = runEta.seconds;
+
+    // B3 (2026-05-08) — REORDERED. The user sees a clean causal
+    // sequence in the thread:
+    //   1. user message ("Lance la validation BCT T1 sur ...") —
+    //      injected NOW so the intent is visible before the network
+    //      call, regardless of POST latency.
+    //   2. Regalica ack ("Très bien, je lance...") — injected NOW
+    //      so the user gets immediate feedback. The ETA comes from
+    //      platform_config.t1_run_eta_p50_seconds (DB-driven, not
+    //      hardcoded — see migration 104). When the value is unknown
+    //      (cold start), the loader returns null and the ack omits
+    //      the ETA clause rather than fabricating one.
+    //   3. resetConversation() AFTER injecting these so the new chat
+    //      thread starts WITH the launch turn already populated.
+    //   4. POST /api/runs in the background. The .then() sets the
+    //      run id state without injecting any further chat message.
+    //   5. T0 + T1 pipelines run server-side; their briefing /
+    //      synthesis messages reach the thread via the SSE-driven
+    //      /messages persistence path (chatbot-py /upload endpoint).
     resetConversation();
+    injectUserMessage(
+      t('launchSequence.userIntent', {
+        fileName,
+        defaultValue: `Lance la validation BCT T1 sur ${fileName}.`,
+      }),
+    );
+    injectRegalicaMessage(
+      etaSeconds !== null
+        ? t('launchSequence.regalicaAckWithEta', {
+            fileName,
+            arreteDate,
+            etaSeconds,
+            defaultValue:
+              `Très bien. Je lance la validation BCT T1 sur ${fileName} (arrêté ${arreteDate}). ` +
+              `Le contrôle prend environ ${etaSeconds} secondes — la ribbon vous suit en temps réel.`,
+          })
+        : t('launchSequence.regalicaAck', {
+            fileName,
+            arreteDate,
+            defaultValue:
+              `Très bien. Je lance la validation BCT T1 sur ${fileName} ` +
+              `(arrêté ${arreteDate}). La ribbon vous suit en temps réel.`,
+          }),
+    );
+
     void startRun
       .start({
         upload_ids: [pendingUpload.upload_id],
@@ -858,71 +928,42 @@ export default function Workspace() {
         // run-completed canvas (Synthèse + KPIs + FailsTable +
         // InvestigationArtefact) is gated to it. When the user later
         // clicks "Nouveau chat", lastRunInChat is cleared and this
-        // canvas disappears, giving a true blank slate. The run's
-        // data stays in the DB and can be re-attached via the
-        // history sidebar.
+        // canvas disappears, giving a true blank slate.
         setLastRunInChat(res.run_id);
         setPendingUpload(null);
         upload.reset();
-        // P2 — fire a synthetic chat turn so the thinking_reflection
-        // prompt produces its prose at the moment of validation launch.
-        // The orchestrator routes "lance la validation" via the
-        // launch_validation intent → t1_runner specialist (already
-        // running on the server side via /upload's auto-chain) →
-        // aggregator that surfaces the verdict synthesis. The
-        // user-visible artefact is a Regalica bubble carrying both the
-        // prose thinking AND the verdict synthesis — exactly what the
-        // user requested:
-        //   "le mode thinking doit être au début de la discussion même
-        //    lors de lancement de la validation".
-        void sendMessage(
-          t('autoLaunch.triggerMessage', {
-            defaultValue: 'Lance la validation BCT T1 sur le fichier que je viens de charger.',
-          }),
-        );
+        // B3 — NO sendMessage here. The user msg + Regalica ack were
+        // already injected BEFORE the POST. The T1 pipeline starts
+        // automatically on the server side via /upload kickoff
+        // (apps/api/src/routes/runs.ts:kickoffEngineAsync) and the
+        // synthesis arrives in the thread when chatbot-py persists
+        // its aggregator output.
       })
       .catch(() => {
         // No silent swallow: useStartRun stored {code, message} in
         // state and <LaunchErrorArtefact> renders it inside the chat
         // thread (Tranche 1.1). Local catch only prevents the
         // unhandled-rejection warning.
+      })
+      .finally(() => {
+        launchInFlightRef.current = false;
       });
-  }, [pendingUpload, resetConversation, sendMessage, startRun, t, upload]);
+  }, [
+    pendingUpload,
+    resetConversation,
+    injectUserMessage,
+    injectRegalicaMessage,
+    startRun,
+    t,
+    upload,
+    runEta.seconds,
+  ]);
 
   const handleCancelPending = useCallback((): void => {
     setPendingUpload(null);
     upload.reset();
     startRun.reset();
   }, [upload, startRun]);
-
-  // Point 2 — populate the local matcher ref now that handleLaunchRun
-  // and pendingUpload are in scope. The ref is invoked synchronously
-  // inside useChat.sendMessage BEFORE the LLM round-trip; on a regex
-  // match (FR/EN/AR launch verbs), if a pendingUpload is staged, the
-  // launch button is fired imperatively, a Regalica acknowledgement
-  // is injected into the thread via injectRegalicaMessage, and the
-  // network call is skipped.
-  //
-  // Without a pendingUpload (no XML staged), the matcher returns
-  // false and the message routes through the normal chatbot-py
-  // path — the launch_validation intent there still works for an
-  // already-running validation_runs row (re-evaluating the same XMLs).
-  useEffect(() => {
-    localLaunchMatcherRef.current = (text) => {
-      if (pendingUpload === null) return false;
-      const re =
-        /\b(lance|d[eé]marre|valide|run|start|launch|trigger|kick[\s-]?off|ابدأ|شغّل|أطلق)\b/i;
-      if (!re.test(text)) return false;
-      handleLaunchRun();
-      injectRegalicaMessage(
-        t('autoLaunch.acknowledgement', {
-          defaultValue:
-            'Très bien. Je lance la validation BCT T1 sur le fichier que vous venez de charger.',
-        }),
-      );
-      return true;
-    };
-  }, [pendingUpload, handleLaunchRun, injectRegalicaMessage, t]);
 
   if (
     runError === 'MISSING_TENANT_ID' ||
