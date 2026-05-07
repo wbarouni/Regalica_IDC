@@ -1551,6 +1551,59 @@ async def _load_run_dependency_state(
         return None
     arrete_date = run_row["arrete_date"]
 
+    # Bug 7 — RDG-side gate (2026-05-08, doctrine
+    # docs/04-WORKFLOW-UTILISATEUR-COMPLET.md §6 + user diagnostic).
+    # The user clarified the trigger condition explicitly:
+    #
+    #   "demande l'XML compagnon en glisser-déposer juste ou
+    #    l'annexe injecté en premier lieu contient dans son rdg
+    #    type control Inter annexe"
+    #
+    # i.e. only request a companion XML when the primary annex
+    # actually carries at least one rule flagged is_inter_annexe in
+    # rules_active. Without this gate, an annex declared in
+    # `referentials_annexe_dependencies` but whose RDG corpus
+    # contains only intra-annex rules would still trigger a
+    # companion request — pointless because no inter-annex rule
+    # would benefit from the companion's data.
+    #
+    # The dependencies referential and rules_active are two
+    # independent sources; the rules ARE the source of truth for
+    # what genuinely needs cross-annex resolution. Defending against
+    # divergence here is a defensive belt over the seed pipeline.
+    try:
+        inter_annex_rule_row = await pool.fetchrow(
+            """
+            SELECT COUNT(*)::int AS cnt
+              FROM rules_active
+             WHERE tenant_id        = $1::uuid
+               AND ax_term          = $2
+               AND is_inter_annexe  = TRUE
+            """,
+            tenant_id,
+            primary_annexe,
+        )
+        inter_annex_rule_count = (
+            int(inter_annex_rule_row["cnt"]) if inter_annex_rule_row is not None else 0
+        )
+    except Exception:
+        # Defensive — when the rules_active probe fails (DB error,
+        # tenant misconfigured), we collapse to 0 so the chat path
+        # silently skips the inter-annex prompt rather than emitting
+        # a noisy "we cannot tell" message.
+        _logger.exception(
+            "_load_run_dependency_state: rules_active inter_annex lookup failed primary=%s",
+            primary_annexe,
+        )
+        inter_annex_rule_count = 0
+
+    if inter_annex_rule_count == 0:
+        # The primary annex has no inter-annex rule in its RDG
+        # corpus. Skip the entire dependency block — no companion
+        # XML request, no BLOC 7, no UI nudge. This matches the
+        # user-stated trigger condition verbatim.
+        return None
+
     try:
         required_rows = await pool.fetch(
             """
@@ -1575,8 +1628,10 @@ async def _load_run_dependency_state(
         str(r["target_annexe_code"]) for r in required_rows if r["target_annexe_code"] is not None
     ]
     if not required_companions:
-        # Autonomous primary annexe — no companion declared. The chat
-        # path skips the inter-annex prompt block entirely.
+        # Autonomous primary annexe in the dependencies referential —
+        # even though the RDG carries inter-annex rules, no companion
+        # is declared in the matrix (CC-tech §9.5). The chat path
+        # skips the inter-annex prompt block.
         return None
 
     try:
