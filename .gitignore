@@ -1,10 +1,25 @@
 # ---- Secrets & env ---------------------------------------------------------
+# Two complementary patterns: `.env*` covers `.env`, `.env.local`,
+# `.env.production`, etc. (filename starts with .env). `*.env` covers
+# `api.env`, `chatbot-py.env`, anything-named.env at any depth — the
+# kind of stray file an editor or per-app loader sometimes drops next
+# to the source. The negation `!*.env.example` keeps the canonical
+# templates committed; the negation order matters (PASS, NEGATE, NEGATE).
 .env
 .env.*
+*.env
 !.env.example
+!*.env.example
 *.pem
 *.key
 *.crt
+# Per-developer launch configs (Claude Code, VS Code debug, etc.).
+# A user-specific top-level `launch.json` MUST never reach the repo —
+# it carries absolute paths, local API keys, and per-machine env
+# overrides. The TRACKED `.claude/launch.json` is intentionally
+# committed (shared team config, generic pnpm + vite invocation, no
+# personal data).
+/launch.json
 
 # Per-developer docker-compose extensions go in
 # docker-compose.local.yml (gitignored). The canonical
@@ -91,3 +106,7 @@ tmp/
 
 # ---- Claude artifacts ------------------------------------------------------
 .claude/local/
+# Runtime locks Claude Code drops while a session is active. Always
+# transient, never useful to track.
+.claude/scheduled_tasks.lock
+.claude/*.lock

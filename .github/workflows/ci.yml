@@ -113,6 +113,14 @@ jobs:
       - name: Run tools/check-no-hardcoding.sh
         run: bash tools/check-no-hardcoding.sh
 
+  no-secrets:
+    name: Guard no secrets in tracked files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tools/check-no-secrets.sh
+        run: bash tools/check-no-secrets.sh
+
   # =========================================================================
   # Typecheck
   # =========================================================================

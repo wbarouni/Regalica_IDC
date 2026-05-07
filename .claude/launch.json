@@ -2,15 +2,15 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "web",
+      "name": "REGFlow — Frontend (Vite)",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["dev"],
-      "cwd": "apps/web",
+      "runtimeArgs": ["--filter", "@regflow/web", "dev"],
       "port": 5173,
+      "cwd": "${workspaceFolder}",
+      "autoPort": true,
       "env": {
-        "VITE_ALLOWED_HOSTS": "all"
-      },
-      "autoPort": true
+        "NODE_ENV": "development"
+      }
     }
   ]
 }
