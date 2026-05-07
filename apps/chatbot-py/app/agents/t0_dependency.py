@@ -96,9 +96,7 @@ class DependencyAgent:
                     missing_codes,
                     primary_annexe,
                 )
-                parasitic_fail_count = (
-                    int(parasitic_row["cnt"]) if parasitic_row is not None else 0
-                )
+                parasitic_fail_count = int(parasitic_row["cnt"]) if parasitic_row is not None else 0
             except (asyncpg.PostgresError, OSError):
                 # Defensive: a query failure on the parasitic-count
                 # subqueries must NOT mask the dependency check itself.

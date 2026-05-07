@@ -154,9 +154,9 @@ def _read_migration_intent_specialists() -> tuple[list[dict[str, object]], list[
     bearers.extend(_extract_jsonb(sql_065, "BEARERS"))
 
     # 072 — launch_validation intent + t1_runner bearer (inline INSERT).
-    sql_072 = (_REPO_ROOT / "apps" / "api" / "migrations" / "072_seed_intent_launch_validation.sql").read_text(
-        encoding="utf-8"
-    )
+    sql_072 = (
+        _REPO_ROOT / "apps" / "api" / "migrations" / "072_seed_intent_launch_validation.sql"
+    ).read_text(encoding="utf-8")
     if "specialist_id, agent_type, function_name" in sql_072 or "'t1_runner'" in sql_072:
         # Hand-build the bearer row from the migration's INSERT body.
         bearers.append(
@@ -176,9 +176,9 @@ def _read_migration_intent_specialists() -> tuple[list[dict[str, object]], list[
         )
 
     # 076 — download_report intent + reporter_pdf bearer (inline INSERT).
-    sql_076 = (_REPO_ROOT / "apps" / "api" / "migrations" / "076_seed_intent_download_report.sql").read_text(
-        encoding="utf-8"
-    )
+    sql_076 = (
+        _REPO_ROOT / "apps" / "api" / "migrations" / "076_seed_intent_download_report.sql"
+    ).read_text(encoding="utf-8")
     if "'reporter_pdf'" in sql_076:
         bearers.append(
             {

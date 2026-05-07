@@ -15,7 +15,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.agents.base import AgentResult
-from app.routes.upload import _StepRow, _format_dependency_list, _propagate_outputs
+from app.routes.upload import _format_dependency_list, _propagate_outputs, _StepRow
 
 
 def test_format_dependency_list_renders_annexe_codes_separated_by_commas() -> None:

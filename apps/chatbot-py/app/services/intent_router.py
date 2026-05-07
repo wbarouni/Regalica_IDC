@@ -116,9 +116,7 @@ async def detect_intent(
     # the intended dict instead of falling back to `general_help`.
     parsed = extract_first_json(response.content)
     if parsed is None:
-        _logger.warning(
-            "router LLM produced no parsable JSON object: %r", response.content[:300]
-        )
+        _logger.warning("router LLM produced no parsable JSON object: %r", response.content[:300])
         return _fallback_result()
 
     # Mirror the `additionalProperties: false` clause of the seed

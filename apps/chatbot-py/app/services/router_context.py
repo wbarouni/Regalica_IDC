@@ -151,11 +151,7 @@ async def build_run_context(
                 # `.get()` semantics on asyncpg.Record are unsafe; mock
                 # rows in unit tests may omit the key entirely so we
                 # tolerate KeyError defensively.
-                "rubrique_codes": (
-                    list(r["rubrique_codes"])
-                    if r.get("rubrique_codes")
-                    else []
-                ),
+                "rubrique_codes": (list(r["rubrique_codes"]) if r.get("rubrique_codes") else []),
             }
             for r in fail_rows
         ],

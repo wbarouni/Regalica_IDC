@@ -8,7 +8,7 @@ trace surfaced to the frontend.
 
 from __future__ import annotations
 
-from app.services.orchestrator import _SpecialistOutcome, _build_thinking_trace
+from app.services.orchestrator import _build_thinking_trace, _SpecialistOutcome
 
 
 def test_build_thinking_trace_renders_4_phases_when_no_outcomes() -> None:

@@ -37,9 +37,7 @@ from app.services.orchestrator import (
         ("règle 1234567", 1234567),
     ],
 )
-def test_extract_rule_number_matches_canonical_patterns(
-    message: str, expected: int
-) -> None:
+def test_extract_rule_number_matches_canonical_patterns(message: str, expected: int) -> None:
     assert _extract_rule_number_from_message(message) == expected
 
 
