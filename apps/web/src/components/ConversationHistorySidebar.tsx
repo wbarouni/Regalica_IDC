@@ -29,6 +29,13 @@ export interface ConversationHistorySidebarProps {
   onToggle: () => void;
   onSelect: (conversationId: string) => void;
   onNewChat: () => void;
+  /**
+   * Feature 3 — soft-delete a past thread. The button is rendered
+   * inline next to each row (right-aligned, low-emphasis until
+   * hovered). Optional so the prop stays backward-compat with any
+   * read-only mount; when omitted, no delete affordance is shown.
+   */
+  onDelete?: (conversationId: string) => void;
 }
 
 export function ConversationHistorySidebar({
@@ -39,6 +46,7 @@ export function ConversationHistorySidebar({
   onToggle,
   onSelect,
   onNewChat,
+  onDelete,
 }: ConversationHistorySidebarProps): JSX.Element {
   const { t } = useTranslation();
 
@@ -202,6 +210,30 @@ export function ConversationHistorySidebar({
                 key={c.id}
                 style={{
                   borderBottom: '1px solid var(--stone-100)',
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'stretch',
+                  background: isActive ? 'var(--marigold-50, #fcf4e0)' : 'transparent',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = 'var(--stone-50, #f7f5f0)';
+                  }
+                  const del =
+                    e.currentTarget.querySelector<HTMLButtonElement>('[data-history-delete]');
+                  if (del !== null) {
+                    del.style.opacity = '1';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = 'transparent';
+                  }
+                  const del =
+                    e.currentTarget.querySelector<HTMLButtonElement>('[data-history-delete]');
+                  if (del !== null) {
+                    del.style.opacity = '0';
+                  }
                 }}
               >
                 <button
@@ -210,10 +242,10 @@ export function ConversationHistorySidebar({
                   data-testid={`history-conversation-${c.id}`}
                   aria-pressed={isActive}
                   style={{
-                    width: '100%',
+                    flex: 1,
                     padding: '10px 14px',
                     textAlign: 'left',
-                    background: isActive ? 'var(--marigold-50, #fcf4e0)' : 'transparent',
+                    background: 'transparent',
                     border: 'none',
                     cursor: 'pointer',
                     display: 'flex',
@@ -221,17 +253,6 @@ export function ConversationHistorySidebar({
                     gap: '4px',
                     color: 'var(--ink, #1a1a1a)',
                     fontFamily: 'inherit',
-                    transition: 'background 80ms ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isActive) {
-                      e.currentTarget.style.background = 'var(--stone-50, #f7f5f0)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive) {
-                      e.currentTarget.style.background = 'transparent';
-                    }
                   }}
                 >
                   <span
@@ -261,6 +282,78 @@ export function ConversationHistorySidebar({
                     </span>
                   </span>
                 </button>
+                {onDelete !== undefined && (
+                  <button
+                    type="button"
+                    data-history-delete
+                    data-testid={`history-delete-${c.id}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const confirmLabel = t('history.deleteConfirm', {
+                        defaultValue: 'Supprimer cette conversation ?',
+                      });
+                      if (window.confirm(confirmLabel)) {
+                        onDelete(c.id);
+                      }
+                    }}
+                    aria-label={t('history.deleteLabel', {
+                      defaultValue: 'Supprimer la conversation',
+                    })}
+                    title={t('history.deleteLabel', {
+                      defaultValue: 'Supprimer la conversation',
+                    })}
+                    style={{
+                      // Low-emphasis until hovered (opacity controlled by
+                      // parent <li> handlers above). The button stays
+                      // focusable for keyboard users — opacity 0 with
+                      // visible focus ring on :focus-visible.
+                      opacity: 0,
+                      transition: 'opacity 100ms ease, color 100ms ease',
+                      width: '32px',
+                      flexShrink: 0,
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: 'var(--stone-500, #888)',
+                      fontSize: '14px',
+                      lineHeight: 1,
+                      padding: 0,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = 'var(--vermilion-700, #b03030)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = 'var(--stone-500, #888)';
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.opacity = '1';
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.opacity = '0';
+                    }}
+                  >
+                    {/* Trash icon — vector inline so we don't pull a new
+                        icon dependency. Stroke matches Lucide's "trash-2"
+                        glyph for consistency with the rest of the UI. */}
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.75"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M3 6h18" />
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      <line x1="10" y1="11" x2="10" y2="17" />
+                      <line x1="14" y1="11" x2="14" y2="17" />
+                    </svg>
+                  </button>
+                )}
               </li>
             );
           })}

@@ -1358,6 +1358,16 @@ async def _load_run_fails_context(
         # citation / historical specialists see the rubrique addressing
         # alongside the (ax_term, num_regle) pair. Without this enrichment
         # the LLM cannot name the rubrique that bears the gap.
+        #
+        # Bug 6 — alongside the deduplicated `rubrique_codes` we surface
+        # the FULL ordered terms array (rang, oper_term, rubrique,
+        # colonne, ax_origine) so the aggregator can render the symbolic
+        # formula that produced lhs (e.g. "+PA030301000000 col.1
+        # +PA030301000001 col.2 -PA030301000002 col.3 = LHS_KTND"). Two
+        # extra fields propagate through fail_context.top_fails:
+        #   - rule_terms: list[dict] (operator + rubrique + column + rank)
+        #   - rule_expression: text (natural-language render from
+        #     rules_natural_language.json, persisted in rules.expression)
         rows = await pool.fetch(
             """
             SELECT
@@ -1376,7 +1386,9 @@ async def _load_run_fails_context(
                      WHERE t ? 'rubrique' AND t->>'rubrique' <> ''
                   ),
                   ARRAY[]::text[]
-                ) AS rubrique_codes
+                ) AS rubrique_codes,
+                COALESCE(r.terms, '[]'::jsonb) AS rule_terms,
+                r.expression AS rule_expression
             FROM validation_fail_details vfd
             LEFT JOIN rules_active r ON r.id = vfd.rule_id
             WHERE vfd.validation_run_id = $1::uuid
@@ -1412,10 +1424,43 @@ async def _load_run_fails_context(
                 # entirely (asyncpg.Record raises KeyError on missing
                 # columns rather than returning None).
                 "rubrique_codes": (list(r["rubrique_codes"]) if r.get("rubrique_codes") else []),
+                # Bug 6 — full ordered terms (operator + rubrique +
+                # column + rank) for the formula renderer in BLOC 3 of
+                # aggregate_zoom_fail. asyncpg returns JSONB as a Python
+                # object via ujson; it can be a list[dict], dict, or
+                # whatever the column carries. We pass it through
+                # verbatim — the prompt tolerates an empty list.
+                "rule_terms": _coerce_jsonb_list(r.get("rule_terms")),
+                "rule_expression": (
+                    str(r["rule_expression"]) if r.get("rule_expression") is not None else None
+                ),
             }
             for r in rows
         ],
     }
+
+
+def _coerce_jsonb_list(value: Any) -> list[Any]:
+    """Normalise an asyncpg JSONB column that should hold a list.
+
+    asyncpg returns JSONB as already-parsed Python objects when the
+    server-side encoder is the default `text` codec (regflow's setup),
+    or as raw `str` when the codec falls back to text mode. Tests mock
+    rows often omit the field entirely. This helper hides those three
+    shapes behind a single `list[Any]` return so callers don't sprout
+    isinstance ladders.
+    """
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+        except (ValueError, TypeError):
+            return []
+        return parsed if isinstance(parsed, list) else []
+    return []
 
 
 # ---------------------------------------------------------------------------
@@ -1581,6 +1626,15 @@ async def _load_run_dependency_state(
 # aggregator prompts can address it via the standard `specialist_outputs`
 # loop without a special-case path.
 _DEPENDENCY_BEARER_LABEL: Final[str] = "dependency/check_companions"
+
+# Bug 6 — bearer label for the synthetic specialist outcome that
+# carries the failed rule's symbolic decomposition (operator + rubrique
+# + column terms in declared order). The aggregator prompt renders the
+# formula behind the FAIL's computed value when this outcome is
+# present; otherwise BLOC 1's compact decomposition (rubrique +
+# montants only) is used. Same naming convention as
+# `_DEPENDENCY_BEARER_LABEL`.
+_RULE_BREAKDOWN_BEARER_LABEL: Final[str] = "engine/rule_breakdown"
 
 
 # ---------------------------------------------------------------------------
@@ -1884,6 +1938,43 @@ async def orchestrate(
                 error=None,
             )
         )
+
+    # Bug 6 — surface the rule's symbolic decomposition (terms +
+    # operators + columns) so the aggregator can render the formula
+    # behind the FAIL's lhs value. Only fires when:
+    #   1. effective_fail_context narrowed to a SINGLE fail (P1
+    #      regex narrowing or selectedFail propagation), so we don't
+    #      bloat the prompt with N rule decompositions
+    #   2. the rule has more than one term (a 1-term rule has no
+    #      decomposition worth rendering)
+    # The synthetic outcome bearer mirrors the dependency one: the
+    # aggregator prompt addresses it via the standard
+    # specialist_outputs loop, no special-case path.
+    if (
+        intent == "zoom"
+        and effective_fail_context is not None
+        and isinstance(effective_fail_context.get("top_fails"), list)
+        and len(effective_fail_context["top_fails"]) == 1
+    ):
+        target_fail = effective_fail_context["top_fails"][0]
+        rule_terms = target_fail.get("rule_terms")
+        if isinstance(rule_terms, list) and len(rule_terms) > 1:
+            specialist_outcomes.append(
+                _SpecialistOutcome(
+                    bearer_label=_RULE_BREAKDOWN_BEARER_LABEL,
+                    output={
+                        "ax_term": target_fail.get("ax_term"),
+                        "num_regle": target_fail.get("num_regle"),
+                        "expression": target_fail.get("rule_expression"),
+                        "terms": rule_terms,
+                        "lhs": target_fail.get("computed_value"),
+                        "rhs": target_fail.get("expected_value"),
+                        "gap": target_fail.get("gap_absolute"),
+                    },
+                    success=True,
+                    error=None,
+                )
+            )
 
     agents_called: list[str] = [outcome.bearer_label for outcome in specialist_outcomes]
     agents_called.append(aggregator_label)

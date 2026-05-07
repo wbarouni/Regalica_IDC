@@ -3,7 +3,7 @@ import type { Pool } from 'pg';
 
 import { handleDbError } from '../db/errors.js';
 import { withConnection } from '../db/withConnection.js';
-import { HTTP_BAD_REQUEST, HTTP_CREATED, HTTP_NOT_FOUND } from '../lib/http.js';
+import { HTTP_BAD_REQUEST, HTTP_CREATED, HTTP_NOT_FOUND, HTTP_OK } from '../lib/http.js';
 
 const SUPPORTED_LANGUAGES = new Set(['fr', 'en', 'ar']);
 
@@ -98,6 +98,59 @@ export function conversationsRouter(pool: Pool): IRouter {
       });
       res.status(HTTP_CREATED).json({
         data: created,
+        meta: { ts: new Date().toISOString(), version: '1' },
+      });
+    } catch (err) {
+      handleDbError(err, res);
+    }
+  });
+
+  // Feature 3 — DELETE /:conversationId (soft delete)
+  // Sets conversations.deleted_at = NOW() so the row drops out of the
+  // partial index `conv_idx_user_recent` and the GET /conversations
+  // list query (which filters `deleted_at IS NULL`). Messages stay
+  // intact for audit / compliance review — only the surface listing
+  // is hidden from the user. RLS conversations_update policy enforces
+  // tenant + ownership; a non-owner gets the same 404 as a missing
+  // conversation, which is the desired information-hiding behaviour.
+  router.delete('/conversations/:conversationId', async (req: Request, res: Response) => {
+    const tenantId = req.params['tenantId'] as string;
+    const userId = res.locals['userId'] as string;
+    const conversationId = req.params['conversationId'] as string;
+    if (!UUID_RE.test(conversationId)) {
+      res.status(HTTP_BAD_REQUEST).json({
+        error: {
+          code: 'INVALID_CONVERSATION_ID',
+          message: 'conversationId must be a valid UUID',
+        },
+      });
+      return;
+    }
+    try {
+      const deleted = await withConnection(pool, { tenantId, userId }, async (client) => {
+        const r = await client.query<{ id: string }>(
+          `UPDATE conversations
+              SET deleted_at = NOW(),
+                  updated_at = NOW()
+            WHERE id = $1
+              AND tenant_id = $2
+              AND deleted_at IS NULL
+            RETURNING id`,
+          [conversationId, tenantId],
+        );
+        return r.rows[0] ?? null;
+      });
+      if (deleted === null) {
+        res.status(HTTP_NOT_FOUND).json({
+          error: {
+            code: 'CONVERSATION_NOT_FOUND',
+            message: 'conversation not found for tenant',
+          },
+        });
+        return;
+      }
+      res.status(HTTP_OK).json({
+        data: { id: deleted.id, deleted: true },
         meta: { ts: new Date().toISOString(), version: '1' },
       });
     } catch (err) {

@@ -255,26 +255,15 @@ function ChatTurn({ message, isFresh }: { message: ChatMessage; isFresh: boolean
           <span className="msg-rega__name">Regalica</span>
           <span className="msg-rega__time">{new Date(message.timestamp).toLocaleTimeString()}</span>
         </div>
-        <div
-          className="msg-rega__text prose prose-sm prose-stone max-w-none
-                     prose-p:my-2 prose-headings:mt-3 prose-headings:mb-2
-                     prose-pre:bg-stone-100 prose-pre:text-ink
-                     prose-code:before:hidden prose-code:after:hidden
-                     prose-code:bg-stone-100 prose-code:px-1 prose-code:py-0.5
-                     prose-code:rounded prose-code:font-mono prose-code:text-[0.85em]
-                     prose-a:text-azure prose-a:underline-offset-2"
-        >
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{revealedResponse}</ReactMarkdown>
-        </div>
+        {/* UX 4 — thinking artefact is rendered ABOVE the response so the
+            reader sees the reasoning unfold first, then the verdict. The
+            previous order (response first, thinking after) read as an
+            afterthought; world-class chat UX (Claude, GPT-5) shows the
+            thinking trace at the top of the bubble while it streams,
+            then the response below. The Artefact still auto-collapses
+            once the response phase starts (controlledState binding
+            unchanged) so the bubble stays compact post-stream. */}
         {trace !== null && trace.length > 0 && (
-          /* Point 2C — thinking artefact is now controlled: it opens
-             automatically while the typewriter reveals the trace
-             ("thinking" phase) and collapses automatically once the
-             response phase starts. For historical messages mounted
-             before the current session (`isFresh=false`), the
-             typewriter is disabled and the artefact lands directly
-             collapsed. The user can always re-open via click; the
-             override sticks for the message's lifetime. */
           <Artefact
             type="system"
             state="collapsed"
@@ -295,6 +284,17 @@ function ChatTurn({ message, isFresh }: { message: ChatMessage; isFresh: boolean
             <p className="text-sm text-stone-800 whitespace-pre-line">{revealedThinking}</p>
           </Artefact>
         )}
+        <div
+          className="msg-rega__text prose prose-sm prose-stone max-w-none
+                     prose-p:my-2 prose-headings:mt-3 prose-headings:mb-2
+                     prose-pre:bg-stone-100 prose-pre:text-ink
+                     prose-code:before:hidden prose-code:after:hidden
+                     prose-code:bg-stone-100 prose-code:px-1 prose-code:py-0.5
+                     prose-code:rounded prose-code:font-mono prose-code:text-[0.85em]
+                     prose-a:text-azure prose-a:underline-offset-2"
+        >
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{revealedResponse}</ReactMarkdown>
+        </div>
       </div>
     </div>
   );
@@ -303,9 +303,16 @@ function ChatTurn({ message, isFresh }: { message: ChatMessage; isFresh: boolean
 function ChatThread({ messages }: { messages: readonly ChatMessage[] }) {
   // Snapshot the IDs present at first render: those are "history" and
   // must NOT animate. Anything appended later is "fresh" and should be
-  // typewritten. The ref is initialised once and never mutated.
+  // typewritten. The snapshot RE-INITIALISES every time `messages` is
+  // emptied (Bug 1 — "Nouveau chat" was leaving the ref populated with
+  // stale IDs from the prior thread, so the FIRST message of the new
+  // chat was misclassified as history and skipped the typewriter
+  // illusion). Resetting on `messages.length === 0` keeps the
+  // initial-load semantics intact (`useChat.loadConversation` populates
+  // the array in one batch → all rows are history) AND treats every
+  // message that lands AFTER a reset as fresh.
   const initialIdsRef = useRef<Set<string> | null>(null);
-  if (initialIdsRef.current === null) {
+  if (initialIdsRef.current === null || messages.length === 0) {
     initialIdsRef.current = new Set(messages.map((m) => m.id));
   }
   const initialIds = initialIdsRef.current;
@@ -469,6 +476,7 @@ export default function Workspace() {
     conversations: pastConversations,
     loading: conversationsLoading,
     refetch: refetchConversations,
+    deleteConversation,
   } = useConversations();
   const [historyOpen, setHistoryOpen] = useState<boolean>(false);
   useEffect(() => {
@@ -519,6 +527,23 @@ export default function Workspace() {
     resetConversation();
     setHistoryOpen(false);
   }, [resetConversation]);
+
+  // Feature 3 — soft-delete a past thread from the sidebar. When the
+  // deleted id is the one currently in view, also reset the in-memory
+  // chat (otherwise the user keeps seeing a thread that no longer
+  // exists in the listing). Errors are silent for now — the hook
+  // refetches on failure to revert the optimistic removal.
+  const handleHistoryDelete = useCallback(
+    (deletedId: string): void => {
+      void deleteConversation(deletedId).catch(() => {
+        /* refetch handled inside the hook */
+      });
+      if (conversationId === deletedId) {
+        resetConversation();
+      }
+    },
+    [deleteConversation, conversationId, resetConversation],
+  );
 
   // C — top severe fail for the auto-mounted InvestigationArtefact.
   // Fetched in parallel with the rest of the workspace, mounted only
@@ -915,6 +940,7 @@ export default function Workspace() {
           onToggle={() => setHistoryOpen((v) => !v)}
           onSelect={handleHistorySelect}
           onNewChat={handleHistoryNewChat}
+          onDelete={handleHistoryDelete}
         />
       </div>
     </UploadDropZone>

@@ -21,6 +21,15 @@ interface UseConversationsResult {
    * the messages_count column stay coherent without a page reload.
    */
   refetch: () => void;
+  /**
+   * Feature 3 — soft-delete a past conversation (sets deleted_at on
+   * the row). Optimistically removes the entry from the local list so
+   * the sidebar reacts immediately; on backend failure the list is
+   * re-fetched to revert the optimistic removal. Caller (Workspace)
+   * additionally clears the active thread when the deleted id is the
+   * one currently in view.
+   */
+  deleteConversation: (conversationId: string) => Promise<void>;
 }
 
 export function useConversations(): UseConversationsResult {
@@ -76,5 +85,29 @@ export function useConversations(): UseConversationsResult {
     [],
   );
 
-  return { conversations, loading, error, createConversation, refetch };
+  const deleteConversation = useCallback(
+    async (conversationId: string): Promise<void> => {
+      if (!TENANT_ID) {
+        throw new ApiConfigError('MISSING_TENANT_ID', 'VITE_TENANT_ID is not set');
+      }
+      // Optimistic removal — the row disappears from the sidebar before
+      // the network call completes so the UX feels instant. If the DELETE
+      // fails (network, RLS denial, race against a concurrent reader),
+      // we re-fetch the canonical list to revert the optimistic state.
+      setConversations((prev) => prev.filter((c) => c.id !== conversationId));
+      try {
+        await fetchApi<{ id: string; deleted: boolean }>(
+          `/api/tenants/${TENANT_ID}/conversations/${conversationId}`,
+          { method: 'DELETE' },
+        );
+      } catch (e: unknown) {
+        // Roll back the optimistic removal by triggering a refetch.
+        refetch();
+        throw e;
+      }
+    },
+    [refetch],
+  );
+
+  return { conversations, loading, error, createConversation, refetch, deleteConversation };
 }
