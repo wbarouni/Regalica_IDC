@@ -220,8 +220,23 @@ class _SpecialistOutcome:
 # the orchestrator must work with ANY XML, no upper bound assumed.
 # Word-boundary delimiters keep "regle 1023" matching as 1023 (not 102)
 # and "regle1023" rejected (no anchor word).
+#
+# Correction A (analysis report 2026-05-08, docs/analysis/regalica-
+# intent-reading-vs-claude.md §4) — vocabulary expansion. The original
+# 5-anchor set rejected production-realistic phrasing like "le contrôle
+# 102", "la ligne 102", "l'item 102", "le point 102", "control 102".
+# Extending the anchor alternation captures ~3-4x more messages
+# correctly classified as "name a specific rule" without lowering the
+# precision floor (each anchor is still a word-bounded keyword that
+# precedes the digit run).
 _RULE_NUMBER_PATTERN = re.compile(
-    r"\b(?:r[èeé]gle|regle|rule|fail|n[°o])\s*(?:n[°o]\s*)?(\d+)\b",
+    r"\b(?:"
+    r"r[èeé]gle|regle|rule|"  # règle / regle / rule
+    r"fail|"  # fail
+    r"contr[oô]le|control|"  # contrôle / controle / control
+    r"ligne|item|point|"  # ligne / item / point
+    r"n[°o]"  # n° / no
+    r")\s*(?:n[°o]\s*)?(\d+)\b",
     re.IGNORECASE,
 )
 
@@ -1366,8 +1381,15 @@ async def _load_run_fails_context(
         # +PA030301000001 col.2 -PA030301000002 col.3 = LHS_KTND"). Two
         # extra fields propagate through fail_context.top_fails:
         #   - rule_terms: list[dict] (operator + rubrique + column + rank)
-        #   - rule_expression: text (natural-language render from
-        #     rules_natural_language.json, persisted in rules.expression)
+        #   - rule_expression: text (rule's natural_language render —
+        #     persisted in rules.natural_language column per migration
+        #     022; previously mis-named "expression" in this comment +
+        #     SELECT, which broke `_load_run_fails_context` silently
+        #     because the query raised a 42703 undefined_column error
+        #     caught by the broad `except Exception` and returned None
+        #     for fail_context. The investigator then saw an empty
+        #     context and the aggregator rendered "non transmis" on
+        #     every value.)
         rows = await pool.fetch(
             """
             SELECT
@@ -1388,7 +1410,7 @@ async def _load_run_fails_context(
                   ARRAY[]::text[]
                 ) AS rubrique_codes,
                 COALESCE(r.terms, '[]'::jsonb) AS rule_terms,
-                r.expression AS rule_expression
+                r.natural_language AS rule_expression
             FROM validation_fail_details vfd
             LEFT JOIN rules_active r ON r.id = vfd.rule_id
             WHERE vfd.validation_run_id = $1::uuid

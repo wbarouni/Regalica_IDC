@@ -526,7 +526,23 @@ export default function Workspace() {
   const handleHistoryNewChat = useCallback((): void => {
     resetConversation();
     setHistoryOpen(false);
-  }, [resetConversation]);
+    // Bug 1 — surface a visible Regalica greeting so the user sees an
+    // immediate impact when they click "Nouveau chat". Without this,
+    // resetConversation() empties the in-memory thread and closes the
+    // sidebar but the canvas (run summary, FailsTable, …) does not
+    // change, leaving the user wondering whether the click registered.
+    // The injected turn ALSO seeds the typewriter snapshot in
+    // ChatThread so the next user message animates as fresh
+    // (initialIdsRef keeps this id at first render, but the user's
+    // following message lands AFTER the snapshot and is treated as
+    // fresh — exactly the desired behaviour).
+    injectRegalicaMessage(
+      t('chat.newChatGreeting', {
+        defaultValue:
+          'Conversation initialisée. Je vous écoute — posez votre question sur le run en cours, une règle précise, ou les annexes inter-dépendantes.',
+      }),
+    );
+  }, [resetConversation, injectRegalicaMessage, t]);
 
   // Feature 3 — soft-delete a past thread from the sidebar. When the
   // deleted id is the one currently in view, also reset the in-memory

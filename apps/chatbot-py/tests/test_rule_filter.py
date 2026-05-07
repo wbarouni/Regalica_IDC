@@ -35,6 +35,17 @@ from app.services.orchestrator import (
         # may expose 6-7 digit rule IDs — the regex must NOT cap.
         ("règle 999999", 999999),
         ("règle 1234567", 1234567),
+        # Correction A (2026-05-08, docs/analysis/regalica-intent-
+        # reading-vs-claude.md §4) — broader anchor vocabulary so
+        # production phrasing reaches the narrowing path. Each new
+        # anchor stays word-bounded; precision floor unchanged.
+        ("le contrôle 102 a échoué", 102),
+        ("le controle 102", 102),
+        ("control 102 fails", 102),
+        ("la ligne 102 du tableau", 102),
+        ("explique l'item 102", 102),
+        ("le point 102 de cette annexe", 102),
+        ("CONTRÔLE 380 — pourquoi cet écart ?", 380),
     ],
 )
 def test_extract_rule_number_matches_canonical_patterns(message: str, expected: int) -> None:
