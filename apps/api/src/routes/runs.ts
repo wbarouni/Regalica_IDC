@@ -158,6 +158,71 @@ export function runsRouter(pool: Pool): IRouter {
       });
       return;
     }
+
+    // F (2026-05-08, migration 104) — HTTP idempotency layer.
+    // The client sends `Idempotency-Key` (typically the correlation
+    // id of the user's launch turn) so a retried POST /runs returns
+    // the same run_id rather than spawning a duplicate row. Combined
+    // with B1's launchInFlightRef (frontend) and B2's intent
+    // uniqueness flag (backend), this is the third defense-in-depth
+    // layer against double-launch.
+    //
+    // The header is OPTIONAL: legacy callers without the header skip
+    // the dedup path entirely (no row inserted into runs_idempotency,
+    // INSERT into validation_runs proceeds normally). When supplied,
+    // the (tenant_id, key) tuple is the PK in `runs_idempotency`
+    // (migration 104), so duplicate POSTs naturally collide on the
+    // INSERT. We do a SELECT-first dedup to return the canonical
+    // run_id without burning a fresh validation_runs INSERT.
+    const idempotencyKey = (req.header('Idempotency-Key') ?? '').trim();
+    if (idempotencyKey.length > 0) {
+      try {
+        const existing = await withConnection(pool, { tenantId, userId }, async (client) => {
+          const r = await client.query<{ run_id: string; status: string }>(
+            `SELECT ri.run_id::text AS run_id, vr.status
+               FROM runs_idempotency ri
+               JOIN validation_runs vr ON vr.id = ri.run_id
+              WHERE ri.tenant_id = $1
+                AND ri.idempotency_key = $2`,
+            [tenantId, idempotencyKey],
+          );
+          return r.rows[0] ?? null;
+        });
+        if (existing !== null) {
+          // Same key, same tenant → same run. Return CREATED with
+          // the existing row so the frontend treats the retry as a
+          // success without spawning a duplicate.
+          logger.info(
+            {
+              tenantId,
+              idempotencyKey,
+              runId: existing.run_id,
+              correlation_id: correlationId,
+            },
+            'POST /runs: idempotent replay served from runs_idempotency',
+          );
+          res.status(HTTP_CREATED).json({
+            data: { run_id: existing.run_id, status: existing.status, idempotent_replay: true },
+            meta: { ts: new Date().toISOString(), version: '1' },
+          });
+          return;
+        }
+      } catch (err) {
+        // Defensive: a dedup lookup failure does NOT abort the
+        // request; the normal INSERT path runs and the worst case
+        // is a duplicate row, which the user already mitigates
+        // via launchInFlightRef + B2 short-circuit.
+        logger.warn(
+          {
+            tenantId,
+            idempotencyKey,
+            err: err instanceof Error ? err.message : String(err),
+            correlation_id: correlationId,
+          },
+          'runs_idempotency lookup failed — proceeding with normal INSERT',
+        );
+      }
+    }
     let engineVersion: string;
     let rulesSnapshot: unknown;
     let referentialsSnapshot: unknown;
@@ -209,6 +274,18 @@ export function runsRouter(pool: Pool): IRouter {
              VALUES ($1, $2, $3)
              ON CONFLICT (validation_run_id, xml_upload_id) DO NOTHING`,
             [runId, id, role],
+          );
+        }
+        // F — record the idempotency key so a retried POST with
+        // the same key returns this run_id (handled by the upstream
+        // SELECT-first dedup). ON CONFLICT DO NOTHING keeps the
+        // INSERT idempotent if a parallel request raced ahead.
+        if (idempotencyKey.length > 0) {
+          await client.query(
+            `INSERT INTO runs_idempotency (tenant_id, idempotency_key, run_id)
+             VALUES ($1, $2, $3)
+             ON CONFLICT (tenant_id, idempotency_key) DO NOTHING`,
+            [tenantId, idempotencyKey, runId],
           );
         }
         return { kind: 'ok' as const, runId, runStatus };

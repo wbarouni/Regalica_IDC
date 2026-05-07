@@ -90,9 +90,18 @@ export function useStartRun(): UseStartRunResult {
     setStarting(true);
     setError(null);
     try {
+      // F (2026-05-08, migration 104) — generate a fresh
+      // Idempotency-Key for every launch. The backend uses it to
+      // dedupe retries: a network blip that triggers the user to
+      // click Lancer twice in quick succession will collide on
+      // (tenant_id, idempotency_key) PK and the second POST returns
+      // the same run_id. Combined with launchInFlightRef (B1) this
+      // closes the duplicate-launch window completely.
+      const idempotencyKey = crypto.randomUUID();
       const r = await fetchApi<CreateRunResponse>(`/api/tenants/${TENANT_ID}/runs`, {
         method: 'POST',
         body: JSON.stringify(payload),
+        headers: { 'Idempotency-Key': idempotencyKey },
       });
       return r.data;
     } catch (e: unknown) {
