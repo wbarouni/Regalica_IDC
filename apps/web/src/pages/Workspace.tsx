@@ -23,6 +23,7 @@ import { useChat, type ChatMessage } from '../hooks/useChat';
 import { useConversations } from '../hooks/useConversations';
 import { useCurrentRun } from '../hooks/useCurrentRun';
 import { useEventSource } from '../hooks/useEventSource';
+import { useFails } from '../hooks/useFails';
 import { useNotifications } from '../hooks/useNotifications';
 import { useRunSummary } from '../hooks/useRunSummary';
 import { useStartRun } from '../hooks/useStartRun';
@@ -494,6 +495,19 @@ export default function Workspace() {
   // gate on severity inside the JSX below to keep the hook simple).
   const topFail = useTopSevereFail(currentRunId);
 
+  // P3 — full fail list for the chat-driven picker. The Workspace
+  // already mounts <FailsTable> for the visual list, but the chip
+  // handler (handleChipSelect below) used to derive the picker bullet
+  // list from `topFail.fail` alone — so the user always saw exactly
+  // ONE row even when the run carried 30+ FAILs. Lifting `useFails`
+  // here gives the chip handler access to the same paginated list the
+  // FailsTable surfaces, with the first page (DEFAULT_PAGE_SIZE = 50)
+  // covering the realistic upper bound of fails per annexe in
+  // production. The hook tolerates a null run id (returns []) and
+  // refetches when currentRunId changes, so no extra reset wiring is
+  // needed.
+  const { fails: failsForPicker } = useFails(currentRunId, 'all');
+
   // Sub-Sprint 4 — clicking a row in <FailsTable> selects that fail
   // for the InvestigationArtefact below. Initial value null lets the
   // existing top-severe auto-mount keep working (we fall back to
@@ -548,29 +562,32 @@ export default function Workspace() {
 
   const handleChipSelect = useCallback(
     (fnName: string): void => {
-      // Q1 — interactive zoom picker. When the chip points at a per-FAIL
-      // specialist AND the user hasn't selected a row yet AND the run has
-      // multiple FAILs available, inject a Regalica turn that names the
-      // surfaced FAILs (one per line, monospace `ax/num` pivots) and
-      // explicitly tells the user to click a row in the table above.
-      // The FailsTable rows are already clickable (Sub-Sprint 4) and
-      // bound to setSelectedFail; clicking re-issues the chip with the
-      // chosen pivot.
+      // Q1 + P3 — interactive zoom picker. When the chip points at a
+      // per-FAIL specialist AND the user hasn't selected a row yet AND
+      // the run carries MORE THAN ONE fail, inject a Regalica turn
+      // that names ALL the surfaced FAILs (one per line, monospace
+      // `ax_term/num_regle` pivots) and tells the user how to pick:
+      // either by clicking the matching row in the FailsTable above,
+      // or by typing a free-form sentence the rule extractor can
+      // parse (« regarde la règle 102 »). With exactly ONE fail in
+      // scope the picker is skipped — the orchestrator's default
+      // top-fail selection trivially resolves to that single row.
+      const pickerCandidates =
+        failsForPicker.length > 0 ? failsForPicker : topFail.fail !== null ? [topFail.fail] : [];
       if (
         FAIL_BOUND_CHIPS.has(fnName) &&
         selectedFail === null &&
-        topFail.fail !== null &&
+        pickerCandidates.length >= 2 &&
         currentRunId !== null &&
         run?.status === 'completed'
       ) {
-        const failsToList = topFail.fail !== null ? [topFail.fail] : [];
-        const lines = failsToList
+        const lines = pickerCandidates
           .map(
             (f) =>
               `- \`${f.ax_term}/${f.num_regle}\` · ${f.severity === 'severe' ? 'écart sévère' : "écart d'arrondi"}`,
           )
           .join('\n');
-        const pickerMarkdown = `Plusieurs écarts sont disponibles dans ce run. Cliquez sur la ligne du tableau « FAILS » ci-dessus correspondant à celui que vous souhaitez analyser, puis relancez votre choix.\n\n${lines}\n\nVous pouvez également préciser la règle directement dans la barre de saisie, par exemple « regarde la règle 00/27 ».`;
+        const pickerMarkdown = `Plusieurs écarts sont disponibles dans ce run. Cliquez sur la ligne du tableau « FAILS » ci-dessus correspondant à celui que vous souhaitez analyser, puis relancez votre choix.\n\n${lines}\n\nVous pouvez également préciser la règle directement dans la barre de saisie, par exemple « regarde la règle 102 ».`;
         injectRegalicaMessage(pickerMarkdown);
         return;
       }
@@ -584,6 +601,7 @@ export default function Workspace() {
     [
       FAIL_BOUND_CHIPS,
       selectedFail,
+      failsForPicker,
       topFail.fail,
       currentRunId,
       run?.status,
