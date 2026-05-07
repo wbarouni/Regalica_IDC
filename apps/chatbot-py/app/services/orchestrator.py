@@ -1632,6 +1632,75 @@ async def _load_run_dependency_state(
             )
             parasitic_fail_count = 0
 
+    # Bug 7 (world-class) — for each missing companion, look up
+    # existing uploads in `xml_uploads` that match the same code_annexe
+    # AND the same arrete_date. The doctrine (docs/04 §6) is explicit:
+    # "L'UI affiche proactivement ces manques avec un bouton « Ajouter
+    # les annexes manquantes »". The user's diagnostic 2026-05-08
+    # extended this to: "si le deuxième annexe est déjà dans la base
+    # (code annexe + période) elle demande l'autorisation de
+    # l'utiliser, juste il faut vérifier avec user la version".
+    #
+    # We surface the existing uploads as `available_in_db` per missing
+    # companion so the aggregator (and downstream UI) can offer:
+    #   - "Use existing version (uploaded DD/MM/YYYY by Y)" button
+    #   - OR "Upload a fresh version" fallback
+    # Multiple matches are returned ordered by uploaded_at DESC so the
+    # most recent attempt is the default suggestion.
+    companion_suggestions: dict[str, list[dict[str, Any]]] = {}
+    if missing_companions and arrete_date is not None:
+        try:
+            suggestion_rows = await pool.fetch(
+                """
+                SELECT id::text       AS upload_id,
+                       code_annexe,
+                       date_annexe::text AS date_annexe,
+                       file_name,
+                       file_size_bytes,
+                       file_hash_sha256,
+                       uploaded_at::text AS uploaded_at,
+                       xsd_validation_status
+                  FROM xml_uploads
+                 WHERE tenant_id    = $1::uuid
+                   AND code_annexe  = ANY($2::text[])
+                   AND date_annexe::text = $3
+                   AND deleted_at IS NULL
+                 ORDER BY uploaded_at DESC
+                """,
+                tenant_id,
+                missing_companions,
+                arrete_date,
+            )
+            for r in suggestion_rows:
+                code = str(r["code_annexe"])
+                companion_suggestions.setdefault(code, []).append(
+                    {
+                        "upload_id": str(r["upload_id"]),
+                        "date_annexe": str(r["date_annexe"]),
+                        "file_name": str(r["file_name"]),
+                        "file_size_bytes": int(r["file_size_bytes"])
+                        if r["file_size_bytes"] is not None
+                        else None,
+                        "file_hash_sha256": str(r["file_hash_sha256"])
+                        if r["file_hash_sha256"] is not None
+                        else None,
+                        "uploaded_at": str(r["uploaded_at"]),
+                        "xsd_validation_status": str(r["xsd_validation_status"])
+                        if r["xsd_validation_status"] is not None
+                        else None,
+                    }
+                )
+        except Exception:
+            # Defensive: a suggestion lookup failure does NOT block the
+            # rest of the dependency state. Worst case the UI offers
+            # "Upload a fresh version" without the existing-version
+            # shortcut.
+            _logger.exception(
+                "_load_run_dependency_state: companion suggestion lookup failed run=%s",
+                run_id,
+            )
+            companion_suggestions = {}
+
     return {
         "primary_annexe": primary_annexe,
         "arrete_date": arrete_date,
@@ -1639,6 +1708,10 @@ async def _load_run_dependency_state(
         "submitted_companions": submitted_companions,
         "missing_companions": missing_companions,
         "parasitic_fail_count": parasitic_fail_count,
+        # Map of {missing_annexe_code: [{upload_id, file_name,
+        # uploaded_at, ...}, ...]} ordered uploaded_at DESC. Empty when
+        # no existing upload matches OR when the lookup failed.
+        "companion_suggestions": companion_suggestions,
     }
 
 
@@ -1871,10 +1944,23 @@ async def orchestrate(
     # P1 — narrow the fail context to the rule the user named in their
     # message. This makes "regarde la règle 102" route to the 102 fail
     # rather than the top-1-by-gap (which would always be the largest-
-    # gap fail regardless of the user's intent). When the message names
-    # no rule OR the named rule is absent from top_fails, the context
+    # gap fail regardless of the user's intent).
+    #
+    # Correction A (analysis report 2026-05-08) — two-tier extraction:
+    #   1. Deterministic regex first (zero LLM cost, instant). The
+    #      regex covers canonical anchors: règle/regle/rule/fail/n°/
+    #      contrôle/controle/control/ligne/item/point.
+    #   2. If the regex returns None, fall back to the router LLM's
+    #      `target_rule_number` field (already populated in
+    #      IntentResult by `detect_intent`). The LLM handles
+    #      free-form phrasing the regex rejects: "le 102, c'est
+    #      quoi ?", "explique-moi le quatrième", "ax 630 numéro 12".
+    #      No extra LLM round-trip — the router was already called.
+    # When BOTH return None (the user did not name a rule), context
     # stays untouched and the LLM keeps the broader view.
     target_num_regle = _extract_rule_number_from_message(message)
+    if target_num_regle is None:
+        target_num_regle = intent_result.target_rule_number
     if target_num_regle is not None:
         effective_fail_context = _narrow_fail_context_to_rule(
             effective_fail_context, target_num_regle

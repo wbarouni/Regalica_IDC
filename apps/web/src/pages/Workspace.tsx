@@ -316,6 +316,24 @@ function ChatThread({ messages }: { messages: readonly ChatMessage[] }) {
     initialIdsRef.current = new Set(messages.map((m) => m.id));
   }
   const initialIds = initialIdsRef.current;
+  // Bug 1 (auto-scroll) — when a fresh message lands (typically the
+  // "Nouveau chat" greeting OR a Regalica response), scroll the last
+  // bubble into view. Without this, the new bubble is appended at the
+  // bottom of a long workspace stack (run summary + KPIs + FailsTable +
+  // InvestigationArtefact) and the user sees no visible impact even
+  // though the click registered. The scroll fires on every length
+  // change so live chat turns also feel responsive — matches the
+  // canonical Claude / GPT chat UX.
+  const lastAnchorRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const node = lastAnchorRef.current;
+    if (node === null) return;
+    // `auto` instead of `smooth` so the new bubble is on-screen
+    // BEFORE the typewriter starts revealing characters; smooth would
+    // let the first chunk paint off-screen.
+    node.scrollIntoView({ block: 'end', inline: 'nearest', behavior: 'auto' });
+  }, [messages.length]);
   if (messages.length === 0) {
     return null;
   }
@@ -330,6 +348,11 @@ function ChatThread({ messages }: { messages: readonly ChatMessage[] }) {
           ))}
         </div>
       ))}
+      {/* Anchor sentinel for the auto-scroll effect above. Empty
+          div with no visible footprint; React keys it last so
+          scrollIntoView lands on the bottom of the most recent
+          message regardless of group structure. */}
+      <div ref={lastAnchorRef} aria-hidden="true" style={{ height: 1 }} />
     </div>
   );
 }

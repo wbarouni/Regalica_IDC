@@ -64,21 +64,43 @@ _ROUTER_MAX_TOKENS: Final[int] = 1024
 # Keys outside this set are tolerated (the response is not rejected)
 # but logged at WARNING level so contract drift on the upstream prompt
 # or model is observable.
-_ALLOWED_OUTPUT_KEYS: Final[frozenset[str]] = frozenset({"intent", "confidence"})
+#
+# Correction A (analysis report 2026-05-08, docs/analysis/regalica-
+# intent-reading-vs-claude.md §4) — the router LLM is now ALSO asked
+# to extract `target_rule_number` (the rule the user named, or null)
+# in the same forward pass. This achieves Claude-level NLU on the
+# anchor-vocabulary question without adding a second LLM round-trip:
+# the LLM already reads the message to classify intent, asking it to
+# also surface the rule number costs nothing in latency. The regex
+# extractor stays as a deterministic backstop for canonical phrasing
+# (no LLM cost when the message is unambiguous).
+_ALLOWED_OUTPUT_KEYS: Final[frozenset[str]] = frozenset(
+    {"intent", "confidence", "target_rule_number"}
+)
 
 _logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
 class IntentResult:
-    """Canonical router output consumed by the orchestrator."""
+    """Canonical router output consumed by the orchestrator.
+
+    Correction A — `target_rule_number` is the rule the user named in
+    free-form prose (e.g. "explique-moi le contrôle 102 stp"), as
+    inferred by the router LLM. None means the LLM did not detect a
+    specific rule mention. Orchestrator combines this with the
+    deterministic regex (`_extract_rule_number_from_message`) using a
+    "first non-None wins" strategy: regex first (free), LLM second
+    (covers natural-language phrasing the regex rejects).
+    """
 
     intent_type: str
     confidence: float
+    target_rule_number: int | None = None
 
 
 def _fallback_result() -> IntentResult:
-    return IntentResult(intent_type=FALLBACK_INTENT, confidence=0.0)
+    return IntentResult(intent_type=FALLBACK_INTENT, confidence=0.0, target_rule_number=None)
 
 
 async def detect_intent(
@@ -136,7 +158,28 @@ async def detect_intent(
     else:
         confidence = float(raw_confidence)
 
+    # Correction A — extract target_rule_number when the LLM emits it.
+    # The router prompt (migration 102) instructs the LLM to surface the
+    # numeric rule identifier the user named, or null if absent. We
+    # tolerate three shapes for robustness: int, float-with-no-fraction
+    # (Gemini occasionally emits 102.0 for an integer field), and string
+    # of digits ("102"). Anything else collapses to None so the
+    # orchestrator silently falls back to the regex extractor.
+    raw_target = parsed.get("target_rule_number")
+    target_rule_number: int | None
+    if isinstance(raw_target, bool) or raw_target is None:
+        target_rule_number = None
+    elif isinstance(raw_target, int):
+        target_rule_number = raw_target
+    elif isinstance(raw_target, float) and raw_target.is_integer():
+        target_rule_number = int(raw_target)
+    elif isinstance(raw_target, str) and raw_target.strip().isdigit():
+        target_rule_number = int(raw_target.strip())
+    else:
+        target_rule_number = None
+
     return IntentResult(
         intent_type=intent_type,
         confidence=confidence,
+        target_rule_number=target_rule_number,
     )
