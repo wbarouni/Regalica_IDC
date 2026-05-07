@@ -20,6 +20,7 @@ import { LanguageSwitcher } from '../components/primitives/LanguageSwitcher';
 import { PersonaSidebar } from '../components/layout/PersonaSidebar';
 import { useAgentSteps } from '../hooks/useAgentSteps';
 import { useChat, type ChatMessage } from '../hooks/useChat';
+import { useConversationMessages } from '../hooks/useConversationMessages';
 import { useConversations } from '../hooks/useConversations';
 import { useCurrentRun } from '../hooks/useCurrentRun';
 import { useEventSource } from '../hooks/useEventSource';
@@ -430,6 +431,11 @@ export default function Workspace() {
     // Regalica requests a companion follow-up, the caller does NOT
     // invoke this and the thread continues.
     resetConversation,
+    // P5 — replace the in-memory thread with persisted messages of
+    // a past conversation when the user picks a row in the history
+    // sidebar. Pinning conversationId here ensures the next
+    // sendMessage continues the same `messages` table sequence.
+    loadConversation,
   } = useChat({
     runId: currentRunId,
     onLocalIntentMatch: (text) => localLaunchMatcherRef.current?.(text) === true,
@@ -468,20 +474,46 @@ export default function Workspace() {
   useEffect(() => {
     refetchConversations();
   }, [conversationId, refetchConversations]);
+
+  // P5 — passive hydration loader. Fires only when the user clicks
+  // a past row in the history sidebar; otherwise idle. Reads the
+  // surfaced messages (user + regalica_response) for the selected
+  // conversation and feeds them straight into useChat.loadConversation.
+  const conversationMessages = useConversationMessages();
   const handleHistorySelect = useCallback(
     (selectedId: string): void => {
-      // Selecting a past thread resets the in-memory chat to a clean
-      // state. The next sendMessage will carry the selected id (we'd
-      // need an extra hook entry-point to load past messages from the
-      // backend — deferred to a follow-up: V1 just opens a fresh
-      // thread but with the conversation row preserved).
-      resetConversation();
+      // Optimistic close — the panel collapses immediately so the
+      // hydration latency does not block the UI. If the load fails
+      // the chat stays on its previous content and the sidebar can
+      // be reopened to retry.
       setHistoryOpen(false);
-      // Mark intent so the sidebar shows the selected row highlighted
-      // until the user types something new (best-effort UX).
-      void selectedId;
+      void conversationMessages
+        .load(selectedId)
+        .then((rows) => {
+          // DB → ChatMessage shape:
+          //   - role 'user' → ChatMessage.role 'user'
+          //   - role 'regalica_response' → ChatMessage.role 'regalica'
+          //   - thinking_trace is JSONB; only render when it is a
+          //     non-empty string (legacy rows may carry an object/null)
+          //   - timestamp uses created_at so the day separator
+          //     groupByDay logic stays consistent with live messages
+          const hydrated: ChatMessage[] = rows.map((r) => ({
+            id: r.id,
+            role: r.role === 'user' ? 'user' : 'regalica',
+            content: r.content_markdown,
+            thinking_trace: typeof r.thinking_trace === 'string' ? r.thinking_trace : null,
+            agents_called: r.produced_by_agent !== null ? [r.produced_by_agent] : [],
+            timestamp: r.created_at,
+          }));
+          loadConversation(selectedId, hydrated);
+        })
+        .catch(() => {
+          // useConversationMessages stores the error code; the rail
+          // will surface it in the next render (no extra wiring needed
+          // here — the silent catch keeps the optimistic close UX).
+        });
     },
-    [resetConversation],
+    [conversationMessages, loadConversation],
   );
   const handleHistoryNewChat = useCallback((): void => {
     resetConversation();

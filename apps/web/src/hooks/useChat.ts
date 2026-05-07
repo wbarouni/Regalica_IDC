@@ -115,6 +115,21 @@ interface UseChatResult {
    * where the conversation must persist for thread continuity.
    */
   resetConversation: () => void;
+  /**
+   * P5 — replace the in-memory thread with persisted messages of a
+   * past conversation, and pin `conversationId` so the next
+   * `sendMessage` continues that thread (chatbot-py reads
+   * `conversation_id` from the body and keeps appending to the same
+   * `messages` table row sequence).
+   *
+   * The caller (Workspace.tsx) fetches the persisted message list via
+   * `useConversationMessages.load(id)`, converts each row to the
+   * ChatMessage shape, and passes the full array here. Existing
+   * thread is replaced wholesale — there is no merge semantic. The
+   * `error` state is cleared too so a previously-failed attempt
+   * doesn't leak into the freshly hydrated thread.
+   */
+  loadConversation: (conversationId: string, messages: ChatMessage[]) => void;
 }
 
 export function useChat(options: UseChatOptions = {}): UseChatResult {
@@ -243,6 +258,12 @@ export function useChat(options: UseChatOptions = {}): UseChatResult {
     setError(null);
   }, []);
 
+  const loadConversation = useCallback((id: string, msgs: ChatMessage[]): void => {
+    setMessages(msgs);
+    setConversationId(id);
+    setError(null);
+  }, []);
+
   return {
     messages,
     loading,
@@ -252,5 +273,6 @@ export function useChat(options: UseChatOptions = {}): UseChatResult {
     clearError,
     injectRegalicaMessage,
     resetConversation,
+    loadConversation,
   };
 }
