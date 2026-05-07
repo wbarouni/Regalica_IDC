@@ -266,9 +266,7 @@ def _narrow_fail_context_to_rule(
     if not isinstance(top_fails, list) or not top_fails:
         return fail_ctx
     matched: list[dict[str, Any]] = [
-        f
-        for f in top_fails
-        if isinstance(f, dict) and f.get("num_regle") == target_num_regle
+        f for f in top_fails if isinstance(f, dict) and f.get("num_regle") == target_num_regle
     ]
     if not matched:
         return fail_ctx
@@ -1413,15 +1411,176 @@ async def _load_run_fails_context(
                 # Defensive against unit-test mocks that omit the key
                 # entirely (asyncpg.Record raises KeyError on missing
                 # columns rather than returning None).
-                "rubrique_codes": (
-                    list(r["rubrique_codes"])
-                    if r.get("rubrique_codes")
-                    else []
-                ),
+                "rubrique_codes": (list(r["rubrique_codes"]) if r.get("rubrique_codes") else []),
             }
             for r in rows
         ],
     }
+
+
+# ---------------------------------------------------------------------------
+# P6 — chat-driven inter-annex awareness.
+#
+# `_load_run_dependency_state` mirrors the upload-time DependencyAgent
+# (apps/chatbot-py/app/agents/t0_dependency.py) but reads its inputs
+# from the live `validation_runs` + `validation_run_uploads` join
+# rather than the upload session's `upload_ids` parameter. The output
+# shape mirrors the briefing-time payload so both the briefing and
+# the post-run chat surface identical companion-state language:
+#
+#     {
+#         "primary_annexe": "630",
+#         "arrete_date": "2026-02-28",
+#         "required_companions": ["631", "604"],
+#         "submitted_companions": ["631"],
+#         "missing_companions": ["604"],
+#         "parasitic_fail_count": 12,
+#     }
+#
+# Returns None when the run carries no dependency declaration (the
+# autonomous case — most filings) so the caller can short-circuit
+# instead of injecting an empty placeholder into the aggregator
+# payload. Defensive: any DB / asyncpg failure returns None and logs
+# so a stray referential glitch does not break the chat path.
+# ---------------------------------------------------------------------------
+
+
+async def _load_run_dependency_state(
+    pool: asyncpg.Pool,
+    *,
+    run_id: str,
+    tenant_id: str,
+) -> dict[str, Any] | None:
+    """Compute the inter-annex companion state for a completed run.
+
+    See module docstring above for the returned shape. Reads four
+    referentials in three round-trips (run row, declared dependencies,
+    submitted annexes) plus one parasitic-count COUNT(*) — same
+    pattern as the upload-time DependencyAgent but anchored on the
+    run id instead of the upload session.
+    """
+    try:
+        run_row = await pool.fetchrow(
+            """
+            SELECT primary_annexe_code,
+                   arrete_date::text AS arrete_date
+              FROM validation_runs
+             WHERE id        = $1::uuid
+               AND tenant_id = $2::uuid
+            """,
+            run_id,
+            tenant_id,
+        )
+    except Exception:
+        _logger.exception(
+            "_load_run_dependency_state: validation_runs lookup failed run=%s",
+            run_id,
+        )
+        return None
+    if run_row is None:
+        return None
+    primary_annexe = run_row["primary_annexe_code"]
+    if not isinstance(primary_annexe, str) or primary_annexe == "":
+        return None
+    arrete_date = run_row["arrete_date"]
+
+    try:
+        required_rows = await pool.fetch(
+            """
+            SELECT target_annexe_code
+              FROM referentials_annexe_dependencies
+             WHERE tenant_id          = $1::uuid
+               AND source_annexe_code = $2
+               AND status             = 'active'
+               AND deleted_at IS NULL
+            """,
+            tenant_id,
+            primary_annexe,
+        )
+    except Exception:
+        _logger.exception(
+            "_load_run_dependency_state: dependencies referential lookup failed primary=%s",
+            primary_annexe,
+        )
+        return None
+
+    required_companions: list[str] = [
+        str(r["target_annexe_code"]) for r in required_rows if r["target_annexe_code"] is not None
+    ]
+    if not required_companions:
+        # Autonomous primary annexe — no companion declared. The chat
+        # path skips the inter-annex prompt block entirely.
+        return None
+
+    try:
+        submitted_rows = await pool.fetch(
+            """
+            SELECT DISTINCT xu.code_annexe
+              FROM validation_run_uploads vru
+              JOIN xml_uploads xu ON xu.id = vru.xml_upload_id
+             WHERE vru.validation_run_id = $1::uuid
+               AND xu.tenant_id          = $2::uuid
+               AND xu.deleted_at IS NULL
+            """,
+            run_id,
+            tenant_id,
+        )
+    except Exception:
+        _logger.exception(
+            "_load_run_dependency_state: validation_run_uploads lookup failed run=%s", run_id
+        )
+        return None
+    submitted_companions: list[str] = sorted(
+        {str(r["code_annexe"]) for r in submitted_rows if r["code_annexe"] is not None}
+    )
+    submitted_set = set(submitted_companions)
+    missing_companions: list[str] = sorted(
+        c for c in set(required_companions) if c not in submitted_set
+    )
+
+    parasitic_fail_count = 0
+    if missing_companions:
+        try:
+            parasitic_row = await pool.fetchrow(
+                """
+                SELECT COUNT(*)::int AS cnt
+                  FROM rules_active
+                 WHERE tenant_id        = $1::uuid
+                   AND is_inter_annexe  = TRUE
+                   AND involved_annexes && $2::text[]
+                   AND $3 = ANY(involved_annexes)
+                """,
+                tenant_id,
+                missing_companions,
+                primary_annexe,
+            )
+            parasitic_fail_count = int(parasitic_row["cnt"]) if parasitic_row is not None else 0
+        except Exception:
+            # Defensive: a parasitic-count failure does NOT mask the
+            # rest of the dependency state — we surface 0 so the chat
+            # output omits the count rather than failing the turn.
+            _logger.exception(
+                "_load_run_dependency_state: rules_active parasitic lookup failed run=%s",
+                run_id,
+            )
+            parasitic_fail_count = 0
+
+    return {
+        "primary_annexe": primary_annexe,
+        "arrete_date": arrete_date,
+        "required_companions": sorted(set(required_companions)),
+        "submitted_companions": submitted_companions,
+        "missing_companions": missing_companions,
+        "parasitic_fail_count": parasitic_fail_count,
+    }
+
+
+# P6 — bearer label for the synthetic specialist outcome the orchestrator
+# appends when the run carries dependency state. Mirrors the
+# `<agent_type>/<function_name>` shape of the real specialists so
+# aggregator prompts can address it via the standard `specialist_outputs`
+# loop without a special-case path.
+_DEPENDENCY_BEARER_LABEL: Final[str] = "dependency/check_companions"
 
 
 # ---------------------------------------------------------------------------
@@ -1696,6 +1855,35 @@ async def orchestrate(
         specialist_outcomes = []
     aggregator_meta = await aggregator_meta_task
     thinking_prose: str | None = await thinking_prose_task
+
+    # P6 — chat-driven inter-annex awareness. When the run carries a
+    # dependency declaration AND at least one declared companion is
+    # missing from the submitted upload set, append a synthetic
+    # specialist outcome carrying the dependency state. The aggregator
+    # prompt loops over `specialist_outputs` uniformly so this surfaces
+    # the inter-annex context without a special-case path. Only fired
+    # for per-FAIL intents — the dependency block is irrelevant to
+    # citation / simulation / sanction / plan / general_help, which
+    # already have their own bespoke aggregator framings.
+    if (
+        current_run_id is not None
+        and intent in _INTENTS_NEEDING_FAILS
+        and (
+            run_dependency_state := await _load_run_dependency_state(
+                pool, run_id=current_run_id, tenant_id=tenant_id
+            )
+        )
+        is not None
+        and run_dependency_state.get("missing_companions")
+    ):
+        specialist_outcomes.append(
+            _SpecialistOutcome(
+                bearer_label=_DEPENDENCY_BEARER_LABEL,
+                output=run_dependency_state,
+                success=True,
+                error=None,
+            )
+        )
 
     agents_called: list[str] = [outcome.bearer_label for outcome in specialist_outcomes]
     agents_called.append(aggregator_label)
