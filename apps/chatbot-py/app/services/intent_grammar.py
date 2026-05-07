@@ -31,6 +31,16 @@ class IntentSpec:
     aggregator_function_name: str
     specialist_ids: tuple[str, ...]
     ordinal: int
+    # B2 (2026-05-08, migration 104) — when TRUE, the orchestrator
+    # short-circuits this intent if a validation_run is already in
+    # status='running' for the caller's current_run_id. Prevents the
+    # double-launch race between /upload kickoff (T0+T1 auto-chain)
+    # and /chat/message launch_validation re-trigger. Read from
+    # `intent_specialists.requires_run_uniqueness`; defaults FALSE
+    # for every legacy intent so behaviour is unchanged for zoom,
+    # cluster, citation, etc. Seeded TRUE for launch_validation by
+    # migration 104.
+    requires_run_uniqueness: bool = False
 
 
 @dataclass(frozen=True)
@@ -76,7 +86,8 @@ async def load_intent_grammar(pool: asyncpg.Pool) -> IntentGrammar:
                aggregator_agent_type,
                aggregator_function_name,
                specialist_ids,
-               ordinal
+               ordinal,
+               requires_run_uniqueness
           FROM v_intent_specialists_active
         """
     )
@@ -99,12 +110,21 @@ async def load_intent_grammar(pool: asyncpg.Pool) -> IntentGrammar:
         else:
             parsed = raw_specialists
         specialist_ids: tuple[str, ...] = tuple(str(s) for s in parsed) if parsed else ()
+        # Defensive: legacy view rows (pre-migration 105) do not
+        # carry the column. Default to False so the orchestrator
+        # treats every intent as "no uniqueness required" when the
+        # flag is absent.
+        try:
+            uniq = bool(r["requires_run_uniqueness"])
+        except (KeyError, TypeError):
+            uniq = False
         intents[str(r["intent_type"])] = IntentSpec(
             intent_type=str(r["intent_type"]),
             aggregator_agent_type=str(r["aggregator_agent_type"]),
             aggregator_function_name=str(r["aggregator_function_name"]),
             specialist_ids=specialist_ids,
             ordinal=int(r["ordinal"]),
+            requires_run_uniqueness=uniq,
         )
 
     bearers: dict[str, SpecialistBearer] = {}

@@ -1948,6 +1948,30 @@ async def orchestrate(
 
     intent_spec = grammar.intents[intent]
 
+    # B2 (2026-05-08, migration 104+105) — DB-driven T1 dedup.
+    # When the matched intent is flagged
+    # `requires_run_uniqueness = TRUE` in `intent_specialists` AND
+    # the caller's current_run_id already points at a row in
+    # `validation_runs.status = 'running'`, short-circuit with a
+    # static-style response. The /upload kickoff already runs the
+    # T0 + T1 pipelines automatically; a second chat-driven trigger
+    # would create a race that produces duplicate token spend, SSE
+    # frames, and (worst case) a second /finalize POST.
+    #
+    # Zero `if intent == 'launch_validation'` hardcoding: the flag
+    # lives in the DB, the orchestrator just respects it. New
+    # intents that need uniqueness can flip the flag without
+    # code changes.
+    if (
+        intent_spec.requires_run_uniqueness
+        and current_run_id is not None
+        and await _is_run_already_in_progress(pool, run_id=current_run_id, tenant_id=tenant_id)
+    ):
+        return _build_run_already_running_result(
+            run_id=current_run_id,
+            start=start,
+        )
+
     # 2.5 Conditional planner refinement — see _maybe_invoke_planner.
     # The planner may rewrite the candidate set (refinement), demand
     # a clarifying response (switches the active intent to
@@ -2421,6 +2445,77 @@ def _build_no_router_result(message: str, start: float) -> OrchestratorResult:
         ),
         response_markdown=_NO_ROUTER_PROMPT_MESSAGE,
         agents_called=[],
+        tokens_input=0,
+        tokens_output=0,
+        tokens_thinking=0,
+        latency_ms=int((time.monotonic() - start) * 1000),
+    )
+
+
+# B2 (2026-05-08) — message rendered when the orchestrator's T1
+# uniqueness gate fires. Verbatim text is intentionally short and
+# free of run-specific identifiers — the user already sees the run
+# id in the workspace ribbon. The message is documented as a
+# code-level constant rather than a prompt_bank entry because it
+# carries no LLM-driven variability.
+_RUN_ALREADY_RUNNING_MESSAGE = (
+    "Une validation BCT T1 est déjà en cours sur ce dépôt. La ribbon ci-dessus "
+    "vous indique l'avancement en temps réel. Je vous préviens dès que la "
+    "synthèse est prête — vous pouvez patienter ou me poser une autre question "
+    "en attendant."
+)
+
+
+async def _is_run_already_in_progress(pool: asyncpg.Pool, *, run_id: str, tenant_id: str) -> bool:
+    """Return True iff validation_runs.status === 'running' for this run.
+
+    Used by the B2 short-circuit: when a launch-uniqueness intent
+    fires on a run that is already executing, we skip the entire
+    specialists + aggregator path and return the canonical
+    `_RUN_ALREADY_RUNNING_MESSAGE`. Defensive against a missing /
+    deleted run row (returns False so the normal flow runs).
+    """
+    try:
+        row = await pool.fetchrow(
+            """
+            SELECT status
+              FROM validation_runs
+             WHERE id        = $1::uuid
+               AND tenant_id = $2::uuid
+            """,
+            run_id,
+            tenant_id,
+        )
+    except Exception:
+        _logger.exception(
+            "_is_run_already_in_progress: validation_runs lookup failed run=%s",
+            run_id,
+        )
+        return False
+    if row is None:
+        return False
+    return str(row["status"]) == "running"
+
+
+def _build_run_already_running_result(*, run_id: str, start: float) -> OrchestratorResult:
+    """Static-style result the orchestrator returns when B2 fires.
+
+    No LLM call, no specialist invocation, no SSE frame. The chat
+    surface receives the canonical message and the user understands
+    the duplicate launch was a no-op without a confusing duplicate
+    synthesis arriving later. `agents_called` carries the bearer
+    label of the T1 specialist so observability still attributes the
+    short-circuited turn correctly.
+    """
+    return OrchestratorResult(
+        thinking_trace=(
+            f"{_THINKING_PREFIX} de relancer une validation déjà en cours "
+            f"sur le run {run_id}. {_THINKING_MID} qu'un second lancement "
+            f"créerait des doublons. {_THINKING_END} accuser réception "
+            f"sans relancer le pipeline."
+        ),
+        response_markdown=_RUN_ALREADY_RUNNING_MESSAGE,
+        agents_called=[_T1_RUNNER_SPECIALIST_ID],
         tokens_input=0,
         tokens_output=0,
         tokens_thinking=0,
