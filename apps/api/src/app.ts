@@ -40,14 +40,24 @@ export function createApp(pool?: Pool): Express {
 
   app.disable('x-powered-by');
   app.use(helmet());
-  // CORS must allow the X-Correlation-Id custom header so a browser
-  // client can either echo a server-generated id or seed its own.
+  // CORS must allow the custom headers the frontend sends. Adding a
+  // header here means browsers will pass the preflight OPTIONS check;
+  // OMITTING one causes "Failed to fetch" with no actionable error.
+  //   - X-Correlation-Id: end-to-end request tracing (commit C9)
+  //   - X-User-Id: tenant/user context resolution
+  //   - Idempotency-Key: HTTP idempotency on POST /runs (F, 2026-05-08)
   app.use(
     cors({
       origin: config.corsOrigin,
       credentials: true,
       exposedHeaders: ['X-Correlation-Id'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Id', 'X-Correlation-Id'],
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'X-User-Id',
+        'X-Correlation-Id',
+        'Idempotency-Key',
+      ],
     }),
   );
   app.use(express.json({ limit: '1mb' }));

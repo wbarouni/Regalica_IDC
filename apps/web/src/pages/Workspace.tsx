@@ -408,32 +408,26 @@ export default function Workspace() {
   //     below) — clicking a thread about run X surfaces run X again.
   const [lastRunInChat, setLastRunInChat] = useState<string | null>(null);
   // Run ids the user has explicitly dismissed via "Nouveau chat".
-  // Once an id lands here, the auto-bind effect MUST NOT re-bind it
-  // even if `currentRunId` keeps pointing at it. Without this set the
-  // auto-bind would resurrect the canvas immediately after the user
-  // dismissed it (the effect re-fires on every render where
-  // `lastRunInChat === null && currentRunId !== null`, defeating the
-  // explicit reset). The set lives across the workspace mount so a
-  // dismissed id stays dismissed until the user navigates away.
+  // Kept for B7 history-pick logic (handleHistorySelect uses it to
+  // re-attach a previously-dismissed id when the user explicitly
+  // picks a past conversation linked to that run).
   const dismissedRunIdsRef = useRef<Set<string>>(new Set());
-  useEffect(() => {
-    // First hydration only — bind the server's current run to the
-    // chat surface so a page reload preserves visibility. Subsequent
-    // changes are explicit (Lancer / Nouveau chat / history pick).
-    // The `dismissedRunIdsRef` guard prevents the effect from
-    // resurrecting an explicitly-dismissed id.
-    if (
-      lastRunInChat === null &&
-      currentRunId !== null &&
-      run?.status === 'completed' &&
-      !dismissedRunIdsRef.current.has(currentRunId)
-    ) {
-      setLastRunInChat(currentRunId);
-    }
-    // The dependency on `run?.status` keeps the seeding from firing
-    // mid-run — we only auto-bind on completed runs to mirror what a
-    // returning user would expect.
-  }, [currentRunId, lastRunInChat, run?.status]);
+  // Issue 1 (2026-05-08) — the auto-bind effect that previously
+  // restored `lastRunInChat` from the server's current run on first
+  // hydration was REMOVED. The user explicitly wants a fresh-app
+  // open to show ONLY the Regalica welcome bubble — no past Mode
+  // actuel sidebar, no past ribbon, no past KPI grid.
+  //
+  // Three explicit entry points populate `lastRunInChat`:
+  //   1. handleLaunchRun — sets it to the new run id immediately
+  //      after POST /api/runs succeeds (Lancer button)
+  //   2. handleHistorySelect — restores it from
+  //      messages.linked_run_id when the user picks a past
+  //      conversation (B7)
+  //   3. (none on mount) — fresh open is blank by design
+  //
+  // A returning user who reloaded mid-investigation can still get
+  // back to their run by picking it from the history sidebar.
 
   // SSE 'complete' event => the engine just persisted final
   // synthesis_artifact + deliverable_c_artifact + KPIs to
@@ -1007,7 +1001,22 @@ export default function Workspace() {
       disabled={upload.uploading || startRun.starting}
     >
       <div className="app">
-        <PersonaSidebar run={run} loading={runLoading} mode="workspace" />
+        {/* Issue 1 (2026-05-08) — PersonaSidebar + Ribbon are now
+            gated on `lastRunInChat === currentRunId`, exactly like
+            the Synthèse / FailsTable / InvestigationArtefact below.
+            On a fresh app open, lastRunInChat starts null, so the
+            sidebar shows the empty/loading state and the ribbon is
+            absent — the chat surface starts truly blank with only
+            the Regalica welcome bubble. The user gates the canvas
+            in by clicking Lancer (which sets lastRunInChat) or by
+            picking a past conversation in the history sidebar
+            (which restores lastRunInChat from messages.linked_run_id,
+            B7). */}
+        <PersonaSidebar
+          run={lastRunInChat === currentRunId ? run : null}
+          loading={lastRunInChat === currentRunId ? runLoading : false}
+          mode="workspace"
+        />
 
         <main className="canvas">
           <header className="cmd">
@@ -1021,8 +1030,12 @@ export default function Workspace() {
             </div>
           </header>
 
-          <Ribbon steps={steps} run={run} runIdShort={runIdShort} />
-          {run?.status === 'running' && <ProgressBar runId={currentRunId} />}
+          {lastRunInChat === currentRunId && (
+            <Ribbon steps={steps} run={run} runIdShort={runIdShort} />
+          )}
+          {lastRunInChat === currentRunId && run?.status === 'running' && (
+            <ProgressBar runId={currentRunId} />
+          )}
 
           <div className="thread-scroll">
             <div className="thread">
