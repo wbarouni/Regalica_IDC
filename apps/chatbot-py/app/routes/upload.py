@@ -51,9 +51,11 @@ from app.services.orchestrator import (
     _build_finalize_payload_failed,
     _build_synthesis_artifact,
     _clean_thought_leakage,
+    _load_run_dependency_state,
     _run_t1_validation,
 )
 from app.services.prompt_loader import load_active_prompt
+from app.utils.json_helpers import extract_first_json
 
 router = APIRouter()
 log = get_logger(__name__)
@@ -563,6 +565,82 @@ async def _render_t1_synthesis(
         return None
 
 
+async def _render_companion_offer(
+    *,
+    pool: asyncpg.Pool,
+    llm_client: LLMClient,
+    tenant_id: str,
+    dependency_state: dict[str, Any],
+) -> dict[str, Any] | None:
+    """B6 — render the proactive companion-XML offer bubble.
+
+    Invokes the prompt `regalica/run_finalized_companion_offer`
+    (seeded by migration 104, promoted by migration 106) with the
+    dependency_state payload and returns the parsed JSON envelope:
+        {
+          "markdown": "<bulle Regalica en prose>",
+          "buttons": [
+            {kind, annexe_code, upload_id?, label_fr, label_en, label_ar},
+            ...
+          ]
+        }
+
+    The chat surface persists `markdown` as content_markdown and
+    `buttons` as content_json so the frontend can render the action
+    chips inline without parsing markdown — zero regex on text, the
+    button structure flows through as data.
+
+    Best-effort: returns None on missing prompt / LLM error /
+    unparseable output. Caller skips the message persistence in that
+    case (the dependency state is already surfaced via BLOC 7 in any
+    chat zoom on the same run).
+    """
+    meta = await load_active_prompt(
+        pool=pool,
+        tenant_id=tenant_id,
+        agent_type="regalica",
+        function_name="run_finalized_companion_offer",
+    )
+    if meta is None:
+        log.info(
+            "companion_offer_prompt_missing",
+            tenant_id=tenant_id,
+        )
+        return None
+
+    payload: dict[str, Any] = {
+        "primary_annexe": dependency_state.get("primary_annexe"),
+        "arrete_date": dependency_state.get("arrete_date"),
+        "missing_companions": dependency_state.get("missing_companions") or [],
+        "parasitic_fail_count": int(dependency_state.get("parasitic_fail_count") or 0),
+        "companion_suggestions": dependency_state.get("companion_suggestions") or {},
+    }
+    try:
+        request = LLMRequest(
+            prompt=json.dumps(payload, ensure_ascii=False),
+            temperature=meta["temperature"],
+            max_tokens=meta["max_tokens"],
+            thinking_enabled=meta["thinking_enabled"],
+            system_prompt=meta["template"],
+        )
+        response = await llm_client.complete(request)
+    except Exception as exc:
+        log.warning("companion_offer_llm_failed", error=str(exc))
+        return None
+
+    parsed = extract_first_json(response.content)
+    if not isinstance(parsed, dict):
+        log.warning("companion_offer_invalid_json", content=response.content[:300])
+        return None
+    markdown = parsed.get("markdown")
+    buttons = parsed.get("buttons")
+    if not isinstance(markdown, str) or not markdown.strip():
+        return None
+    if not isinstance(buttons, list):
+        buttons = []
+    return {"markdown": markdown.strip(), "buttons": buttons}
+
+
 @router.post("", response_model=UploadResponse)
 async def post_upload(
     payload: UploadKickoffRequest,
@@ -799,6 +877,66 @@ async def post_upload(
                             conversation_id=payload.conversation_id,
                             error=str(err),
                         )
+
+                # B6 (2026-05-08, migration 104+106) — proactive
+                # companion-XML offer. After the synthesis lands in
+                # the chat, check the run's dependency state. When
+                # the primary annexe carries inter-annex rules AND
+                # at least one declared companion is missing, render
+                # the `regalica/run_finalized_companion_offer`
+                # prompt and push a SECOND chat message. The
+                # markdown explains the situation and the buttons
+                # (use_existing / upload_new) flow to the frontend
+                # via content_json, NOT via regex on the text. The
+                # entire surface stays opt-in: missing prompt or
+                # LLM failure logs at WARN and skips silently.
+                if payload.conversation_id is not None:
+                    try:
+                        dep_state = await _load_run_dependency_state(
+                            pool,
+                            run_id=payload.run_id,
+                            tenant_id=payload.tenant_id,
+                        )
+                    except Exception as err:
+                        log.warning(
+                            "companion_offer_dependency_lookup_failed",
+                            run_id=payload.run_id,
+                            error=str(err),
+                        )
+                        dep_state = None
+                    if dep_state is not None and dep_state.get("missing_companions"):
+                        offer = await _render_companion_offer(
+                            pool=pool,
+                            llm_client=llm_client,
+                            tenant_id=payload.tenant_id,
+                            dependency_state=dep_state,
+                        )
+                        if offer is not None:
+                            try:
+                                await engine.persist_message(
+                                    conversation_id=payload.conversation_id,
+                                    tenant_id=payload.tenant_id,
+                                    content=offer["markdown"],
+                                    role="assistant",
+                                    metadata={
+                                        "kind": "companion_offer",
+                                        "buttons": offer["buttons"],
+                                        "primary_annexe": dep_state.get("primary_annexe"),
+                                        "arrete_date": dep_state.get("arrete_date"),
+                                        "missing_companions": dep_state.get("missing_companions"),
+                                        "run_id": payload.run_id,
+                                    },
+                                    produced_by_agent="regalica",
+                                    run_id=payload.run_id,
+                                )
+                            except (RegflowApiError, httpx.HTTPError) as err:
+                                log.warning(
+                                    "engine_persist_companion_offer_failed",
+                                    run_id=payload.run_id,
+                                    conversation_id=payload.conversation_id,
+                                    error=str(err),
+                                )
+
                 t1_status = "completed"
             except T1RejectionError as exc:
                 error_code = (
