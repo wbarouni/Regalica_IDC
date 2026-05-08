@@ -892,48 +892,41 @@ export default function Workspace() {
     const arreteDate = pendingUpload.arrete_date;
     const etaSeconds = runEta.seconds;
 
-    // B3 (2026-05-08) — REORDERED. The user sees a clean causal
-    // sequence in the thread:
+    // 2026-05-08 final order — the user sees a clean causal
+    // sequence APPENDED to the existing thread (welcome bubble
+    // stays):
     //   1. user message ("Lance la validation BCT T1 sur ...") —
     //      injected NOW so the intent is visible before the network
     //      call, regardless of POST latency.
     //   2. Regalica ack ("Très bien, je lance...") — injected NOW
-    //      so the user gets immediate feedback. The ETA comes from
-    //      platform_config.t1_run_eta_p50_seconds (DB-driven, not
-    //      hardcoded — see migration 104). When the value is unknown
-    //      (cold start), the loader returns null and the ack omits
-    //      the ETA clause rather than fabricating one.
-    //   3. resetConversation() AFTER injecting these so the new chat
-    //      thread starts WITH the launch turn already populated.
-    //   4. POST /api/runs in the background. The .then() sets the
+    //      with a `thinking_trace` placeholder that the ChatTurn
+    //      renders as the « Mode thinking » artefact above the ack
+    //      response. The artefact auto-collapses when the
+    //      typewriter reveals the full ack text. The ETA comes from
+    //      platform_config.t1_run_eta_p50_seconds (DB-driven).
+    //   3. POST /api/runs in the background. The .then() sets the
     //      run id state without injecting any further chat message.
-    //   5. T0 + T1 pipelines run server-side; their briefing /
-    //      synthesis messages reach the thread via the SSE-driven
-    //      /messages persistence path (chatbot-py /upload endpoint).
-    resetConversation();
-    injectUserMessage(
-      t('launchSequence.userIntent', {
-        fileName,
-        defaultValue: `Lance la validation BCT T1 sur ${fileName}.`,
-      }),
-    );
+    //   4. T0 + T1 pipelines run server-side; their synthesis
+    //      surfaces as a Regalica bubble below the ack via
+    //      RegalicaRunSpeech (rendered AFTER ChatThread in the JSX
+    //      so it appears at the bottom of the conversation).
+    //
+    // We do NOT call resetConversation() — the user explicitly
+    // asked for the welcome to stay. The launch sequence is appended
+    // to whatever was in the thread before.
+    injectUserMessage(t('launchSequence.userIntent', { fileName }));
     injectRegalicaMessage(
       etaSeconds !== null
         ? t('launchSequence.regalicaAckWithEta', {
             fileName,
             arreteDate,
             etaSeconds,
-            defaultValue:
-              `Très bien. Je lance la validation BCT T1 sur ${fileName} (arrêté ${arreteDate}). ` +
-              `Le contrôle prend environ ${etaSeconds} secondes — la ribbon vous suit en temps réel.`,
           })
-        : t('launchSequence.regalicaAck', {
-            fileName,
-            arreteDate,
-            defaultValue:
-              `Très bien. Je lance la validation BCT T1 sur ${fileName} ` +
-              `(arrêté ${arreteDate}). La ribbon vous suit en temps réel.`,
-          }),
+        : t('launchSequence.regalicaAck', { fileName, arreteDate }),
+      // Thinking trace placeholder — content lives in i18n
+      // (`launchSequence.regalicaAckThinking`) so the wording is
+      // localizable and never hardcoded in source.
+      t('launchSequence.regalicaAckThinking'),
     );
 
     void startRun
@@ -970,7 +963,6 @@ export default function Workspace() {
       });
   }, [
     pendingUpload,
-    resetConversation,
     injectUserMessage,
     injectRegalicaMessage,
     startRun,
@@ -1064,6 +1056,21 @@ export default function Workspace() {
               {!runLoading && run === null && runError === null && activeRunId === null && (
                 <NoActiveRun />
               )}
+              <ChatThread messages={messages} />
+
+              {/* 2026-05-08 final layout — the run-completed canvas
+                  (Synthèse + KPIs + FailsTable + Investigation +
+                  T3 banner) is rendered AFTER ChatThread so the
+                  visual flow is welcome → user msg → ack → synthesis.
+                  RegalicaRunSpeech wraps everything in a Regalica
+                  bubble (avatar + name + time + confidence badge)
+                  so the synthesis reads as a chat turn, not a
+                  separate canvas card. The user's frustrated
+                  observation — "la synthèse apparait tout seul...
+                  puis se déplace dans le chat" — was caused by this
+                  block being rendered ABOVE ChatThread; moving it
+                  below puts the synthesis in its natural causal
+                  place. */}
               {run !== null &&
                 summary !== null &&
                 summary.run.status !== 'completed' &&
@@ -1072,12 +1079,7 @@ export default function Workspace() {
                  because there is no Regalica bubble to nest it inside
                  yet (the run hasn't completed; no narrative + no
                  confidence to derive). Once status === 'completed' the
-                 Synthèse moves INTO the bubble below.
-                 Issue 1 (2026-05-08) — gated on `lastRunInChat ===
-                 currentRunId`: when the user clicks "Nouveau chat",
-                 lastRunInChat is cleared and this card disappears even
-                 though the server-side run is still loaded. Returning
-                 to the run via the history sidebar restores it. */
+                 Synthèse moves INTO the bubble below. */
                   <RunSynthesisCard run={run} annexes={summary.annexes} />
                 )}
               {summary !== null &&
@@ -1087,15 +1089,7 @@ export default function Workspace() {
                  Synthèse, then the cause-root deliverable (Livrable C),
                  then the FailsTable, then the per-fail decomposition.
                  Everything sits as direct children of .msg-rega__body
-                 to match the workspace v5 mockup pattern (:626-697)
-                 where every <article class="artefact"> is rendered
-                 inside the bubble.
-                 Issue 1 (2026-05-08) — same lastRunInChat gate as the
-                 running variant above. The bubble + all its children
-                 disappear from the canvas on Nouveau chat, giving a
-                 true blank slate. The data stays in the DB and is
-                 reattached if the user picks the conversation in the
-                 history sidebar. */
+                 to match the workspace v5 mockup pattern (:626-697). */
                   <RegalicaRunSpeech run={summary.run}>
                     <RunSynthesisCard run={summary.run} annexes={summary.annexes} />
                     <T1Deliverables run={summary.run} />
@@ -1105,8 +1099,7 @@ export default function Workspace() {
                         0 && (
                         /* Tranche 0.5 W2.2 — validation_fail_details rows
                        persisted by /finalize, banking-format columns
-                       surfaced. Sub-Sprint 4: rows are now clickable
-                       and feed the InvestigationArtefact below. */
+                       surfaced. */
                         <FailsTable
                           runId={currentRunId}
                           filter="all"
@@ -1115,26 +1108,15 @@ export default function Workspace() {
                         />
                       )}
                     {investigationFail !== null && (
-                      /* C — Investigation block. Defaults to the top severe
-                     fail (auto-mounted by useTopSevereFail) and switches
-                     to whatever row the user clicks in FailsTable above
-                     (Sub-Sprint 4). The artefact accepts both severities
-                     so a click on a rounding row also surfaces the
-                     decomposition. */
                       <InvestigationArtefact fail={investigationFail} />
                     )}
                     <T3LockBanner totalFailSevere={summary.run.total_fail_severe ?? 0} />
                   </RegalicaRunSpeech>
                 )}
               {run !== null && summary === null && lastRunInChat === currentRunId && (
-                /* Defensive: run row exists but /summary is still pending.
-                 Show the KPI grid skeleton from the run row alone (no
-                 annexes block until summary lands).
-                 Issue 1 (2026-05-08) — same lastRunInChat gate. */
+                /* Defensive: run row exists but /summary is still pending. */
                 <RunSynthesisCard run={run} annexes={[]} />
               )}
-
-              <ChatThread messages={messages} />
 
               {chatError !== null && (
                 <div

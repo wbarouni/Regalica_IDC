@@ -97,8 +97,16 @@ interface UseChatResult {
    * Point 2 — programmatic injection of a Regalica message into the
    * thread (skips the chatbot-py round-trip). Used by the local
    * interceptor to acknowledge a chat-driven launch_validation.
+   *
+   * 2026-05-08 — `thinkingTrace` (optional) attaches a thinking
+   * trace placeholder to the bubble. ChatTurn renders it as the
+   * « Mode thinking » artefact above the response, with the
+   * existing typewriter-driven auto-collapse semantics. Useful for
+   * the ack bubble during a launch: the user sees Regalica's
+   * preparation reasoning briefly, then the artefact collapses as
+   * the ack text reveals.
    */
-  injectRegalicaMessage: (content: string) => void;
+  injectRegalicaMessage: (content: string, thinkingTrace?: string) => void;
   /**
    * B3 (2026-05-08) — programmatic injection of a USER bubble.
    * Used by handleLaunchRun to render the user's intent ("Lance la
@@ -144,14 +152,15 @@ export function useChat(options: UseChatOptions = {}): UseChatResult {
     initialConversationId ?? null,
   );
 
-  const injectRegalicaMessage = useCallback((content: string): void => {
+  const injectRegalicaMessage = useCallback((content: string, thinkingTrace?: string): void => {
     setMessages((prev) => [
       ...prev,
       {
         id: crypto.randomUUID(),
         role: 'regalica',
         content,
-        thinking_trace: null,
+        thinking_trace:
+          typeof thinkingTrace === 'string' && thinkingTrace.length > 0 ? thinkingTrace : null,
         agents_called: [],
         timestamp: new Date().toISOString(),
       },
