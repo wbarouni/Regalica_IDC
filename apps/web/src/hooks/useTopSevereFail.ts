@@ -38,6 +38,12 @@ export function useTopSevereFail(runId: string | null): UseTopSevereFailResult {
       setLoading(false);
       return;
     }
+    // 2026-05-08 — clear stale top fail IMMEDIATELY when runId
+    // changes so the InvestigationArtefact never auto-mounts on the
+    // PREVIOUS run's top FAIL during the launch window before the
+    // new fetch resolves. Same pattern as useRunSummary + useFails.
+    setFail(null);
+    setError(null);
     let cancelled = false;
     setLoading(true);
     const qs = new URLSearchParams({ filter: 'fail', page: '1', limit: '1' });

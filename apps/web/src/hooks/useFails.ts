@@ -35,6 +35,13 @@ export function useFails(runId: string | null, filter: FailFilter): UseFailsResu
       setLoading(false);
       return;
     }
+    // 2026-05-08 — clear stale fails IMMEDIATELY when runId changes
+    // so the workspace picker / FailsTable never renders the
+    // PREVIOUS run's rows during the brief window before the new
+    // fetch resolves. Same pattern as useRunSummary.
+    setFails([]);
+    setTotal(0);
+    setError(null);
     let cancelled = false;
     setLoading(true);
     const qs = new URLSearchParams({

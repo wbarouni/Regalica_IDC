@@ -1005,7 +1005,16 @@ export default function Workspace() {
             (which restores lastRunInChat from messages.linked_run_id,
             B7). */}
         <PersonaSidebar
-          run={lastRunInChat === currentRunId ? run : null}
+          // Belt-and-suspenders: only pass `run` when its identity
+          // matches `currentRunId`. Otherwise the sidebar would
+          // render the PREVIOUS run's KPIs during the brief launch
+          // window before useCurrentRun's refetch resolves
+          // ("déchet en cours de route" the user reported).
+          run={
+            lastRunInChat === currentRunId && run !== null && run.run_id === currentRunId
+              ? run
+              : null
+          }
           loading={lastRunInChat === currentRunId ? runLoading : false}
           mode="workspace"
         />
@@ -1071,8 +1080,22 @@ export default function Workspace() {
                   block being rendered ABOVE ChatThread; moving it
                   below puts the synthesis in its natural causal
                   place. */}
+              {/* 2026-05-08 — DEFENSIVE GATE: every render below
+                  ALSO verifies `summary.run.run_id === currentRunId`
+                  (and `run.run_id === currentRunId` for the
+                  fallback). Without this gate, a stale `summary`
+                  state from the PREVIOUS run could match the
+                  current's `lastRunInChat === currentRunId` and
+                  briefly render the OLD synthesis during the launch
+                  window (the user-reported "déchet en cours de
+                  route"). The hooks (useRunSummary / useFails /
+                  useTopSevereFail) ALSO clear their state on runId
+                  change as a primary defense; this gate is a belt-
+                  and-suspenders safeguard. */}
               {run !== null &&
+                run.run_id === currentRunId &&
                 summary !== null &&
+                summary.run.run_id === currentRunId &&
                 summary.run.status !== 'completed' &&
                 lastRunInChat === currentRunId && (
                   /* Correction 1 — running run keeps the Synthèse external
@@ -1083,6 +1106,7 @@ export default function Workspace() {
                   <RunSynthesisCard run={run} annexes={summary.annexes} />
                 )}
               {summary !== null &&
+                summary.run.run_id === currentRunId &&
                 summary.run.status === 'completed' &&
                 lastRunInChat === currentRunId && (
                   /* Point 1 + Correction 1 — Regalica's voice OWNS the
@@ -1113,10 +1137,13 @@ export default function Workspace() {
                     <T3LockBanner totalFailSevere={summary.run.total_fail_severe ?? 0} />
                   </RegalicaRunSpeech>
                 )}
-              {run !== null && summary === null && lastRunInChat === currentRunId && (
-                /* Defensive: run row exists but /summary is still pending. */
-                <RunSynthesisCard run={run} annexes={[]} />
-              )}
+              {run !== null &&
+                run.run_id === currentRunId &&
+                summary === null &&
+                lastRunInChat === currentRunId && (
+                  /* Defensive: run row exists but /summary is still pending. */
+                  <RunSynthesisCard run={run} annexes={[]} />
+                )}
 
               {chatError !== null && (
                 <div

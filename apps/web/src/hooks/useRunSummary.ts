@@ -37,6 +37,21 @@ export function useRunSummary(runId: string | null): UseRunSummaryResult {
       setLoading(false);
       return;
     }
+    // 2026-05-08 — clear the previous run's summary IMMEDIATELY when
+    // `runId` changes. Without this, the workspace render gate
+    // `summary?.run.status === 'completed'` still matches the
+    // PREVIOUS run's data (a previously completed run) during the
+    // brief window between Lancer click and the new fetch resolving.
+    // The user sees "an old synthesis appearing briefly during the
+    // launch, then disappearing" — the "déchet en cours de route"
+    // they reported. Resetting state on runId change makes the gate
+    // observe summary=null until the fresh data lands.
+    //
+    // Errors are also reset for the same reason: a stale error from
+    // the prior run would otherwise leak into the new run's loading
+    // state.
+    setSummary(null);
+    setError(null);
     cancelledRef.current = false;
     setLoading(true);
     void fetchApi<RunSummary>(`/api/tenants/${TENANT_ID}/runs/${runId}/summary`)
