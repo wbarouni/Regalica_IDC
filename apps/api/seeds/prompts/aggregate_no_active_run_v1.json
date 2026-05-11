@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "source": "Cas N°1 audit 2026-05-11 — replaces the orchestrator's hardcoded fallback for intents that need a validation_run (zoom, cluster, historical, plan) when current_run_id is None. Without this prompt the specialist would run on empty fail_context and Gemini would hallucinate or refuse with `je n'ai pas détecté X fails`.",
+  "consumers": [
+    "apps/api/migrations/114_seed_aggregate_no_active_run_prompt.sql — embeds the template + static_response + schemas verbatim in the seed/promote DO blocks",
+    "apps/chatbot-py/app/services/orchestrator.py — short-circuit invoked when intent_spec.requires_active_run is TRUE and current_run_id is None"
+  ],
+  "agent_type": "regalica",
+  "function_name": "aggregate_no_active_run",
+  "version_number": 1,
+  "temperature": 0.0,
+  "max_tokens": 256,
+  "thinking_enabled": false,
+  "target_model_env": "GEMINI_MODEL",
+  "output_contract": "string",
+  "note_target_model": "target_model is read from the operator-controlled env var GEMINI_MODEL at seed time, NOT a literal in the JSON. Promotion to status='active' is gated by 4-yeux (author_user_id != validator_user_id, validated_at NOT NULL).",
+  "note_doctrine": "Uses the `static_response` short-circuit (orchestrator.py:_invoke_aggregator branch at is_static_response). The LLM is NEVER called: the orchestrator surfaces `static_response` verbatim as the markdown response. The template is preserved for a future Phase 5 personalization (LLM-driven phrasing that adapts to the user's specific intent and language) — flipping `static_response` to NULL would activate the template.",
+  "static_response": "Pour vous répondre, j'ai besoin d'une validation BCT active. Veuillez déposer vos rapports réglementaires (fichiers XML BCT) via la zone de dépôt, puis je lancerai la validation T1 et reprendrai votre demande sur les résultats produits.",
+  "input_schema": {
+    "type": "object",
+    "required": ["user_message", "intent_type"],
+    "additionalProperties": false,
+    "properties": {
+      "user_message": {
+        "type": "string",
+        "description": "The original user message, verbatim. Surfaced into the template for future Phase 5 personalization; the static_response short-circuit ignores it today."
+      },
+      "intent_type": {
+        "type": "string",
+        "description": "The intent classified by the router that triggered the no-active-run short-circuit (zoom, cluster, historical, plan, …)."
+      }
+    }
+  },
+  "output_schema": {
+    "type": "string",
+    "description": "Réponse Regalica en français professionnel bancaire demandant le dépôt d'un XML BCT avant toute action sur des résultats de validation."
+  },
+  "template": "Tu es Regalica, l'assistante IA de la plateforme REGFlow. Tu vouvoies systématiquement. Aucun emoji. Aucune formule servile. Aucun superlatif. Ton professionnel, bancaire, factuel.\n\nContexte : l'utilisateur a posé une question d'intent `{intent_type}` qui nécessite une validation BCT en cours, mais aucune validation n'est active sur ce chat.\n\nMessage utilisateur : {user_message}\n\nFormule une réponse sobre en 2 phrases :\n- Indique que la question ne peut pas être traitée sans validation active.\n- Invite explicitement à déposer un fichier XML BCT pour lancer la validation T1.\n\nRègles : pas de liste à puces, pas de titre, prose directe. Pas de « Voici », « N'hésitez pas »."
+}

@@ -41,6 +41,19 @@ class IntentSpec:
     # cluster, citation, etc. Seeded TRUE for launch_validation by
     # migration 104.
     requires_run_uniqueness: bool = False
+    # Cas N°1 (2026-05-11, migration 113) — when TRUE, the orchestrator
+    # short-circuits this intent if `current_run_id is None` and
+    # surfaces the `regalica/aggregate_no_active_run` prompt's
+    # static_response (migration 114) asking the user to upload an
+    # XML BCT file before continuing. Replaces the hardcoded
+    # `_INTENTS_NEEDING_FAILS = frozenset({"zoom", "cluster",
+    # "historical", "plan"})` previously in orchestrator.py (CLAUDE.md
+    # zero-hardcoding doctrine). Seeded TRUE for those four intents
+    # by migration 113; FALSE for every other intent (launch_validation
+    # creates the run, general_help / out_of_scope / ambiguous /
+    # citation / simulation / sanction / self_introduction /
+    # download_report do not require one).
+    requires_active_run: bool = False
 
 
 @dataclass(frozen=True)
@@ -87,7 +100,8 @@ async def load_intent_grammar(pool: asyncpg.Pool) -> IntentGrammar:
                aggregator_function_name,
                specialist_ids,
                ordinal,
-               requires_run_uniqueness
+               requires_run_uniqueness,
+               requires_active_run
           FROM v_intent_specialists_active
         """
     )
@@ -118,6 +132,14 @@ async def load_intent_grammar(pool: asyncpg.Pool) -> IntentGrammar:
             uniq = bool(r["requires_run_uniqueness"])
         except (KeyError, TypeError):
             uniq = False
+        # Cas N°1 (migration 113/115) — same defensive read as above.
+        # Pre-115 views do not carry the column, default to False so
+        # the legacy hallucinate-on-empty-fail-context behaviour is
+        # preserved in mixed-version environments.
+        try:
+            req_run = bool(r["requires_active_run"])
+        except (KeyError, TypeError):
+            req_run = False
         intents[str(r["intent_type"])] = IntentSpec(
             intent_type=str(r["intent_type"]),
             aggregator_agent_type=str(r["aggregator_agent_type"]),
@@ -125,6 +147,7 @@ async def load_intent_grammar(pool: asyncpg.Pool) -> IntentGrammar:
             specialist_ids=specialist_ids,
             ordinal=int(r["ordinal"]),
             requires_run_uniqueness=uniq,
+            requires_active_run=req_run,
         )
 
     bearers: dict[str, SpecialistBearer] = {}
