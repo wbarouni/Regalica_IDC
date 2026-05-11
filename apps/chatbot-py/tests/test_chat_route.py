@@ -45,6 +45,19 @@ def _seed_intent_grammar_cache() -> Iterator[None]:
     pc.reset_platform_config_cache()
     pc._CACHE["regalica_planner_trigger_intents"] = []
     pc._CACHE["regalica_planner_max_plan_steps"] = 4
+    # Cas N°2 (migration 116) — pre-cache chat_history_max_messages = 0
+    # so load_session_history short-circuits to [] without a DB lookup,
+    # keeping these specs focused on the dispatch + persistence path.
+    # Tests that exercise the history loader live in
+    # test_chat_history_loader.py and test_chat_route_history.py.
+    pc._CACHE["chat_history_max_messages"] = 0
+    # Option 3 (migration 117) — pre-cache the operator-tunable token
+    # budgets so the orchestrator's load_router_max_tokens +
+    # load_thinking_preview_max_chars short-circuit on cache hit and
+    # do NOT consume side_effect slots that belong to the prompt /
+    # message persistence flow.
+    pc._CACHE["regalica_router_max_tokens"] = 1024
+    pc._CACHE["regalica_thinking_preview_max_chars"] = 180
     ig._CACHE = ig.IntentGrammar(
         intents={
             "general_help": ig.IntentSpec(
@@ -175,7 +188,16 @@ def test_post_chat_message_dispatches_through_orchestrator_and_returns_200(
     client: TestClient, mock_pool: MagicMock, mock_llm: MagicMock
 ) -> None:
     """Router -> general_help -> 200 with canonical ChatResponse."""
+    # Cas N°2 (2026-05-11) — the chat route now creates the conversation
+    # row + persists the user-role message BEFORE invoking the
+    # orchestrator (so the conversation thread carries the full user-
+    # side history). The fetchrow sequence reflects this:
+    #   conv INSERT → user MAX → user INSERT → router → aggregator →
+    #   thinking → message MAX → message INSERT.
     mock_pool.fetchrow.side_effect = [
+        {"id": "00000000-0000-0000-0000-0000000000aa"},  # _ensure_conversation
+        {"next_seq": 1},  # _persist_user_message SELECT MAX
+        {"id": "00000000-0000-0000-0000-000000000aaa"},  # _persist_user_message INSERT
         _prompt_row("[REGALICA_ROUTER_V1]"),  # router prompt
         _prompt_row("[REGALICA_AGGREGATE_GENERAL_HELP_V1]"),  # aggregator prompt
         # Sub-Sprint 3 — orchestrator now also fetches the
@@ -183,8 +205,7 @@ def test_post_chat_message_dispatches_through_orchestrator_and_returns_200(
         # aggregator load, so the LLM-driven thinking trace replaces
         # the deterministic 5-phase composer when present.
         _prompt_row("[REGALICA_THINKING_REFLECTION_V1]"),  # thinking prompt
-        {"id": "00000000-0000-0000-0000-0000000000aa"},  # _ensure_conversation
-        {"next_seq": 1},  # _persist_message SELECT MAX
+        {"next_seq": 2},  # _persist_message SELECT MAX
         {"id": "00000000-0000-0000-0000-0000000000bb"},  # _persist_message INSERT
     ]
     mock_llm.complete.side_effect = [
@@ -229,9 +250,11 @@ def test_post_chat_message_returns_fallback_when_router_prompt_missing(
 ) -> None:
     """No active router prompt → orchestrator emits the fallback message."""
     mock_pool.fetchrow.side_effect = [
+        {"id": "00000000-0000-0000-0000-0000000000cc"},  # _ensure_conversation
+        {"next_seq": 1},  # _persist_user_message SELECT MAX
+        {"id": "00000000-0000-0000-0000-000000000ccc"},  # _persist_user_message INSERT
         None,  # router prompt absent
-        {"id": "00000000-0000-0000-0000-0000000000cc"},  # conv insert
-        {"next_seq": 1},
+        {"next_seq": 2},  # _persist_message SELECT MAX
         {"id": "00000000-0000-0000-0000-0000000000dd"},  # msg insert
     ]
 
@@ -259,6 +282,9 @@ def test_post_chat_message_absorbs_llm_failure_in_general_help_path(
     coherent answer instead of a 5xx.
     """
     mock_pool.fetchrow.side_effect = [
+        {"id": "00000000-0000-0000-0000-0000000000ee"},  # _ensure_conversation
+        {"next_seq": 1},  # _persist_user_message SELECT MAX
+        {"id": "00000000-0000-0000-0000-000000000eee"},  # _persist_user_message INSERT
         _prompt_row("[REGALICA_ROUTER_V1]"),
         _prompt_row("[REGALICA_AGGREGATE_GENERAL_HELP_V1]"),
         # Sub-Sprint 3 — thinking_reflection prompt fetch in parallel
@@ -267,9 +293,8 @@ def test_post_chat_message_absorbs_llm_failure_in_general_help_path(
         # `_compose_prose_thinking` path returns None gracefully (LLM
         # call inside it is the one that fails).
         _prompt_row("[REGALICA_THINKING_REFLECTION_V1]"),
-        {"id": "00000000-0000-0000-0000-0000000000ee"},
-        {"next_seq": 1},
-        {"id": "00000000-0000-0000-0000-0000000000ff"},
+        {"next_seq": 2},  # _persist_message SELECT MAX
+        {"id": "00000000-0000-0000-0000-0000000000ff"},  # _persist_message INSERT
     ]
     mock_llm.complete.side_effect = RuntimeError("upstream LLM rate limited")
 
@@ -299,13 +324,15 @@ def test_post_chat_message_dispatches_self_introduction_to_static_response(
         "Je couvre les phases T0/T1/T2/T3 de validation BCT."
     )
     mock_pool.fetchrow.side_effect = [
+        {"id": "00000000-0000-0000-0000-000000000111"},  # _ensure_conversation
+        {"next_seq": 1},  # _persist_user_message SELECT MAX
+        {"id": "00000000-0000-0000-0000-000000000aaa"},  # _persist_user_message INSERT
         _prompt_row("[REGALICA_ROUTER_V1]"),  # router prompt
         _prompt_row_static(canned_markdown, "[REGALICA_AGGREGATE_SELF_INTRODUCTION_V1]"),
         # Sub-Sprint 3 — thinking_reflection prompt fetch (parallel
         # task in the orchestrator).
         _prompt_row("[REGALICA_THINKING_REFLECTION_V1]"),
-        {"id": "00000000-0000-0000-0000-000000000111"},  # _ensure_conversation
-        {"next_seq": 1},  # _persist_message SELECT MAX
+        {"next_seq": 2},  # _persist_message SELECT MAX
         {"id": "00000000-0000-0000-0000-000000000222"},  # _persist_message INSERT
     ]
     # Two LLM calls fire: the router classification AND the

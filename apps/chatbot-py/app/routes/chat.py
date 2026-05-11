@@ -32,6 +32,7 @@ from pydantic import BaseModel, Field
 from app.clients.regflow_api import RegflowApiClient
 from app.domain.error_resolver import ErrorResolver
 from app.llm.base import LLMClient
+from app.services.chat_history import load_chat_history_max, load_session_history
 from app.services.orchestrator import OrchestratorResult, orchestrate
 
 router = APIRouter()
@@ -39,6 +40,14 @@ router = APIRouter()
 # Persisted role identifier for messages produced by Regalica
 # (per migration 032 ck_msg_role enum).
 _REGALICA_RESPONSE_ROLE = "regalica_response"
+
+# Persisted role identifier for user-authored messages
+# (per migration 032 ck_msg_role enum). Cas N°2 (2026-05-11) — the
+# chat route now writes one of these rows BEFORE invoking the
+# orchestrator so the conversation thread carries the full user-side
+# history. Previously only `regalica_response` rows existed in the
+# DB and the history reload re-hydrated a Regalica-only thread.
+_USER_ROLE = "user"
 
 # Default conversation language (per migration 031 ck_language enum).
 # Phase 3-bis surfaces this on the request body.
@@ -77,6 +86,13 @@ class ChatResponse(BaseModel):
     tokens_output: int
     tokens_thinking: int
     latency_ms: int
+    # Audit T-ZOOM-T2-002-AUDIT-001 cas 4B — UUID of the
+    # validation_fail_details row referenced by the response, or null
+    # when no single FAIL is referenced. The frontend uses this to
+    # mount <InvestigationArtefact> inline in the corresponding chat
+    # bubble. Forward-compatible: legacy clients that ignore the field
+    # keep the prose-only rendering.
+    referenced_fail_id: str | None = None
 
 
 def get_pool(request: Request) -> asyncpg.Pool:
@@ -128,6 +144,55 @@ async def post_chat_message(
     # router). Always present as a UUID v4 string.
     correlation_id: str = request.state.correlation_id
 
+    # Cas N°2 (2026-05-11) — reordered: conversation row + user message
+    # are persisted BEFORE the orchestrator runs, so:
+    #   (a) the conversation thread carries the full user-side history
+    #       on reload (previously only `regalica_response` rows existed
+    #       in the DB; user messages lived only in React state and were
+    #       lost on history reload), and
+    #   (b) the session_history loader (which reads the messages table)
+    #       includes the just-written user message in the next turn's
+    #       window — although the *current* turn explicitly excludes it
+    #       (it's the prompt, not history).
+    #
+    # Q3 — title auto-generation runs on the first turn only; later
+    # turns reuse the existing conversation row and never overwrite a
+    # manually-set title.
+    conversation_id = await _ensure_conversation(
+        pool=pool,
+        existing_id=chat_request.conversation_id,
+        tenant_id=chat_request.tenant_id,
+        user_id=chat_request.user_id,
+        run_id=context.validation_run_id if context is not None else None,
+    )
+    await _persist_user_message(
+        pool=pool,
+        tenant_id=chat_request.tenant_id,
+        conversation_id=conversation_id,
+        content=chat_request.message,
+        linked_run_id=context.validation_run_id if context is not None else None,
+    )
+
+    # Cas N°2 — load the last N chat turns (rôles user + regalica_response)
+    # of THIS conversation to feed the planner and specialists. Two
+    # layers of isolation in the SQL (conversation_id + tenant_id) so
+    # cross-conversation leakage is impossible even with a stale id.
+    # `max_n` comes from platform_config (migration 116) — zero-
+    # hardcoding. The "-1" subtracts the user message we just wrote
+    # so the LLM does not see its own prompt echoed in the history.
+    try:
+        history_max = await load_chat_history_max(pool)
+    except Exception:
+        # platform_config missing or shape error — degrade gracefully
+        # to an empty history. Same fail-soft posture as the loader.
+        history_max = 0
+    session_history = await load_session_history(
+        pool,
+        conversation_id=conversation_id,
+        tenant_id=chat_request.tenant_id,
+        max_n=max(history_max - 1, 0),
+    )
+
     try:
         result: OrchestratorResult = await orchestrate(
             message=chat_request.message,
@@ -137,6 +202,7 @@ async def post_chat_message(
             fail_context=context.fail if context is not None else None,
             rule_context=context.rule if context is not None else None,
             current_run_id=context.validation_run_id if context is not None else None,
+            session_history=session_history or None,
             api_client=api_client,
             error_resolver=error_resolver,
             correlation_id=correlation_id,
@@ -147,19 +213,6 @@ async def post_chat_message(
             detail=f"Orchestration failed: {exc}",
         ) from exc
 
-    # Q3 — auto-generate the conversation title from the active run
-    # context so the history sidebar shows readable labels like
-    # "Annexe 00 · 31/03/2024" rather than "Conversation sans titre".
-    # The title is set ONLY on the very first turn (existing_id is None);
-    # later turns reuse the row and never overwrite the operator's
-    # manual title if they have set one.
-    conversation_id = await _ensure_conversation(
-        pool=pool,
-        existing_id=chat_request.conversation_id,
-        tenant_id=chat_request.tenant_id,
-        user_id=chat_request.user_id,
-        run_id=context.validation_run_id if context is not None else None,
-    )
     persisted_agent_label = (
         result.agents_called[0] if result.agents_called else "regalica/orchestrator"
     )
@@ -189,6 +242,7 @@ async def post_chat_message(
         tokens_output=result.tokens_output,
         tokens_thinking=result.tokens_thinking,
         latency_ms=result.latency_ms,
+        referenced_fail_id=result.referenced_fail_id,
     )
 
 
@@ -256,6 +310,63 @@ async def _ensure_conversation(
             detail="Failed to create conversation row",
         )
     return str(row["id"])
+
+
+async def _persist_user_message(
+    pool: asyncpg.Pool,
+    *,
+    tenant_id: str,
+    conversation_id: str,
+    content: str,
+    linked_run_id: str | None = None,
+) -> str:
+    """Insert one user-role message and return its id.
+
+    Cas N°2 (2026-05-11) — wired into POST /chat/message BEFORE the
+    orchestrator runs so the conversation thread carries the full
+    user-side history. Mirrors the layout of `_persist_message`
+    (sequence_number auto-allocated, immutability trigger from
+    migration 032, linked_run_id forwarded for run-context hydration)
+    minus the AI metadata (tokens / latency / agent_id) which is
+    not relevant for user-authored content.
+
+    `linked_run_id` is OPTIONAL — turns sent without an active run
+    persist with NULL, identical to the regalica-side behaviour.
+    """
+    seq_row = await pool.fetchrow(
+        """
+        SELECT COALESCE(MAX(sequence_number), 0) + 1 AS next_seq
+          FROM messages
+         WHERE conversation_id = $1::uuid
+        """,
+        conversation_id,
+    )
+    next_seq = int(seq_row["next_seq"]) if seq_row is not None else 1
+
+    msg_row = await pool.fetchrow(
+        """
+        INSERT INTO messages (
+            tenant_id, conversation_id, sequence_number, role,
+            content_markdown, linked_run_id
+        ) VALUES (
+            $1::uuid, $2::uuid, $3, $4, $5,
+            CASE WHEN $6::text IS NULL THEN NULL ELSE $6::uuid END
+        )
+        RETURNING id::text AS id
+        """,
+        tenant_id,
+        conversation_id,
+        next_seq,
+        _USER_ROLE,
+        content,
+        linked_run_id,
+    )
+    if msg_row is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to persist user message row",
+        )
+    return str(msg_row["id"])
 
 
 async def _persist_message(
