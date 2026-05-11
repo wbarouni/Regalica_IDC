@@ -28,7 +28,11 @@ import { useTranslation } from 'react-i18next';
 
 const ACCEPTED_EXT = '.xml';
 const ACCEPTED_MIMES = new Set<string>(['application/xml', 'text/xml']);
-const ERROR_TOAST_MS = 4_000;
+// Auto-dismiss timer for the upload error toast. 4 seconds is a
+// CSS / UX constant — long enough to read a one-line error, short
+// enough not to trap focus. Not a backend-driven tunable; changes
+// require a frontend rebuild.
+const ERROR_TOAST_MS = 4_000; // nosemgrep: D-006-magic-number-assignment
 
 function isXmlFile(file: File): boolean {
   if (ACCEPTED_MIMES.has(file.type)) return true;
@@ -142,7 +146,9 @@ export function UploadDropZone({
           style={{
             position: 'fixed',
             inset: 0,
-            zIndex: 9999,
+            // CSS stacking constant — must sit above every dock /
+            // ribbon / modal in the workspace.
+            zIndex: 9999, // nosemgrep: D-006-magic-number-assignment
             background: 'rgba(252, 244, 224, 0.92)',
             display: 'flex',
             alignItems: 'center',
@@ -210,7 +216,10 @@ export function UploadDropZone({
             bottom: '120px',
             left: '50%',
             transform: 'translateX(-50%)',
-            zIndex: 10000,
+            // CSS stacking constant — sits just above the drop-zone
+            // overlay (9999) so the error toast is always readable
+            // even mid-drag.
+            zIndex: 10000, // nosemgrep: D-006-magic-number-assignment
             padding: '10px 18px',
             background: 'var(--vermilion-50, #fdecea)',
             color: 'var(--vermilion-800, #8a1c0e)',

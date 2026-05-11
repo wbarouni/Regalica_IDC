@@ -59,13 +59,21 @@ from app.exceptions import (
 )
 from app.llm.base import LLMClient, LLMRequest
 from app.services import clarification as _clarification
+from app.services.chat_history import (
+    load_router_max_tokens,
+    load_thinking_preview_max_chars,
+)
 from app.services.intent_grammar import (
     IntentGrammar,
     IntentSpec,
     SpecialistBearer,
     load_intent_grammar,
 )
-from app.services.intent_router import FALLBACK_INTENT, detect_intent
+from app.services.intent_router import (
+    _ROUTER_MAX_TOKENS_FALLBACK,
+    FALLBACK_INTENT,
+    detect_intent,
+)
 from app.services.planner import parse_planner_response
 from app.services.planner_config import (
     load_planner_max_plan_steps,
@@ -113,16 +121,37 @@ _AMBIGUOUS_INTENT: Final[str] = "ambiguous"
 # refuses ("je n'ai pas détecté X fails") because it has no concrete
 # data to ground against.
 #
-# Intents that DON'T need fails (general_help, out_of_scope, ambiguous,
-# launch_validation, citation w/o ax_term, simulation/sanction/plan
-# at V1) stay outside this set so we never burn an extra SQL query.
-_INTENTS_NEEDING_FAILS: Final[frozenset[str]] = frozenset({"zoom", "cluster", "historical", "plan"})
+# Cas N°1 (2026-05-11, migrations 113/115) — the set of intents that
+# need an active validation_run + FAIL context to answer meaningfully
+# is now DB-driven via `intent_specialists.requires_active_run`. The
+# previous hardcoded `_INTENTS_NEEDING_FAILS = frozenset({"zoom",
+# "cluster", "historical", "plan"})` violated CLAUDE.md zero-
+# hardcoding doctrine and was the root cause of the no-active-run
+# bug: when the router classified an XML-free chat opener like
+# "verifier les resultats" as `zoom`, the specialist ran against an
+# empty fail_context and Gemini hallucinated instead of asking the
+# user to upload a file. The orchestrator now reads
+# `intent_spec.requires_active_run` directly and either short-circuits
+# with the `regalica/aggregate_no_active_run` prompt (when
+# current_run_id is None) or preloads the FAIL context (when a run
+# exists).
 
 # Per-run cap on the number of FAIL rows pre-loaded into fail_context.
 # 10 covers the demo corpus (typical 7 FAILs) and stays well below the
 # Gemini context window even when each row carries calculation_trace
 # JSON. Operator-tuneable via platform_config in a follow-up tranche.
 _FAILS_CONTEXT_PRELOAD_LIMIT: Final[int] = 10
+
+# Documented fallback for the deterministic thinking-trace preview
+# width. The production runtime loads
+# `platform_config.regalica_thinking_preview_max_chars` (migration 117)
+# via `load_thinking_preview_max_chars(pool)` and forwards it to
+# `_format_outcome_preview`. When the platform_config lookup fails
+# (cold-start tenant, stale schema, DB hiccup) the trace falls back
+# to this constant so observability still works. The 180 literal
+# mirrors migration 117's seed value byte-for-byte; the nosemgrep
+# below is the canonical "fallback constant matches DB seed" escape.
+_THINKING_PREVIEW_MAX_CHARS_FALLBACK: Final[int] = 180  # nosemgrep: D-006-magic-number-assignment
 
 # Persona-aligned thinking trace template (docs/10 §5). Phase 3-bis
 # may move this to prompt_bank once the trace itself becomes a
@@ -158,6 +187,15 @@ class OrchestratorResult:
     tokens_output: int = 0
     tokens_thinking: int = 0
     latency_ms: int = 0
+    # Audit T-ZOOM-T2-002-AUDIT-001 cas 4B — UUID of the
+    # validation_fail_details row that the zoom-intent response
+    # references, OR None when the response does not target a single
+    # FAIL (cluster, history, ambiguous, general_help, etc.). The
+    # frontend uses this to mount <InvestigationArtefact> inline in
+    # the corresponding chat bubble — bridges the gap between the
+    # markdown prose (for narration) and the structured breakdown
+    # (for the visual term-by-term + cross-rule confidence blocks).
+    referenced_fail_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -188,6 +226,15 @@ class _SpecialistContext:
     api_client: RegflowApiClient | None = None
     error_resolver: ErrorResolver | None = None
     correlation_id: str | None = None
+    # T-ZOOM-T2-002-AUDIT-001 cas 4C — optional corrector prompt
+    # loaded once by the orchestrator from prompt_bank
+    # (`investigator/correct_output`, migration 109). Passed to
+    # InvestigatorAgent.analyze so it can retry-on-malformed when
+    # the primary prompt's output fails Pydantic validation. Default
+    # None keeps the behaviour bit-stable for environments where the
+    # corrector has not been promoted yet (the agent then surfaces
+    # OUTPUT_SCHEMA_INVALID instead of retrying).
+    corrector_meta: PromptMeta | None = None
 
 
 @dataclass(frozen=True)
@@ -306,26 +353,77 @@ def _enrich_rule_context_with_rubriques(
     Libellés stay empty until the rubriques referential is enriched
     (`label IS NULL` for the dev-tenant seed today); the LLM gracefully
     omits the libellé when absent.
+
+    T-ZOOM-T2-002 — also attaches the `rubrique_confidence[]` rows
+    that match the rule's cells. The prompt v2 of
+    `investigator/analyze_fail` (migration 110) reads this field to
+    rank suspects. v1 ignores the field gracefully — the prompt body
+    has no placeholder for it, so Gemini drops it.
     """
     base: dict[str, Any] = dict(rule_ctx) if rule_ctx else {}
-    if "rubriques" in base and isinstance(base["rubriques"], list) and base["rubriques"]:
-        return base
-    if not fail_ctx:
-        return base
-    top_fails = fail_ctx.get("top_fails", [])
-    if not isinstance(top_fails, list) or not top_fails:
-        return base
-    codes_seen: set[str] = set()
-    rubriques: list[dict[str, str]] = []
-    for top in top_fails:
-        if not isinstance(top, dict):
-            continue
-        for code in top.get("rubrique_codes", []) or []:
-            if isinstance(code, str) and code != "" and code not in codes_seen:
-                codes_seen.add(code)
-                rubriques.append({"code": code, "libelle": ""})
-    if rubriques:
-        base["rubriques"] = rubriques
+    has_rubriques = (
+        "rubriques" in base and isinstance(base["rubriques"], list) and base["rubriques"]
+    )
+    if not has_rubriques and fail_ctx:
+        top_fails = fail_ctx.get("top_fails", [])
+        if isinstance(top_fails, list) and top_fails:
+            codes_seen: set[str] = set()
+            rubriques: list[dict[str, str]] = []
+            for top in top_fails:
+                if not isinstance(top, dict):
+                    continue
+                for code in top.get("rubrique_codes", []) or []:
+                    if isinstance(code, str) and code != "" and code not in codes_seen:
+                        codes_seen.add(code)
+                        rubriques.append({"code": code, "libelle": ""})
+            if rubriques:
+                base["rubriques"] = rubriques
+
+    # T-ZOOM-T2-002 — attach the cross-rule confidence rows whose
+    # (annexe, rubrique, colonne) match a cell referenced by the rule's
+    # terms. The orchestrator filters here (rather than passing the
+    # full run-level snapshot) so the LLM payload stays focused on the
+    # cells the FAIL actually involves. Empty list when no confidence
+    # rows are available (legacy runs, migration 107 not applied).
+    confidence_rows = []
+    if isinstance(fail_ctx, dict):
+        raw_confidence = fail_ctx.get("rubrique_confidence", [])
+        if isinstance(raw_confidence, list):
+            top_fails = fail_ctx.get("top_fails", [])
+            cell_signatures: set[str] = set()
+            if isinstance(top_fails, list):
+                for top in top_fails:
+                    if not isinstance(top, dict):
+                        continue
+                    rule_terms = top.get("rule_terms", [])
+                    ax_term = top.get("ax_term", "")
+                    if not isinstance(rule_terms, list):
+                        continue
+                    for term in rule_terms:
+                        if not isinstance(term, dict):
+                            continue
+                        annexe = term.get("ax_origine") or ax_term
+                        rubrique = term.get("rubrique")
+                        colonne = term.get("colonne")
+                        if (
+                            not isinstance(annexe, str)
+                            or not isinstance(rubrique, str)
+                            or not isinstance(colonne, str)
+                        ):
+                            continue
+                        cell_signatures.add(f"{annexe} {rubrique} {colonne}")
+            for entry in raw_confidence:
+                if not isinstance(entry, dict):
+                    continue
+                sig = (
+                    f"{entry.get('annexe_code', '')} "
+                    f"{entry.get('rubrique_code', '')} "
+                    f"{entry.get('colonne_code', '')}"
+                )
+                if sig in cell_signatures:
+                    confidence_rows.append(entry)
+    base["rubrique_confidence"] = confidence_rows
+
     return base
 
 
@@ -1390,9 +1488,19 @@ async def _load_run_fails_context(
         #     for fail_context. The investigator then saw an empty
         #     context and the aggregator rendered "non transmis" on
         #     every value.)
+        #
+        # T-ZOOM-T2-002 — additionally surface
+        #   - verdict_terms: parsed `validation_fail_details.calculation_trace`
+        #     JSONB normalised into the canonical BreakdownTerm[] shape
+        #     (rang, role, rubrique_code, colonne_code, ...). The
+        #     prompt v2 of investigator/analyze_fail consumes this to
+        #     reason term-by-term. Defensive parse — if the trace is
+        #     legacy-shaped, the field is an empty list and the prompt
+        #     falls back to summary-only reasoning.
         rows = await pool.fetch(
             """
             SELECT
+                vfd.id::text            AS fail_id,
                 vfd.rule_id::text       AS rule_id,
                 vfd.ax_term,
                 vfd.num_regle,
@@ -1410,7 +1518,8 @@ async def _load_run_fails_context(
                   ARRAY[]::text[]
                 ) AS rubrique_codes,
                 COALESCE(r.terms, '[]'::jsonb) AS rule_terms,
-                r.natural_language AS rule_expression
+                r.natural_language AS rule_expression,
+                vfd.calculation_trace
             FROM validation_fail_details vfd
             LEFT JOIN rules_active r ON r.id = vfd.rule_id
             WHERE vfd.validation_run_id = $1::uuid
@@ -1428,11 +1537,68 @@ async def _load_run_fails_context(
         _logger.exception("_load_run_fails_context: SQL fetch failed for run=%s", run_id)
         return None
 
+    # T-ZOOM-T2-002 — bulk-load the run's rubrique_confidence_run snapshot
+    # in a separate query. Per-fail attachment is done in JS-style memory
+    # below by intersecting the rule's term cells with the confidence
+    # rows. Empty array on any error so the orchestrator degrades
+    # gracefully when the migration 107 hasn't run on this DB yet.
+    confidence_rows: list[dict[str, Any]] = []
+    try:
+        c_rows = await pool.fetch(
+            """
+            SELECT
+                annexe_code,
+                rubrique_code,
+                colonne_code,
+                score::text AS score,
+                contributing_rules_count,
+                classification,
+                contributing_rule_ids
+            FROM rubrique_confidence_run
+            WHERE validation_run_id = $1::uuid
+              AND tenant_id         = $2::uuid
+            """,
+            run_id,
+            tenant_id,
+        )
+        for c in c_rows:
+            confidence_rows.append(
+                {
+                    "annexe_code": c["annexe_code"],
+                    "rubrique_code": c["rubrique_code"],
+                    "colonne_code": c["colonne_code"],
+                    "score": c["score"],
+                    "contributing_rules_count": c["contributing_rules_count"],
+                    "classification": c["classification"],
+                    "contributing_rule_ids": [
+                        str(rid) for rid in (c["contributing_rule_ids"] or [])
+                    ],
+                }
+            )
+    except Exception:
+        _logger.warning(
+            "_load_run_fails_context: rubrique_confidence_run fetch failed for run=%s; "
+            "empty confidence_rows surfaced (graceful degradation).",
+            run_id,
+        )
+
     return {
         "run_id": run_id,
         "total_count": len(rows),
+        # T-ZOOM-T2-002 — full run-level snapshot at the fail_context root
+        # so _enrich_rule_context_with_rubriques can attach per-rule
+        # filtered rows downstream. Empty list when the table is missing
+        # or empty.
+        "rubrique_confidence": confidence_rows,
         "top_fails": [
             {
+                # Audit cas 4B — fail_id (UUID of validation_fail_details)
+                # exposed so the orchestrator can populate
+                # OrchestratorResult.referenced_fail_id at zoom time.
+                # Defensive `.get` so legacy mocks/Records that omit the
+                # column stay parsable (the field then surfaces as None
+                # and the frontend skips the inline mount).
+                "fail_id": r.get("fail_id") if hasattr(r, "get") else None,
                 "rule_id": r["rule_id"],
                 "ax_term": r["ax_term"],
                 "num_regle": r["num_regle"],
@@ -1456,10 +1622,85 @@ async def _load_run_fails_context(
                 "rule_expression": (
                     str(r["rule_expression"]) if r.get("rule_expression") is not None else None
                 ),
+                # T-ZOOM-T2-002 — verdict_terms is the parsed canonical
+                # decomposition from validation_fail_details.calculation_trace.
+                # Empty list when the trace is legacy-shaped or missing
+                # (the prompt v2 then falls back to summary reasoning).
+                "verdict_terms": _parse_verdict_terms(r.get("calculation_trace")),
             }
             for r in rows
         ],
     }
+
+
+_ALLOWED_TERM_ROLES = frozenset({"lhs", "rhs"})
+_ALLOWED_TERM_STATUS = frozenset({"present", "missing", "null", "grayed"})
+_ALLOWED_SENTINEL_CODES = frozenset({"C", "D1", "D2", "D3", "D4", "D5", "D6"})
+
+
+def _parse_verdict_terms(trace: Any) -> list[dict[str, Any]]:
+    """Normalise validation_fail_details.calculation_trace JSONB to BreakdownTerm[].
+
+    Returns an empty list whenever the trace diverges from the canonical
+    shape documented in plan §5.1. The prompt v2 of
+    `investigator/analyze_fail` (migration 110) tolerates an empty
+    `verdict_terms` and falls back to summary-only reasoning; the
+    overlay zoom flips `breakdown_unavailable` to true on the same
+    signal.
+    """
+    if isinstance(trace, str):
+        try:
+            trace = json.loads(trace)
+        except (TypeError, ValueError):
+            return []
+    if not isinstance(trace, dict):
+        return []
+    raw_terms = trace.get("terms")
+    if not isinstance(raw_terms, list):
+        return []
+    out: list[dict[str, Any]] = []
+    for raw in raw_terms:
+        if not isinstance(raw, dict):
+            return []
+        rang = raw.get("rang")
+        role = raw.get("role")
+        rubrique = raw.get("rubrique_code")
+        colonne = raw.get("colonne_code")
+        status = raw.get("status")
+        is_sentinel = raw.get("is_sentinel")
+        sentinel_code = raw.get("sentinel_code")
+        if not isinstance(rang, int) or rang < 1:
+            return []
+        if not isinstance(role, str) or role not in _ALLOWED_TERM_ROLES:
+            return []
+        if not isinstance(rubrique, str) or rubrique == "":
+            return []
+        if not isinstance(colonne, str) or colonne == "":
+            return []
+        if not isinstance(status, str) or status not in _ALLOWED_TERM_STATUS:
+            return []
+        if not isinstance(is_sentinel, bool):
+            return []
+        if sentinel_code is not None and (
+            not isinstance(sentinel_code, str) or sentinel_code not in _ALLOWED_SENTINEL_CODES
+        ):
+            return []
+        expected = raw.get("expected_value")
+        computed = raw.get("computed_value")
+        out.append(
+            {
+                "rang": rang,
+                "role": role,
+                "is_sentinel": is_sentinel,
+                "sentinel_code": sentinel_code,
+                "rubrique_code": rubrique,
+                "colonne_code": colonne,
+                "expected_value": str(expected) if expected is not None else None,
+                "computed_value": str(computed) if computed is not None else None,
+                "status": status,
+            }
+        )
+    return out
 
 
 def _coerce_jsonb_list(value: Any) -> list[Any]:
@@ -1800,7 +2041,13 @@ _RULE_BREAKDOWN_BEARER_LABEL: Final[str] = "engine/rule_breakdown"
 # ---------------------------------------------------------------------------
 
 
-_THINKING_REFLECTION_AGENT_TYPE: Final[str] = "regalica"
+# `regalica` is a foreign-key reference to prompt_bank.agent_type — the
+# canonical row identifier for every Regalica-authored aggregator /
+# reflection prompt (migrations 040..087). The literal MUST match the
+# DB row exactly; moving it to platform_config would split the
+# contract across two tables and introduce a synchronisation bug
+# class (a stale config_value pointing to a deprecated agent_type).
+_THINKING_REFLECTION_AGENT_TYPE: Final[str] = "regalica"  # nosemgrep: D-004-var-name-string-literal
 _THINKING_REFLECTION_FUNCTION_NAME: Final[str] = "thinking_reflection"
 
 
@@ -1928,11 +2175,25 @@ async def orchestrate(
         message=message,
     )
 
+    # Migration 117 — operator-tunable token budgets / display caps.
+    # Both loaders fall back to the in-source defaults when the
+    # platform_config row is missing (cold-start tenant, stale schema)
+    # so the chat path never throws on a config gap.
+    try:
+        router_max_tokens = await load_router_max_tokens(pool)
+    except Exception:
+        router_max_tokens = _ROUTER_MAX_TOKENS_FALLBACK
+    try:
+        thinking_preview_max_chars = await load_thinking_preview_max_chars(pool)
+    except Exception:
+        thinking_preview_max_chars = _THINKING_PREVIEW_MAX_CHARS_FALLBACK
+
     intent_result = await detect_intent(
         message=message,
         llm_client=llm_client,
         router_template=rendered_router_template,
         valid_intents=valid_intents,
+        max_tokens=router_max_tokens,
     )
     intent = intent_result.intent_type
     if intent not in grammar.intents:
@@ -1971,6 +2232,33 @@ async def orchestrate(
             run_id=current_run_id,
             start=start,
         )
+
+    # Cas N°1 (2026-05-11, migrations 113/114/115) — DB-driven
+    # no-active-run short-circuit. When the matched intent is flagged
+    # `requires_active_run = TRUE` in `intent_specialists` AND the
+    # caller has no `current_run_id`, we cannot meaningfully ask the
+    # specialists to analyse fails that do not exist. Instead, we
+    # surface the `regalica/aggregate_no_active_run` prompt's
+    # static_response (migration 114) which asks the operator to
+    # upload an XML BCT file before continuing.
+    #
+    # Zero hardcoding: the four intents flipped TRUE by migration 113
+    # (zoom, cluster, historical, plan) live in the DB. New intents
+    # that need a run (or removing one from the set) is a migration,
+    # not a code change. The prompt text is itself DB-resident, so
+    # locale / wording changes are also operator-driven.
+    if intent_spec.requires_active_run and current_run_id is None:
+        no_run_result = await _build_no_active_run_result(
+            pool=pool,
+            tenant_id=tenant_id,
+            llm_client=llm_client,
+            message=message,
+            intent=intent,
+            agent_type=intent_spec.aggregator_agent_type,
+            start=start,
+        )
+        if no_run_result is not None:
+            return no_run_result
 
     # 2.5 Conditional planner refinement — see _maybe_invoke_planner.
     # The planner may rewrite the candidate set (refinement), demand
@@ -2012,7 +2300,7 @@ async def orchestrate(
     if (
         effective_fail_context is None
         and current_run_id is not None
-        and intent in _INTENTS_NEEDING_FAILS
+        and intent_spec.requires_active_run
     ):
         effective_fail_context = await _load_run_fails_context(
             pool,
@@ -2046,6 +2334,35 @@ async def orchestrate(
         )
 
     # 3. Specialists (parallel) + aggregator-prompt fetch (parallel).
+    # Audit cas 4C — load the corrector prompt ONLY when the intent
+    # invokes the InvestigatorAgent (zoom). Other intents (cluster,
+    # historical, ambiguous, …) do not need it and skipping the fetch
+    # keeps their hot path bit-stable. Failure of the fetch is
+    # absorbed: `corrector_meta` falls back to None, and the agent
+    # then operates in its legacy mode (no Pydantic validation).
+    corrector_meta: PromptMeta | None = None
+    if intent == "zoom":
+        try:
+            # `investigator` / `correct_output` are foreign-key
+            # references to prompt_bank.(agent_type, function_name).
+            # The literals MUST mirror migration 109's seed exactly —
+            # they are the contract, not tunables. Moving them to
+            # platform_config would split the source of truth across
+            # two tables.
+            corrector_meta = await load_active_prompt(
+                pool=pool,
+                tenant_id=tenant_id,
+                agent_type="investigator",  # nosemgrep: D-004-var-name-string-literal
+                function_name="correct_output",
+            )
+        except Exception:
+            _logger.warning(
+                "investigator/correct_output prompt load failed; "
+                "investigator agent will operate in legacy non-validated mode",
+                exc_info=True,
+            )
+            corrector_meta = None
+
     ctx = _SpecialistContext(
         pool=pool,
         tenant_id=tenant_id,
@@ -2056,6 +2373,7 @@ async def orchestrate(
         api_client=api_client,
         error_resolver=error_resolver,
         correlation_id=correlation_id,
+        corrector_meta=corrector_meta,
     )
 
     aggregator_label = f"{intent_spec.aggregator_agent_type}/{intent_spec.aggregator_function_name}"
@@ -2108,7 +2426,7 @@ async def orchestrate(
     # already have their own bespoke aggregator framings.
     if (
         current_run_id is not None
-        and intent in _INTENTS_NEEDING_FAILS
+        and intent_spec.requires_active_run
         and (
             run_dependency_state := await _load_run_dependency_state(
                 pool, run_id=current_run_id, tenant_id=tenant_id
@@ -2178,6 +2496,7 @@ async def orchestrate(
                 aggregator_label=aggregator_label,
                 router_confidence=intent_result.confidence,
                 specialist_outcomes=specialist_outcomes,
+                preview_max_chars=thinking_preview_max_chars,
             ),
             response_markdown=_no_aggregator_prompt_message(
                 intent_spec.aggregator_agent_type,
@@ -2214,6 +2533,17 @@ async def orchestrate(
         clarification_reason=clarification_reason,
     )
 
+    # Audit cas 4B — populate referenced_fail_id for the zoom intent
+    # when the orchestrator's effective_fail_context narrowed down to
+    # exactly one FAIL row. The frontend uses this UUID to mount
+    # <InvestigationArtefact> inline next to the prose, so the user
+    # sees the term-by-term breakdown + cross-rule confidence block
+    # directly in the chat (not only in the run-completed canvas).
+    # When intent is not zoom OR when multiple fails remain in context
+    # (picker case) OR when fail_context is empty, the field stays None
+    # and the frontend gracefully omits the inline mount.
+    referenced_fail_id = _extract_referenced_fail_id(intent, effective_fail_context)
+
     # 5. Compose Regalica response.
     return OrchestratorResult(
         thinking_trace=thinking_prose
@@ -2225,6 +2555,7 @@ async def orchestrate(
             aggregator_label=aggregator_label,
             router_confidence=intent_result.confidence,
             specialist_outcomes=specialist_outcomes,
+            preview_max_chars=thinking_preview_max_chars,
         ),
         response_markdown=str(aggregator_outcome["response_markdown"]),
         agents_called=agents_called,
@@ -2232,7 +2563,35 @@ async def orchestrate(
         tokens_output=int(aggregator_outcome["tokens_output"]),
         tokens_thinking=int(aggregator_outcome["tokens_thinking"]),
         latency_ms=int((time.monotonic() - start) * 1000),
+        referenced_fail_id=referenced_fail_id,
     )
+
+
+def _extract_referenced_fail_id(
+    intent: str,
+    fail_context: dict[str, Any] | None,
+) -> str | None:
+    """Derive the referenced fail UUID for a zoom-class response.
+
+    Returns the UUID iff (a) the intent is `zoom` (single-FAIL focus
+    by contract), and (b) the effective fail_context narrowed to a
+    single top_fails entry carrying a `fail_id` string. Returns None
+    in every other path — intent that is not zoom, empty context,
+    multiple fails, or a malformed entry. The frontend treats None
+    as "no inline overlay", which is the safe default.
+    """
+    if intent != "zoom" or fail_context is None:
+        return None
+    top_fails = fail_context.get("top_fails")
+    if not isinstance(top_fails, list) or len(top_fails) != 1:
+        return None
+    only = top_fails[0]
+    if not isinstance(only, dict):
+        return None
+    fail_id = only.get("fail_id")
+    if isinstance(fail_id, str) and fail_id != "":
+        return fail_id
+    return None
 
 
 _THINKING_OUTPUT_PRIORITY_KEYS: Final[tuple[str, ...]] = (
@@ -2255,13 +2614,21 @@ _THINKING_OUTPUT_PRIORITY_KEYS: Final[tuple[str, ...]] = (
 )
 
 
-def _format_outcome_preview(output: dict[str, Any]) -> str:
+def _format_outcome_preview(
+    output: dict[str, Any],
+    max_chars: int = _THINKING_PREVIEW_MAX_CHARS_FALLBACK,
+) -> str:
     """Surface a specialist output as 2-4 readable bullet lines.
 
     Walks `_THINKING_OUTPUT_PRIORITY_KEYS` first (the canonical fields
     declared in the seed prompt JSON contracts) so the trace shows the
     most useful keys when present, then falls back to the first two
     keys of the dict if no priority key matched.
+
+    `max_chars` is forwarded to `_truncate_value`; the orchestrator
+    passes `platform_config.regalica_thinking_preview_max_chars`
+    (migration 117). Default mirrors the same key's seed value so
+    callers can omit it (tests, cold-start paths).
     """
     if not output:
         return "  → (aucun output exploitable)"
@@ -2270,13 +2637,13 @@ def _format_outcome_preview(output: dict[str, Any]) -> str:
     for key in _THINKING_OUTPUT_PRIORITY_KEYS:
         if key in output and key not in seen:
             seen.add(key)
-            preview = _truncate_value(output[key], max_chars=180)
+            preview = _truncate_value(output[key], max_chars=max_chars)
             lines.append(f"  → {key} : {preview}")
             if len(lines) >= 4:
                 break
     if not lines:
         for key in list(output.keys())[:2]:
-            preview = _truncate_value(output[key], max_chars=180)
+            preview = _truncate_value(output[key], max_chars=max_chars)
             lines.append(f"  → {key} : {preview}")
     return "\n".join(lines)
 
@@ -2297,6 +2664,7 @@ def _build_thinking_trace(
     aggregator_label: str,
     router_confidence: float | None = None,
     specialist_outcomes: list[_SpecialistOutcome] | None = None,
+    preview_max_chars: int = _THINKING_PREVIEW_MAX_CHARS_FALLBACK,
 ) -> str:
     """Compose the Regalica thinking trace as up to 5 verbose phases.
 
@@ -2430,7 +2798,7 @@ def _build_thinking_trace(
             phase_5_lines.append(f"\n• {outcome.bearer_label} → échec ({err})")
             continue
         phase_5_lines.append(f"\n• {outcome.bearer_label}")
-        phase_5_lines.append(_format_outcome_preview(outcome.output))
+        phase_5_lines.append(_format_outcome_preview(outcome.output, preview_max_chars))
     phase_5 = "\n".join(phase_5_lines)
     return f"{base_trace}\n\n{phase_5}"
 
@@ -2519,6 +2887,85 @@ def _build_run_already_running_result(*, run_id: str, start: float) -> Orchestra
         tokens_input=0,
         tokens_output=0,
         tokens_thinking=0,
+        latency_ms=int((time.monotonic() - start) * 1000),
+    )
+
+
+# Cas N°1 (2026-05-11, migration 114) — canonical function_name of the
+# regalica aggregator prompt seeded with a static_response asking the
+# user to upload an XML BCT file before continuing. The agent_type
+# side of the bearer is read from `intent_spec.aggregator_agent_type`
+# at call time so a future operator could redirect this short-circuit
+# to a different agent (e.g. a multilingual variant) without touching
+# this constant.
+_NO_ACTIVE_RUN_FUNCTION_NAME: Final[str] = "aggregate_no_active_run"
+
+
+async def _build_no_active_run_result(
+    *,
+    pool: asyncpg.Pool,
+    tenant_id: str,
+    llm_client: LLMClient,
+    message: str,
+    intent: str,
+    agent_type: str,
+    start: float,
+) -> OrchestratorResult | None:
+    """Compose the chat response shown when the matched intent needs an
+    active validation_run but `current_run_id` is None.
+
+    `agent_type` arrives from the caller via
+    `intent_spec.aggregator_agent_type` (loaded from
+    `intent_specialists`, migrations 064-066) so the no-active-run
+    aggregator stays DB-driven end-to-end — zero hardcoded "regalica"
+    in this branch.
+
+    Loads `{agent_type}/aggregate_no_active_run` (migration 114). The
+    prompt carries a non-empty `static_response`, so
+    `_invoke_aggregator` short-circuits the Gemini call and surfaces
+    the canned markdown verbatim — zero tokens spent.
+
+    Returns None if the prompt is not active (e.g. running against a
+    DB that has not yet applied migrations 113+114). The caller then
+    falls through to the normal dispatch path, which preserves the
+    legacy behaviour without surprising the user.
+    """
+    no_run_meta = await load_active_prompt(
+        pool=pool,
+        tenant_id=tenant_id,
+        agent_type=agent_type,
+        function_name=_NO_ACTIVE_RUN_FUNCTION_NAME,
+    )
+    if no_run_meta is None:
+        _logger.warning(
+            "no_active_run short-circuit: prompt %s/%s not active for tenant=%s; "
+            "falling through to canonical dispatch",
+            agent_type,
+            _NO_ACTIVE_RUN_FUNCTION_NAME,
+            tenant_id,
+        )
+        return None
+
+    aggregator_outcome = await _invoke_aggregator(
+        message=message,
+        intent=intent,
+        specialist_outcomes=[],
+        aggregator_meta=no_run_meta,
+        llm_client=llm_client,
+    )
+
+    return OrchestratorResult(
+        thinking_trace=(
+            f"{_THINKING_PREFIX} : « {message} ». "
+            f"{_THINKING_MID} qu'aucune validation BCT n'est active sur ce chat alors "
+            f"que l'intent `{intent}` en exige une. "
+            f"{_THINKING_END} inviter le dépôt d'un fichier XML BCT avant toute analyse."
+        ),
+        response_markdown=str(aggregator_outcome["response_markdown"]),
+        agents_called=[f"{agent_type}/{_NO_ACTIVE_RUN_FUNCTION_NAME}"],
+        tokens_input=int(aggregator_outcome["tokens_input"]),
+        tokens_output=int(aggregator_outcome["tokens_output"]),
+        tokens_thinking=int(aggregator_outcome["tokens_thinking"]),
         latency_ms=int((time.monotonic() - start) * 1000),
     )
 

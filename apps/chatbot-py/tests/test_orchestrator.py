@@ -44,6 +44,16 @@ def _seed_intent_grammar_cache() -> Iterator[None]:
     pc.reset_platform_config_cache()
     pc._CACHE["regalica_planner_trigger_intents"] = []
     pc._CACHE["regalica_planner_max_plan_steps"] = 4
+    # Migration 117 — operator-tunable router token budget + thinking
+    # preview width. Pre-cache so the orchestrator's loaders short-
+    # circuit on cache hit and never consume a side_effect slot.
+    pc._CACHE["regalica_router_max_tokens"] = 1024
+    pc._CACHE["regalica_thinking_preview_max_chars"] = 180
+    # Cas N°1 (migration 113) — zoom / cluster / historical / plan
+    # carry requires_active_run=True so the orchestrator preloads the
+    # FAIL context (when a run is active) or short-circuits with
+    # `regalica/aggregate_no_active_run` (when current_run_id is None).
+    # Other intents stay at the default False, matching the seed.
     ig._CACHE = ig.IntentGrammar(
         intents={
             "zoom": ig.IntentSpec(
@@ -52,6 +62,7 @@ def _seed_intent_grammar_cache() -> Iterator[None]:
                 aggregator_function_name="aggregate_zoom_fail",
                 specialist_ids=("investigator", "citation"),
                 ordinal=1,
+                requires_active_run=True,
             ),
             "cluster": ig.IntentSpec(
                 intent_type="cluster",
@@ -59,6 +70,7 @@ def _seed_intent_grammar_cache() -> Iterator[None]:
                 aggregator_function_name="aggregate_grappe_cause_racine",
                 specialist_ids=("investigator",),
                 ordinal=2,
+                requires_active_run=True,
             ),
             "historical": ig.IntentSpec(
                 intent_type="historical",
@@ -66,6 +78,7 @@ def _seed_intent_grammar_cache() -> Iterator[None]:
                 aggregator_function_name="aggregate_historique_recurrence",
                 specialist_ids=("historical",),
                 ordinal=3,
+                requires_active_run=True,
             ),
             "citation": ig.IntentSpec(
                 intent_type="citation",
@@ -94,6 +107,7 @@ def _seed_intent_grammar_cache() -> Iterator[None]:
                 aggregator_function_name="aggregate_plan_optimal",
                 specialist_ids=("investigator", "historical"),
                 ordinal=7,
+                requires_active_run=True,
             ),
             "general_help": ig.IntentSpec(
                 intent_type="general_help",

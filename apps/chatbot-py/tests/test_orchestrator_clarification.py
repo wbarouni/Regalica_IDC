@@ -70,6 +70,8 @@ def _seed_caches() -> Iterator[None]:
     )
     pc._CACHE["regalica_planner_trigger_intents"] = ["simulation"]
     pc._CACHE["regalica_planner_max_plan_steps"] = 4
+    pc._CACHE["regalica_router_max_tokens"] = 1024
+    pc._CACHE["regalica_thinking_preview_max_chars"] = 180
     yield
     ig.reset_intent_grammar_cache()
     pc.reset_platform_config_cache()

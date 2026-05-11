@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import { useNavigate } from 'react-router-dom';
@@ -14,6 +14,7 @@ import { InvestigationArtefact } from '../components/InvestigationArtefact';
 import { ProgressBar } from '../components/ProgressBar';
 import { RegalicaRunSpeech } from '../components/RegalicaRunSpeech';
 import { SuggestionChips } from '../components/SuggestionChips';
+import { ThinkingPlaceholderBubble } from '../components/ThinkingPlaceholderBubble';
 import { ConversationHistorySidebar } from '../components/ConversationHistorySidebar';
 import { UploadDropZone } from '../components/UploadDropZone';
 import { LanguageSwitcher } from '../components/primitives/LanguageSwitcher';
@@ -225,7 +226,57 @@ function Ribbon({
   );
 }
 
-function ChatTurn({ message, isFresh }: { message: ChatMessage; isFresh: boolean }) {
+/**
+ * Discrete inline indicator for the lifecycle of a user message in the
+ * FIFO send chain (useChat.sendMessage). Renders nothing for messages
+ * without a status (programmatic injections, history hydration) or for
+ * `completed` (the regalica reply that follows is the proof of life).
+ *
+ * `rejected` carries an extra explanatory line above the bubble's meta
+ * so the user understands the bubble is recorded but not transmitted —
+ * this is the cap-non-bloquant path when MAX_PENDING_QUEUE is reached.
+ */
+function UserMessageStatusBadge({ message }: { message: ChatMessage }): JSX.Element | null {
+  const { t } = useTranslation();
+  const status = message.status;
+  if (status === undefined || status === 'completed') {
+    return null;
+  }
+  const labelKey = `chat.status.${status}`;
+  const label = t(labelKey);
+  const tooltip =
+    status === 'failed' && message.errorCode !== undefined
+      ? t(`error.${message.errorCode}`, { defaultValue: message.errorCode })
+      : undefined;
+  return (
+    <span
+      className={`msg-user__status msg-user__status--${status}`}
+      data-testid={`msg-user-status-${status}`}
+      title={tooltip}
+      aria-label={label}
+    >
+      {label}
+    </span>
+  );
+}
+
+/**
+ * Resolver passed by Workspace so ChatTurn can mount
+ * <InvestigationArtefact> inline when the message references a single
+ * FAIL (audit cas 4B). Implemented over the same `failsForPicker`
+ * array already loaded for the picker — zero extra fetch.
+ */
+type FailResolver = (failId: string) => FailDetail | null;
+
+function ChatTurn({
+  message,
+  isFresh,
+  resolveFail,
+}: {
+  message: ChatMessage;
+  isFresh: boolean;
+  resolveFail?: FailResolver;
+}) {
   const { t } = useTranslation();
   const trace = message.thinking_trace ?? null;
   const { revealedThinking, revealedResponse, phase } = useTypewriter({
@@ -234,10 +285,19 @@ function ChatTurn({ message, isFresh }: { message: ChatMessage; isFresh: boolean
     enabled: message.role === 'regalica' && isFresh,
   });
   if (message.role === 'user') {
+    const showRejectedNote = message.status === 'rejected' && message.errorCode === 'QUEUE_FULL';
     return (
       <div className="msg-user">
         <span>{message.content}</span>
-        <div className="msg-user__meta">{new Date(message.timestamp).toLocaleTimeString()}</div>
+        {showRejectedNote && (
+          <div className="msg-user__note" role="note">
+            {t('chat.rejected.queue_full')}
+          </div>
+        )}
+        <div className="msg-user__meta">
+          <span>{new Date(message.timestamp).toLocaleTimeString()}</span>
+          <UserMessageStatusBadge message={message} />
+        </div>
       </div>
     );
   }
@@ -296,12 +356,53 @@ function ChatTurn({ message, isFresh }: { message: ChatMessage; isFresh: boolean
         >
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{revealedResponse}</ReactMarkdown>
         </div>
+        {/* Audit T-ZOOM-T2-002-AUDIT-001 cas 4B — inline mount of the
+            InvestigationArtefact when the orchestrator marked this
+            Regalica bubble as referencing a single FAIL. The artefact
+            renders the term-by-term breakdown + the cross-rule
+            confidence grid that the markdown prose narrates, so the
+            user sees both the narration AND the structured detail
+            without leaving the chat surface. Mount is silent when
+            referenced_fail_id is null OR the fail cannot be resolved
+            from the current run (defensive — graceful degradation). */}
+        {phase === 'response' &&
+          message.referenced_fail_id != null &&
+          resolveFail !== undefined &&
+          (() => {
+            const inlineFail = resolveFail(message.referenced_fail_id);
+            return inlineFail !== null ? <InvestigationArtefact fail={inlineFail} /> : null;
+          })()}
       </div>
     </div>
   );
 }
 
-function ChatThread({ messages }: { messages: readonly ChatMessage[] }) {
+/**
+ * Inline slot inserted into the chat thread RIGHT AFTER the message
+ * whose id matches `afterMessageId`. Workspace uses this to position
+ * the run synthesis (RegalicaRunSpeech + FailsTable + Investigation +
+ * T3 banner) in its causal place — directly under the launch ack —
+ * instead of always at the bottom of the page. When the user types
+ * a follow-up question while the run is still running, the synthesis
+ * therefore stays anchored to the launch turn even after the
+ * follow-up answer has been appended below.
+ */
+interface ChatSynthesisSlot {
+  afterMessageId: string;
+  node: ReactNode;
+}
+
+function ChatThread({
+  messages,
+  synthesisSlot = null,
+  isPending = false,
+  resolveFail,
+}: {
+  messages: readonly ChatMessage[];
+  synthesisSlot?: ChatSynthesisSlot | null;
+  isPending?: boolean;
+  resolveFail?: FailResolver;
+}) {
   // Snapshot the IDs present at first render: those are "history" and
   // must NOT animate. Anything appended later is "fresh" and should be
   // typewritten. The snapshot RE-INITIALISES every time `messages` is
@@ -336,19 +437,49 @@ function ChatThread({ messages }: { messages: readonly ChatMessage[] }) {
     node.scrollIntoView({ block: 'end', inline: 'nearest', behavior: 'auto' });
   }, [messages.length]);
   if (messages.length === 0) {
+    // T-ZOOM-T2-002 — even when the thread is empty, surface the
+    // thinking placeholder when a request is in flight. Without this
+    // branch the operator sees nothing during the first send of a
+    // fresh chat (no welcome bubble yet).
+    if (isPending) {
+      return (
+        <div className="space-y-3">
+          <ThinkingPlaceholderBubble />
+        </div>
+      );
+    }
     return null;
   }
   const groups = groupByDay(messages);
+  // Whether the anchor message exists at all in `messages`. If the
+  // anchor was injected before the thread was reset (or for some
+  // pathological state), the slot silently won't render — that is the
+  // safest fallback (better than rendering it twice or in the wrong
+  // group).
+  const anchorId = synthesisSlot?.afterMessageId ?? null;
   return (
     <div className="space-y-3">
       {groups.map((g) => (
         <div key={g.date.toISOString()} className="space-y-3">
           <DaySeparator date={g.date} />
           {g.items.map((m) => (
-            <ChatTurn key={m.id} message={m} isFresh={!initialIds.has(m.id)} />
+            <Fragment key={m.id}>
+              <ChatTurn message={m} isFresh={!initialIds.has(m.id)} resolveFail={resolveFail} />
+              {anchorId !== null && m.id === anchorId && synthesisSlot !== null && (
+                <div className="msg-synthesis-slot">{synthesisSlot.node}</div>
+              )}
+            </Fragment>
           ))}
         </div>
       ))}
+      {/* T-ZOOM-T2-002 — world-class thinking placeholder. Renders
+          IMMEDIATELY after the user's bubble (no debounce, no fade-
+          in delay beyond the 240ms CSS enter) so the operator gets
+          instant feedback that Regalica received the request, well
+          before the LLM streams its first thinking frame. Driven by
+          the parent (Workspace passes the gated useChat.loading
+          signal — only when the last bubble is a user turn). */}
+      {isPending && <ThinkingPlaceholderBubble />}
       {/* Anchor sentinel for the auto-scroll effect above. Empty
           div with no visible footprint; React keys it last so
           scrollIntoView lands on the bottom of the most recent
@@ -407,6 +538,23 @@ export default function Workspace() {
   //     conversation's linked_validation_run_id (handleHistorySelect
   //     below) — clicking a thread about run X surfaces run X again.
   const [lastRunInChat, setLastRunInChat] = useState<string | null>(null);
+  // Id of the chat message after which the run synthesis bubble must
+  // render (RegalicaRunSpeech + FailsTable + InvestigationArtefact +
+  // T3 banner). Set by handleLaunchRun to the launch ack message id,
+  // cleared by resetConversation. When null, the synthesis falls back
+  // to the legacy bottom-of-page slot — preserves the layout for runs
+  // that were started outside the chat (server-resolved current run
+  // with no in-thread ack to anchor on).
+  const [runSynthesisAnchorId, setRunSynthesisAnchorId] = useState<string | null>(null);
+  // Audit T-ZOOM-T2-002-AUDIT-001 cas 2 — true while the T1 run is
+  // executing in the background. Posted to true by handleLaunchRun
+  // AFTER the ack bubble is injected, reset to false on SSE 'complete'
+  // or 'error', and on transitions of run.status to 'completed' /
+  // 'failed' / 'cancelled' (covers the page-reload re-attach case).
+  // Drives the thinking placeholder during the ~30 s run window —
+  // chatLoading alone misses this period since the POST /api/runs
+  // is not part of useChat's promise chain.
+  const [runLaunchPending, setRunLaunchPending] = useState<boolean>(false);
   // Run ids the user has explicitly dismissed via "Nouveau chat".
   // Kept for B7 history-pick logic (handleHistorySelect uses it to
   // re-attach a previously-dismissed id when the user explicitly
@@ -440,6 +588,8 @@ export default function Workspace() {
     const unsubscribe = sse.subscribe('complete', () => {
       refetchSummary();
       refetchCurrentRun();
+      // Audit cas 2 — the run is done, drop the pending placeholder.
+      setRunLaunchPending(false);
     });
     return unsubscribe;
   }, [currentRunId, sse, refetchSummary, refetchCurrentRun]);
@@ -470,9 +620,46 @@ export default function Workspace() {
             : code;
         setEngineError({ code, message: rawMessage });
       }
+      // Audit cas 2 — surface drops the placeholder on error too,
+      // identical to the 'complete' path. The engine error artefact
+      // takes over the visible feedback.
+      setRunLaunchPending(false);
     });
     return unsubscribe;
   }, [currentRunId, sse]);
+
+  // Audit cas 2 — defensive reset on run.status transitions away
+  // from 'running'. Covers (a) the page-reload case where the SSE
+  // listener was not attached in time, (b) the manual cancellation
+  // path that does not emit a 'complete' frame. Idempotent: setting
+  // false while already false is a no-op for React.
+  useEffect(() => {
+    const status = run?.status;
+    if (status !== undefined && status !== 'running') {
+      setRunLaunchPending(false);
+    }
+  }, [run?.status]);
+
+  // Audit T-ZOOM-T2-002-AUDIT-002 cas B — third reset path: when the
+  // run summary lands (summary.run.status === 'completed' AND it
+  // matches the chat-bound run), the synthesis bubble takes over the
+  // visible feedback. The placeholder MUST disappear at that point
+  // even if neither (a) the SSE 'complete' arrived (timing race) nor
+  // (b) the run/current poll refreshed run.status (interval gap).
+  // This belt-and-suspenders covers the operator-observed case where
+  // the synthesis was rendered while the placeholder still pulsed
+  // below it. summary is the single source of truth that visible
+  // feedback now exists for this run.
+  useEffect(() => {
+    if (
+      summary !== null &&
+      summary.run.status === 'completed' &&
+      lastRunInChat !== null &&
+      summary.run.run_id === lastRunInChat
+    ) {
+      setRunLaunchPending(false);
+    }
+  }, [summary, lastRunInChat]);
   useEffect(() => {
     // A new run kicks off => clear any stale terminal error from a
     // prior run so the artefact does not haunt the next ribbon cycle.
@@ -507,6 +694,19 @@ export default function Workspace() {
   // is already in flight, subsequent Lancer clicks are no-ops until
   // the promise resolves.
   const launchInFlightRef = useRef<boolean>(false);
+  // Audit T-ZOOM-T2-002-AUDIT-001 cas 1B — same pattern as
+  // launchInFlightRef, applied to handleChipSelect so a double click
+  // on a chip (or a React.StrictMode-driven double-fire) cannot
+  // inject the picker markdown twice. The key combines fnName + the
+  // run binding so a legitimate REOPENING of the picker (e.g. user
+  // closes selection, clicks T1 again on a different run) is not
+  // blocked — only an immediate replay of the SAME (fnName, run) is.
+  const pickerInFlightKeyRef = useRef<string | null>(null);
+  // Audit cas 4B — ref-stable list of fails so the FailResolver
+  // closure passed to ChatThread reads the freshest list at render
+  // time without forcing useMemo dependencies through every Chat
+  // bubble. The state itself is set by useFails further down.
+  const failsForPickerRef = useRef<readonly FailDetail[]>([]);
   // P1 frontend — `selectedFailRef` mirrors the `selectedFail` state
   // so the failContextProvider closure (passed once to useChat) reads
   // the latest selection at every send-time without forcing useChat
@@ -664,6 +864,21 @@ export default function Workspace() {
     }
     setLastRunInChat(null);
     setSelectedFail(null);
+    // The synthesis anchor only made sense for the now-dismissed run.
+    // Without this clear, a stale anchor id would dangle in state and
+    // a fresh launch would briefly render the old synthesis under the
+    // old (now removed) ack id until the new launch overwrites it.
+    setRunSynthesisAnchorId(null);
+    // Regalica-blocage (2026-05-11) — drop the launch-pending flag so
+    // "Nouveau chat" reliably clears the thinking-placeholder bubble
+    // even when the prior run never emitted an SSE 'complete' frame
+    // (e.g. the Python kickoff was killed mid-flight by a Windows
+    // network IO suspension and the run row stayed at status='running'
+    // forever). Without this, the welcome bubble appeared but the
+    // placeholder pulsed underneath it because the four other reset
+    // paths (SSE complete/error, run.status transition, summary
+    // completed) were all gated on a backend signal that never came.
+    setRunLaunchPending(false);
     // Bug 1 + Issue 2 — surface a Regalica greeting that ALSO
     // restates the upload affordance (drag-drop or attach button).
     // Mirrors the canonical Claude / GPT chat onboarding pattern: the
@@ -715,10 +930,35 @@ export default function Workspace() {
   // here gives the chip handler access to the same paginated list the
   // FailsTable surfaces, with the first page (DEFAULT_PAGE_SIZE = 50)
   // covering the realistic upper bound of fails per annexe in
-  // production. The hook tolerates a null run id (returns []) and
-  // refetches when currentRunId changes, so no extra reset wiring is
-  // needed.
-  const { fails: failsForPicker } = useFails(currentRunId, 'all');
+  // production.
+  //
+  // Audit T-ZOOM-T2-002-AUDIT-001 cas 1A — bound to `lastRunInChat`,
+  // NOT `currentRunId`. The latter is derived from `useCurrentRun`
+  // (server-side) and stays non-null as long as a completed run
+  // exists in DB, even AFTER "Nouveau chat" clears the thread.
+  // Binding the picker to lastRunInChat (which IS cleared by
+  // handleHistoryNewChat:760) guarantees that the picker reflects
+  // the run actually attached to the visible chat, never a stale
+  // server-side run.
+  const { fails: failsForPicker } = useFails(lastRunInChat, 'all');
+  // Audit cas 4B — keep the ref in lockstep so ChatTurn's
+  // FailResolver closure resolves from the latest list without
+  // forcing every ChatTurn render to re-subscribe.
+  useEffect(() => {
+    failsForPickerRef.current = failsForPicker;
+  }, [failsForPicker]);
+  // Audit cas 4B — stable resolver passed to ChatThread. Reads
+  // through the ref so the closure identity never changes; ChatTurn
+  // can use it without invalidating its memoization. Returns null
+  // when the fail is unknown (different run, freshly reset, etc.) —
+  // ChatTurn then skips the inline mount silently.
+  const resolveFail = useCallback<FailResolver>((failId: string) => {
+    const list = failsForPickerRef.current;
+    for (const f of list) {
+      if (f.id === failId) return f;
+    }
+    return null;
+  }, []);
 
   // Sub-Sprint 4 — clicking a row in <FailsTable> selects that fail
   // for the InvestigationArtefact below. Initial value null lets the
@@ -800,33 +1040,65 @@ export default function Workspace() {
 
   const handleChipSelect = useCallback(
     (fnName: string): void => {
+      // Audit cas 1B — ref-guard against double-fire. The key combines
+      // the chip name with the bound run so the SAME chip on the SAME
+      // run cannot inject the picker twice in rapid succession (React
+      // StrictMode double-render, accidental double-click, etc.). A
+      // different run or a different chip resets the guard naturally
+      // via key inequality. The microtask reset (queueMicrotask) lets
+      // React flush the inject before another legitimate click can
+      // pass through.
+      const guardKey = `${fnName}:${lastRunInChat ?? 'no-run'}`;
+      if (pickerInFlightKeyRef.current === guardKey) {
+        return;
+      }
+      pickerInFlightKeyRef.current = guardKey;
+      queueMicrotask(() => {
+        pickerInFlightKeyRef.current = null;
+      });
+
       // Q1 + P3 — interactive zoom picker. When the chip points at a
-      // per-FAIL specialist AND the user hasn't selected a row yet AND
-      // the run carries MORE THAN ONE fail, inject a Regalica turn
-      // that names ALL the surfaced FAILs (one per line, monospace
-      // `ax_term/num_regle` pivots) and tells the user how to pick:
-      // either by clicking the matching row in the FailsTable above,
-      // or by typing a free-form sentence the rule extractor can
-      // parse (« regarde la règle 102 »). With exactly ONE fail in
-      // scope the picker is skipped — the orchestrator's default
-      // top-fail selection trivially resolves to that single row.
+      // per-FAIL specialist AND the run carries 2+ fails, inject a
+      // Regalica turn that names ALL the surfaced FAILs (one per
+      // line, monospace `ax_term/num_regle` pivots) and tells the
+      // user how to pick.
+      //
+      // Audit cas 3 — the picker now opens ALSO when selectedFail is
+      // set: a previous click on a FailsTable row should NOT prevent
+      // the user from re-opening the picker via T1 to switch FAIL.
+      // The currently selected row is flagged inline with a localised
+      // marker so the user sees which one is active.
+      //
+      // The fail list is derived from failsForPicker (bound to
+      // lastRunInChat — cas 1A) so a stale server-side run can NEVER
+      // leak into the picker after "Nouveau chat".
       const pickerCandidates =
         failsForPicker.length > 0 ? failsForPicker : topFail.fail !== null ? [topFail.fail] : [];
-      if (
-        FAIL_BOUND_CHIPS.has(fnName) &&
-        selectedFail === null &&
-        pickerCandidates.length >= 2 &&
-        currentRunId !== null &&
-        run?.status === 'completed'
-      ) {
+      const runReady = lastRunInChat !== null && run?.status === 'completed';
+      // Audit T-ZOOM-T2-002-AUDIT-001 cas A — FAIL-bound chip clicked
+      // WITHOUT a completed run bound to the chat. Sending the chip
+      // verbatim to the chatbot-py router would land on the general_help
+      // aggregator and produce a vague answer; instead we surface a
+      // local invitation that names the prerequisite (upload + launch)
+      // explicitly. Zero LLM cost, instant feedback, localised via i18n.
+      if (FAIL_BOUND_CHIPS.has(fnName) && !runReady) {
+        injectRegalicaMessage(t('chat.picker.noRunGuidance'));
+        return;
+      }
+      if (FAIL_BOUND_CHIPS.has(fnName) && pickerCandidates.length >= 2 && runReady) {
+        const severityLabelKey = (sev: FailDetail['severity']): string =>
+          sev === 'severe' ? 'chat.picker.severityEcartSevere' : 'chat.picker.severityEcartArrondi';
+        const currentMarker = t('chat.picker.currentSelection');
         const lines = pickerCandidates
-          .map(
-            (f) =>
-              `- \`${f.ax_term}/${f.num_regle}\` · ${f.severity === 'severe' ? 'écart sévère' : "écart d'arrondi"}`,
-          )
+          .map((f) => {
+            const isCurrent = selectedFail?.id === f.id;
+            const marker = isCurrent ? ` · ${currentMarker}` : '';
+            return `- \`${f.ax_term}/${f.num_regle}\` · ${t(severityLabelKey(f.severity))}${marker}`;
+          })
           .join('\n');
-        const pickerMarkdown = `Plusieurs écarts sont disponibles dans ce run. Cliquez sur la ligne du tableau « FAILS » ci-dessus correspondant à celui que vous souhaitez analyser, puis relancez votre choix.\n\n${lines}\n\nVous pouvez également préciser la règle directement dans la barre de saisie, par exemple « regarde la règle 102 ».`;
-        injectRegalicaMessage(pickerMarkdown);
+        const intro = t('chat.picker.intro');
+        const outro = t('chat.picker.outro');
+        injectRegalicaMessage(`${intro}\n\n${lines}\n\n${outro}`);
         return;
       }
       // Otherwise, with or without a selectedFail the chip name is sent
@@ -841,10 +1113,11 @@ export default function Workspace() {
       selectedFail,
       failsForPicker,
       topFail.fail,
-      currentRunId,
+      lastRunInChat,
       run?.status,
       injectRegalicaMessage,
       sendMessage,
+      t,
     ],
   );
 
@@ -915,7 +1188,7 @@ export default function Workspace() {
     // asked for the welcome to stay. The launch sequence is appended
     // to whatever was in the thread before.
     injectUserMessage(t('launchSequence.userIntent', { fileName }));
-    injectRegalicaMessage(
+    const ackId = injectRegalicaMessage(
       etaSeconds !== null
         ? t('launchSequence.regalicaAckWithEta', {
             fileName,
@@ -928,6 +1201,19 @@ export default function Workspace() {
       // localizable and never hardcoded in source.
       t('launchSequence.regalicaAckThinking'),
     );
+    // Anchor the run synthesis (RegalicaRunSpeech + FailsTable + …)
+    // to this ack id so it renders inline in the chat thread when the
+    // run completes, instead of always at the bottom of the page.
+    // Without this, a follow-up question typed BEFORE the run finished
+    // would visually overtake the synthesis (the synthesis arrived at
+    // run end, after the follow-up answer that referenced it — broke
+    // the causal reading order observed in the user-reported screenshot).
+    setRunSynthesisAnchorId(ackId);
+    // Audit cas 2 — flip the pending flag AFTER the ack so the
+    // thinking placeholder kicks in during the ~30 s run window.
+    // Reset paths are wired via SSE 'complete' / 'error' and via the
+    // run.status transition effect below.
+    setRunLaunchPending(true);
 
     void startRun
       .start({
@@ -1065,85 +1351,88 @@ export default function Workspace() {
               {!runLoading && run === null && runError === null && activeRunId === null && (
                 <NoActiveRun />
               )}
-              <ChatThread messages={messages} />
-
-              {/* 2026-05-08 final layout — the run-completed canvas
-                  (Synthèse + KPIs + FailsTable + Investigation +
-                  T3 banner) is rendered AFTER ChatThread so the
-                  visual flow is welcome → user msg → ack → synthesis.
-                  RegalicaRunSpeech wraps everything in a Regalica
-                  bubble (avatar + name + time + confidence badge)
-                  so the synthesis reads as a chat turn, not a
-                  separate canvas card. The user's frustrated
-                  observation — "la synthèse apparait tout seul...
-                  puis se déplace dans le chat" — was caused by this
-                  block being rendered ABOVE ChatThread; moving it
-                  below puts the synthesis in its natural causal
-                  place. */}
-              {/* 2026-05-08 — DEFENSIVE GATE: every render below
-                  ALSO verifies `summary.run.run_id === currentRunId`
-                  (and `run.run_id === currentRunId` for the
-                  fallback). Without this gate, a stale `summary`
-                  state from the PREVIOUS run could match the
-                  current's `lastRunInChat === currentRunId` and
-                  briefly render the OLD synthesis during the launch
-                  window (the user-reported "déchet en cours de
-                  route"). The hooks (useRunSummary / useFails /
-                  useTopSevereFail) ALSO clear their state on runId
-                  change as a primary defense; this gate is a belt-
-                  and-suspenders safeguard. */}
-              {run !== null &&
-                run.run_id === currentRunId &&
-                summary !== null &&
-                summary.run.run_id === currentRunId &&
-                summary.run.status !== 'completed' &&
-                lastRunInChat === currentRunId && (
-                  /* Correction 1 — running run keeps the Synthèse external
-                 because there is no Regalica bubble to nest it inside
-                 yet (the run hasn't completed; no narrative + no
-                 confidence to derive). Once status === 'completed' the
-                 Synthèse moves INTO the bubble below. */
-                  <RunSynthesisCard run={run} annexes={summary.annexes} />
-                )}
-              {summary !== null &&
-                summary.run.run_id === currentRunId &&
-                summary.run.status === 'completed' &&
-                lastRunInChat === currentRunId && (
-                  /* Point 1 + Correction 1 — Regalica's voice OWNS the
-                 Synthèse, then the cause-root deliverable (Livrable C),
-                 then the FailsTable, then the per-fail decomposition.
-                 Everything sits as direct children of .msg-rega__body
-                 to match the workspace v5 mockup pattern (:626-697). */
-                  <RegalicaRunSpeech run={summary.run}>
-                    <RunSynthesisCard run={summary.run} annexes={summary.annexes} />
-                    <T1Deliverables run={summary.run} />
-                    {currentRunId !== null &&
-                      (summary.run.total_fail_severe ?? 0) +
-                        (summary.run.total_fail_rounding ?? 0) >
-                        0 && (
-                        /* Tranche 0.5 W2.2 — validation_fail_details rows
-                       persisted by /finalize, banking-format columns
-                       surfaced. */
-                        <FailsTable
-                          runId={currentRunId}
-                          filter="all"
-                          onFailClick={setSelectedFail}
-                          selectedFailId={investigationFail?.id ?? null}
-                        />
+              {(() => {
+                /* 2026-05-09 (option B) — the run-completed canvas
+                   (Synthèse + KPIs + FailsTable + Investigation + T3
+                   banner) is built ONCE and either:
+                     • injected into ChatThread right after the launch
+                       ack via `synthesisSlot` (when the launch came
+                       from this UI and we hold an anchor id), so the
+                       synthesis reads as the causal answer to the
+                       launch and stays anchored there even if the
+                       user has typed a follow-up question while the
+                       run was still running, or
+                     • rendered below ChatThread as a legacy fallback
+                       when no anchor is available (e.g. a server-
+                       resolved current run with no in-thread ack).
+                   2026-05-08 — DEFENSIVE GATE: every conditional below
+                   ALSO verifies `summary.run.run_id === currentRunId`
+                   (and `run.run_id === currentRunId` for the fallback).
+                   Without this gate, a stale `summary` state from the
+                   PREVIOUS run could match the current's
+                   `lastRunInChat === currentRunId` and briefly render
+                   the OLD synthesis during the launch window. */
+                const runSynthesisNode: ReactNode = (
+                  <>
+                    {run !== null &&
+                      run.run_id === currentRunId &&
+                      summary !== null &&
+                      summary.run.run_id === currentRunId &&
+                      summary.run.status !== 'completed' &&
+                      lastRunInChat === currentRunId && (
+                        <RunSynthesisCard run={run} annexes={summary.annexes} />
                       )}
-                    {investigationFail !== null && (
-                      <InvestigationArtefact fail={investigationFail} />
-                    )}
-                    <T3LockBanner totalFailSevere={summary.run.total_fail_severe ?? 0} />
-                  </RegalicaRunSpeech>
-                )}
-              {run !== null &&
-                run.run_id === currentRunId &&
-                summary === null &&
-                lastRunInChat === currentRunId && (
-                  /* Defensive: run row exists but /summary is still pending. */
-                  <RunSynthesisCard run={run} annexes={[]} />
-                )}
+                    {summary !== null &&
+                      summary.run.run_id === currentRunId &&
+                      summary.run.status === 'completed' &&
+                      lastRunInChat === currentRunId && (
+                        <RegalicaRunSpeech run={summary.run}>
+                          <RunSynthesisCard run={summary.run} annexes={summary.annexes} />
+                          <T1Deliverables run={summary.run} />
+                          {currentRunId !== null &&
+                            (summary.run.total_fail_severe ?? 0) +
+                              (summary.run.total_fail_rounding ?? 0) >
+                              0 && (
+                              <FailsTable
+                                runId={currentRunId}
+                                filter="all"
+                                onFailClick={setSelectedFail}
+                                selectedFailId={investigationFail?.id ?? null}
+                              />
+                            )}
+                          {investigationFail !== null && (
+                            <InvestigationArtefact fail={investigationFail} />
+                          )}
+                          <T3LockBanner totalFailSevere={summary.run.total_fail_severe ?? 0} />
+                        </RegalicaRunSpeech>
+                      )}
+                    {run !== null &&
+                      run.run_id === currentRunId &&
+                      summary === null &&
+                      lastRunInChat === currentRunId && <RunSynthesisCard run={run} annexes={[]} />}
+                  </>
+                );
+                const synthesisSlot =
+                  runSynthesisAnchorId !== null
+                    ? { afterMessageId: runSynthesisAnchorId, node: runSynthesisNode }
+                    : null;
+                return (
+                  <>
+                    <ChatThread
+                      messages={messages}
+                      synthesisSlot={synthesisSlot}
+                      isPending={
+                        (chatLoading &&
+                          (messages.length === 0 ||
+                            messages[messages.length - 1]?.role === 'user')) ||
+                        runLaunchPending
+                      }
+                      resolveFail={resolveFail}
+                    />
+                    {runSynthesisAnchorId === null && runSynthesisNode}
+                  </>
+                );
+              })()}
 
               {chatError !== null && (
                 <div

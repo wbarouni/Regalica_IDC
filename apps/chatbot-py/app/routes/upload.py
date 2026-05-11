@@ -595,10 +595,12 @@ async def _render_companion_offer(
     case (the dependency state is already surfaced via BLOC 7 in any
     chat zoom on the same run).
     """
+    # `regalica` is a foreign-key reference to prompt_bank.agent_type;
+    # the literal MUST match migration 104's seed row exactly.
     meta = await load_active_prompt(
         pool=pool,
         tenant_id=tenant_id,
-        agent_type="regalica",
+        agent_type="regalica",  # nosemgrep: D-004-var-name-string-literal
         function_name="run_finalized_companion_offer",
     )
     if meta is None:
@@ -926,6 +928,10 @@ async def post_upload(
                                         "missing_companions": dep_state.get("missing_companions"),
                                         "run_id": payload.run_id,
                                     },
+                                    # FK reference to messages.produced_by_agent
+                                    # (mirrors prompt_bank.agent_type); the
+                                    # literal is the contract, not a tunable.
+                                    # nosemgrep: D-004-var-name-string-literal
                                     produced_by_agent="regalica",
                                     run_id=payload.run_id,
                                 )

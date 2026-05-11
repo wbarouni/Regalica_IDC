@@ -55,10 +55,17 @@ _ROUTER_TEMPERATURE: Final[float] = 0.0
 # part of `max_output_tokens` on its internal "thinking" pass even when
 # `thinking_enabled=False`, so we bump the budget well above the visible
 # JSON footprint to leave room for both the hidden reasoning and the
-# fence-wrapped JSON body. 1024 tokens is still negligible cost-wise
-# and eliminates the systemic truncation that previously caused every
-# router classification to fall back to FALLBACK_INTENT silently.
-_ROUTER_MAX_TOKENS: Final[int] = 1024
+# fence-wrapped JSON body. The caller passes the budget via the
+# `max_tokens` kwarg on `detect_intent`; the value lives in
+# platform_config (key `regalica_router_max_tokens`, migration 117) so
+# the operator can tune the cost/coverage trade-off without a code
+# release. _ROUTER_MAX_TOKENS below is the documented fallback for
+# tests / cold-start tenants that have not yet seeded migration 117.
+# 1024 mirrors migration 117's seed value byte-for-byte; the runtime
+# reads platform_config.regalica_router_max_tokens via the orchestrator
+# and forwards it. This in-source fallback is used only when the
+# platform_config row is missing (cold-start tenant, stale schema).
+_ROUTER_MAX_TOKENS_FALLBACK: Final[int] = 1024  # nosemgrep: D-006-magic-number-assignment
 
 # Closed allow-list of keys the parser will read from the LLM payload.
 # Keys outside this set are tolerated (the response is not rejected)
@@ -108,6 +115,7 @@ async def detect_intent(
     llm_client: LLMClient,
     router_template: str,
     valid_intents: Iterable[str],
+    max_tokens: int = _ROUTER_MAX_TOKENS_FALLBACK,
 ) -> IntentResult:
     """Return the intent decided by the router LLM as an `IntentResult`.
 
@@ -116,13 +124,19 @@ async def detect_intent(
     (commit C7+C8). The router prompt itself (regalica/router) lists
     the same enum so the LLM picks one of those values; this function
     defends against drift by re-checking on the way back.
+
+    `max_tokens` is the per-request token budget. Defaults to
+    `_ROUTER_MAX_TOKENS_FALLBACK` (1024) so tests can call without
+    setting up platform_config; production callers (orchestrator)
+    pass the value from `platform_config.regalica_router_max_tokens`
+    (migration 117).
     """
     valid_set: frozenset[str] = frozenset(valid_intents)
 
     request = LLMRequest(
         prompt=message,
         temperature=_ROUTER_TEMPERATURE,
-        max_tokens=_ROUTER_MAX_TOKENS,
+        max_tokens=max_tokens,
         thinking_enabled=False,
         system_prompt=router_template,
     )
