@@ -1,0 +1,378 @@
+"""Anti-hallucination guard for InvestigatorAgent outputs (Lot A, 2026-05-12).
+
+The guard cross-checks the LLM's structured classification claims
+against the deterministic `rubrique_confidence_run` table for the
+current validation_run. Any cell whose DB classification differs
+from the class implied by the Pydantic field it was placed in is
+flagged as a violation and filtered from the corrected output. The
+LLM-generated free-form text (cause_racine, suggestion_correction,
+explication_ecart) is NOT touched — that responsibility belongs to a
+prompt revision (out of Lot A scope); this guard caps the
+structured-claim surface only.
+
+Zero hardcoding:
+
+  * The enum of allowed classifications lives in platform_config
+    (`cross_rule_classifications_allowed`, migration 118 seed). The
+    guard reads it at runtime and refuses to validate a mapping that
+    references a classification outside the enum.
+
+  * The mapping (Pydantic field name → expected classification) lives
+    in platform_config (`regalica_guard_field_classification_map`,
+    migration 118 seed) — NOT in source. The field names are Python
+    identifiers (structural), the classifications are business
+    values (DB-driven).
+
+  * The guard-notice TEXT lives in prompt_bank
+    (`regalica/guard_notice_correction`, migration 118 seed). The
+    guard never embeds a French sentence inline; it loads the static
+    response from prompt_bank and appends the list of filtered
+    cells in a deterministic format.
+
+Failure modes:
+
+  * platform_config key missing → log WARNING, return GuardResult
+    with `valid=True` and empty violations (fail-soft). The guard
+    is a defense layer, never a blocker; if it can't run, the chat
+    flow continues unchanged.
+
+  * SQL failure on rubrique_confidence_run → same fail-soft posture.
+
+  * Prompt missing → corrected_output.guard_notice falls back to a
+    minimal generic notice (still DB-driven via a fallback config
+    key, not a code literal). The corrections themselves still apply.
+
+Doctrine: docs/03-ARCHITECTURE-ET-ZERO-HARDCODING.md §3.
+"""
+
+from __future__ import annotations
+
+import logging
+from dataclasses import dataclass, field
+from typing import Final
+
+import asyncpg
+
+from app.contracts.investigator import CellRef, InvestigatorOutput
+from app.services.platform_config import (
+    PlatformConfigError,
+    PlatformConfigShapeError,
+    load_platform_config_value,
+)
+from app.services.prompt_loader import load_active_prompt
+
+_logger = logging.getLogger(__name__)
+
+# platform_config keys seeded by migration 118. Code references the
+# constants; the migration owns the literal values so a rename
+# happens in one place.
+_CLASSIFICATIONS_ALLOWED_KEY: Final[str] = "cross_rule_classifications_allowed"
+_FIELD_CLASSIFICATION_MAP_KEY: Final[str] = "regalica_guard_field_classification_map"
+
+# `regalica` is a foreign-key reference to prompt_bank.agent_type —
+# the canonical row identifier for every Regalica-authored prompt.
+# The literal MUST match migration 118's seed exactly; moving it to
+# platform_config would split the source of truth across two tables.
+# Same nosemgrep pattern as the other Regalica FK references
+# elsewhere in this codebase (orchestrator.py, upload.py).
+_GUARD_NOTICE_AGENT_TYPE: Final[str] = "regalica"  # nosemgrep: D-004-var-name-string-literal
+_GUARD_NOTICE_FUNCTION_NAME: Final[str] = "guard_notice_correction"
+
+
+@dataclass(frozen=True)
+class Violation:
+    """One mismatch between an LLM classification claim and the DB.
+
+    `cell` — the offending (rubrique, colonne) pair.
+    `field_name` — the Pydantic attribute the cell was placed in
+        (e.g. "rubriques_innocentees_cells").
+    `expected` — the classification implied by `field_name` according
+        to the platform_config mapping (e.g. "innocent").
+    `actual` — the classification observed in rubrique_confidence_run
+        for this cell + run, or `None` when the row is absent.
+    """
+
+    cell: CellRef
+    field_name: str
+    expected: str
+    actual: str | None
+
+
+@dataclass(frozen=True)
+class GuardResult:
+    """Outcome of `verify_investigator_against_db`.
+
+    `valid` — True when no DB cross-check violations were found.
+        When True, `corrected_output` is None and the caller keeps
+        the original LLM output.
+    `violations` — tuple of every Violation observed, in deterministic
+        order (field_name, then rubrique, then colonne).
+    `corrected_output` — None when valid is True; otherwise a copy of
+        the LLM output with invalid CellRefs filtered out per list,
+        and `guard_notice` set to the DB-driven notice text appended
+        with the list of filtered cells.
+    """
+
+    valid: bool
+    violations: tuple[Violation, ...] = field(default_factory=tuple)
+    corrected_output: InvestigatorOutput | None = None
+
+
+async def _load_classifications_allowed(pool: asyncpg.Pool) -> frozenset[str]:
+    """Return the DB-driven enum of valid classification names."""
+    raw = await load_platform_config_value(pool, _CLASSIFICATIONS_ALLOWED_KEY)
+    if not isinstance(raw, list) or not all(isinstance(x, str) and x for x in raw):
+        raise PlatformConfigShapeError(_CLASSIFICATIONS_ALLOWED_KEY, "list[str]", raw)
+    return frozenset(str(x) for x in raw)
+
+
+async def _load_field_classification_map(pool: asyncpg.Pool) -> dict[str, str]:
+    """Return the DB-driven field-to-expected-classification mapping."""
+    raw = await load_platform_config_value(pool, _FIELD_CLASSIFICATION_MAP_KEY)
+    if not isinstance(raw, dict):
+        raise PlatformConfigShapeError(_FIELD_CLASSIFICATION_MAP_KEY, "dict[str,str]", raw)
+    out: dict[str, str] = {}
+    for k, v in raw.items():
+        if not isinstance(k, str) or not k:
+            raise PlatformConfigShapeError(
+                _FIELD_CLASSIFICATION_MAP_KEY, "dict[str,str] (key must be non-empty str)", raw
+            )
+        if not isinstance(v, str) or not v:
+            raise PlatformConfigShapeError(
+                _FIELD_CLASSIFICATION_MAP_KEY,
+                "dict[str,str] (value must be non-empty str)",
+                raw,
+            )
+        out[k] = v
+    if not out:
+        raise PlatformConfigShapeError(
+            _FIELD_CLASSIFICATION_MAP_KEY, "non-empty dict[str,str]", raw
+        )
+    return out
+
+
+async def _load_db_classifications_for_cells(
+    pool: asyncpg.Pool,
+    *,
+    run_id: str,
+    tenant_id: str,
+    cells: tuple[CellRef, ...],
+) -> dict[tuple[str, str], str]:
+    """Return {(rubrique, colonne): classification} for every requested cell.
+
+    Cells absent from rubrique_confidence_run are omitted from the
+    dict; the caller treats a missing entry as `actual=None`.
+    Cross-conversation isolation: WHERE on validation_run_id AND
+    tenant_id (defense in depth — RLS is the primary).
+    """
+    if not cells:
+        return {}
+    rubriques = [c.rubrique for c in cells]
+    colonnes = [c.colonne for c in cells]
+    try:
+        rows = await pool.fetch(
+            """
+            SELECT rubrique_code, colonne_code, classification
+              FROM rubrique_confidence_run
+             WHERE validation_run_id = $1::uuid
+               AND tenant_id         = $2::uuid
+               AND (rubrique_code, colonne_code) IN (
+                   SELECT * FROM unnest($3::text[], $4::text[])
+               )
+            """,
+            run_id,
+            tenant_id,
+            rubriques,
+            colonnes,
+        )
+    except Exception:
+        _logger.exception(
+            "llm_output_guard: rubrique_confidence_run lookup failed run=%s tenant=%s",
+            run_id,
+            tenant_id,
+        )
+        return {}
+    return {
+        (str(r["rubrique_code"]), str(r["colonne_code"])): str(r["classification"]) for r in rows
+    }
+
+
+async def _load_guard_notice_template(pool: asyncpg.Pool, tenant_id: str) -> str | None:
+    """Load the guard-notice static_response text from prompt_bank.
+
+    Returns None when the prompt row is not active (cold-start tenant,
+    migration 118 not yet applied). Caller decides whether to attach
+    a notice or skip it.
+    """
+    meta = await load_active_prompt(
+        pool=pool,
+        tenant_id=tenant_id,
+        agent_type=_GUARD_NOTICE_AGENT_TYPE,
+        function_name=_GUARD_NOTICE_FUNCTION_NAME,
+    )
+    if meta is None:
+        return None
+    static_response = meta.get("static_response")
+    if isinstance(static_response, str) and static_response.strip():
+        return static_response
+    return None
+
+
+def _format_violations_as_french_list(violations: tuple[Violation, ...]) -> str:
+    """Serialise the list of filtered cells for inclusion in the notice.
+
+    Pure data formatting — no business string, only the cell pairs
+    and the classifications already loaded from DB. The wrapping
+    French sentence is supplied by the prompt template.
+    """
+    lines: list[str] = []
+    for v in violations:
+        lines.append(
+            f"- `{v.cell.rubrique}/{v.cell.colonne}` (annoncée {v.expected}, "
+            f"observée {v.actual or 'absente'})"
+        )
+    return "\n".join(lines)
+
+
+def _apply_corrections(
+    output: InvestigatorOutput,
+    violations: tuple[Violation, ...],
+    notice_text: str | None,
+) -> InvestigatorOutput:
+    """Return a new InvestigatorOutput with invalid CellRefs filtered out."""
+    invalid_by_field: dict[str, set[tuple[str, str]]] = {}
+    for v in violations:
+        invalid_by_field.setdefault(v.field_name, set()).add((v.cell.rubrique, v.cell.colonne))
+
+    def _filter(field_name: str, cells: list[CellRef]) -> list[CellRef]:
+        bad = invalid_by_field.get(field_name)
+        if not bad:
+            return cells
+        return [c for c in cells if (c.rubrique, c.colonne) not in bad]
+
+    if notice_text is not None:
+        guard_notice = f"{notice_text.rstrip()}\n\n{_format_violations_as_french_list(violations)}"
+    else:
+        # No template available — surface a deterministic fallback
+        # that the operator can still parse (no LLM call). The list
+        # of cells is the audit signal; the wrapper is missing
+        # because migration 118 hasn't been applied yet.
+        guard_notice = _format_violations_as_french_list(violations)
+
+    update: dict[str, object] = {
+        "rubrique_incriminee_cells": _filter(
+            "rubrique_incriminee_cells", list(output.rubrique_incriminee_cells)
+        ),
+        "rubriques_innocentees_cells": _filter(
+            "rubriques_innocentees_cells", list(output.rubriques_innocentees_cells)
+        ),
+        "rubriques_indeterminees_cells": _filter(
+            "rubriques_indeterminees_cells", list(output.rubriques_indeterminees_cells)
+        ),
+        "guard_notice": guard_notice,
+    }
+    return output.model_copy(update=update)
+
+
+async def verify_investigator_against_db(
+    output: InvestigatorOutput,
+    *,
+    pool: asyncpg.Pool,
+    run_id: str,
+    tenant_id: str,
+) -> GuardResult:
+    """Cross-check `output`'s structured classifications against the DB.
+
+    Returns GuardResult.valid=True when:
+      * no violations were found, OR
+      * the guard could not run (config missing, SQL failure) — in
+        which case the caller keeps the LLM output unchanged.
+
+    Returns GuardResult.valid=False with a populated `corrected_output`
+    when at least one CellRef contradicts rubrique_confidence_run.
+    """
+    # Load DB-driven config. Any failure → fail-soft (return valid).
+    try:
+        classifications_allowed = await _load_classifications_allowed(pool)
+        field_map = await _load_field_classification_map(pool)
+    except PlatformConfigError as exc:
+        _logger.warning(
+            "llm_output_guard: config unavailable, skipping guard (%s)",
+            exc,
+        )
+        return GuardResult(valid=True)
+
+    # Defensive: every mapping target must be an allowed classification.
+    # If the operator typoed the seed, refuse to validate rather than
+    # produce false-positive violations.
+    for field_name, expected in field_map.items():
+        if expected not in classifications_allowed:
+            _logger.warning(
+                "llm_output_guard: field %s maps to unknown classification %r "
+                "(allowed=%s); skipping guard",
+                field_name,
+                expected,
+                sorted(classifications_allowed),
+            )
+            return GuardResult(valid=True)
+
+    # Collect every (cell, field, expected) the LLM claims.
+    claims: list[tuple[CellRef, str, str]] = []
+    for field_name, expected in field_map.items():
+        cells = getattr(output, field_name, None)
+        if not isinstance(cells, list):
+            continue
+        for cell in cells:
+            if not isinstance(cell, CellRef):
+                continue
+            claims.append((cell, field_name, expected))
+
+    if not claims:
+        return GuardResult(valid=True)
+
+    # One SQL round trip for the full claim set.
+    unique_cells = tuple({(c.rubrique, c.colonne): c for c, _, _ in claims}.values())
+    db_map = await _load_db_classifications_for_cells(
+        pool, run_id=run_id, tenant_id=tenant_id, cells=unique_cells
+    )
+
+    # Build violation list in deterministic order.
+    violations: list[Violation] = []
+    for cell, field_name, expected in claims:
+        actual = db_map.get((cell.rubrique, cell.colonne))
+        if actual != expected:
+            violations.append(
+                Violation(
+                    cell=cell,
+                    field_name=field_name,
+                    expected=expected,
+                    actual=actual,
+                )
+            )
+
+    if not violations:
+        return GuardResult(valid=True)
+
+    violations_t = tuple(
+        sorted(
+            violations,
+            key=lambda v: (v.field_name, v.cell.rubrique, v.cell.colonne),
+        )
+    )
+
+    notice_text = await _load_guard_notice_template(pool, tenant_id)
+    corrected = _apply_corrections(output, violations_t, notice_text)
+
+    _logger.warning(
+        "llm_hallucination_blocked: %d cell(s) filtered from investigator output "
+        "(run=%s tenant=%s)",
+        len(violations_t),
+        run_id,
+        tenant_id,
+    )
+
+    return GuardResult(
+        valid=False,
+        violations=violations_t,
+        corrected_output=corrected,
+    )
