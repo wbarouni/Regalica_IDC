@@ -42,6 +42,14 @@ const OPERATOR_ENV_TO_GUC: Readonly<Record<string, string>> = {
   SEED_TENANT_ID: 'app.seed_tenant_id', // nosemgrep: D-004-var-name-string-literal
   SEED_VALID_FROM: 'app.seed_valid_from',
   SEED_DEV_TENANT: 'app.seed_dev_tenant', // nosemgrep: D-004-var-name-string-literal
+  // Lot A.3.active — UUID lu byte-for-byte depuis le fichier
+  // docs/prompts/*_VALIDATED_BY.txt par le wrapper
+  // ops/scripts/apply_a3_active.sh, propagé jusqu'à la GUC pour que
+  // migration 121 puisse comparer SEED_VALIDATOR_USER_ID et le
+  // contenu du fichier dans une même session PG. Le double-check
+  // est doctrinal : sans cette GUC, la migration 121 refuse de
+  // promouvoir (4-yeux humain, jamais Claude Code).
+  SEED_VALIDATOR_ATTESTATION_UUID: 'app.seed_validator_attestation_uuid',
 };
 
 type Subcommand = 'up' | 'up:operator' | 'status' | 'verify';

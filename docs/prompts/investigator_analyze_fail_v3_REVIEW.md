@@ -17,18 +17,18 @@ stade — c'est exactement ce que la CHECK 4-yeux exige pour un
 **Différences avec la v2 (migration 111).** v3 est strictement
 ADDITIVE :
 
-  * Tout le corps de v2 est reproduit (contrat inviolable, entrée
-    reçue, méthode, format de sortie historique).
-  * Quatre nouveaux blocs s'ajoutent :
-      1. Section « EXIGENCES DE SORTIE STRUCTURÉE (v3) ».
-      2. Section « EXEMPLE POSITIF ».
-      3. Section « EXEMPLE NÉGATIF (interdit) ».
-      4. Section « INTERDITS ».
-  * Le bloc `FORMAT DE SORTIE` est étendu de 4 nouveaux champs :
-      `rubrique_incriminee_cells`, `rubriques_innocentees_cells`,
-      `rubriques_indeterminees_cells`, `causal_attributions`.
-  * `output_schema` JSON Schema mis à jour symétriquement (tous
-    les nouveaux champs sont `required: true`).
+- Tout le corps de v2 est reproduit (contrat inviolable, entrée
+  reçue, méthode, format de sortie historique).
+- Quatre nouveaux blocs s'ajoutent :
+  1. Section « EXIGENCES DE SORTIE STRUCTURÉE (v3) ».
+  2. Section « EXEMPLE POSITIF ».
+  3. Section « EXEMPLE NÉGATIF (interdit) ».
+  4. Section « INTERDITS ».
+- Le bloc `FORMAT DE SORTIE` est étendu de 4 nouveaux champs :
+  `rubrique_incriminee_cells`, `rubriques_innocentees_cells`,
+  `rubriques_indeterminees_cells`, `causal_attributions`.
+- `output_schema` JSON Schema mis à jour symétriquement (tous
+  les nouveaux champs sont `required: true`).
 
 **Contrats Pydantic alignés.** Les quatre nouveaux champs JSON
 correspondent terme à terme aux attributs ajoutés à
@@ -41,21 +41,21 @@ avec `CausalAttribution`).
 **Garde post-LLM en aval.** Toute sortie produite par v3 est
 maintenant croisée avec `rubrique_confidence_run` :
 
-  * Classification — chaque cellule présente dans
-    `rubrique_incriminee_cells` doit avoir `classification='suspect'`
-    en DB. Idem `innocentees` ↔ `'innocent'`, `indeterminees` ↔
-    `'undetermined'`. Cellules non-conformes filtrées par
-    `verify_investigator_against_db` (Lot A.1).
+- Classification — chaque cellule présente dans
+  `rubrique_incriminee_cells` doit avoir `classification='suspect'`
+  en DB. Idem `innocentees` ↔ `'innocent'`, `indeterminees` ↔
+  `'undetermined'`. Cellules non-conformes filtrées par
+  `verify_investigator_against_db` (Lot A.1).
 
-  * Causal — chaque entrée `causal_attributions[i]` doit avoir
-    `attributed_rule_ax_term`/`attributed_rule_num_regle`
-    résoluble en un `rules.id` présent dans
-    `rubrique_confidence_run.contributing_rule_ids` de la cellule
-    visée. Attributions non-conformes filtrées par
-    `verify_causal_attributions_against_db` (Lot A.2.2).
+- Causal — chaque entrée `causal_attributions[i]` doit avoir
+  `attributed_rule_ax_term`/`attributed_rule_num_regle`
+  résoluble en un `rules.id` présent dans
+  `rubrique_confidence_run.contributing_rule_ids` de la cellule
+  visée. Attributions non-conformes filtrées par
+  `verify_causal_attributions_against_db` (Lot A.2.2).
 
-  * Mode opérateur — `platform_config.regalica_guard_causal_attributions_mode`
-    contrôle la sévérité du second pass (défaut : `strict_when_present`).
+- Mode opérateur — `platform_config.regalica_guard_causal_attributions_mode`
+  contrôle la sévérité du second pass (défaut : `strict_when_present`).
 
 ---
 
@@ -204,28 +204,30 @@ FORMAT DE SORTIE (JSON strict, aucun texte avant ou après) :
    reproduit ci-dessus correspond à l'intention produit. Toute
    suggestion de reformulation doit être appliquée en amont de la
    promotion (modifier migration 120 puis re-runner `pnpm
-   migrate:up:operator` ; la DRAFT est idempotente, l'`ON CONFLICT
-   DO NOTHING` rend une migration vide.).
+migrate:up:operator` ; la DRAFT est idempotente, l'`ON CONFLICT
+DO NOTHING` rend une migration vide.).
 
 2. **Vérifier que les `INTERDITS` couvrent les hallucinations
    observées** :
-     * H1 — innocentation fausse de cellules dont la classification
-       n'est pas `'innocent'`. Couvert par le 1ᵉʳ INTERDIT.
-     * H2 — attribution causale à une règle absente de
-       `contributing_rule_ids`. Couvert par le 4ᵉ INTERDIT.
+   - H1 — innocentation fausse de cellules dont la classification
+     n'est pas `'innocent'`. Couvert par le 1ᵉʳ INTERDIT.
+   - H2 — attribution causale à une règle absente de
+     `contributing_rule_ids`. Couvert par le 4ᵉ INTERDIT.
 
 3. **Signer le fichier de validation**. Créer manuellement le fichier
    `docs/prompts/investigator_analyze_fail_v3_VALIDATED_BY.txt`
    contenant **exactement une ligne** : l'UUID v4 d'un opérateur
    humain différent de l'auteur. Exemples acceptés :
+
    ```
    ef810369-1e96-485d-bf1d-dc8937e32bb9
    ```
+
    Exemples REFUSÉS :
-     * vide
-     * même UUID que `app.seed_author_user_id`
-     * `00000000-0000-0000-0000-000000000000` (zéros)
-     * identifiant système, nom de bot, alias
+   - vide
+   - même UUID que `app.seed_author_user_id`
+   - `00000000-0000-0000-0000-000000000000` (zéros)
+   - identifiant système, nom de bot, alias
 
 4. **Lancer la migration 121** (Lot A.3.active) avec les GUCs
    classiques + `SEED_VALIDATOR_USER_ID` égal au contenu du fichier
@@ -248,14 +250,14 @@ FORMAT DE SORTIE (JSON strict, aucun texte avant ou après) :
 
 ## STOP HUMAIN — état après migration 120
 
-  * `prompt_bank.investigator/analyze_fail v3` existe au statut
-    `'draft'` avec `validator_user_id IS NULL`.
-  * Aucun appel Gemini ne charge v3 : `load_active_prompt` filtre
-    `status='active'`. La v2 reste active jusqu'à la promotion.
-  * Le garde post-LLM (Lot A.1 + A.2.2) reste opérant sur la v2
-    actuelle ; les nouveaux champs (`rubrique_incriminee_cells`,
-    `causal_attributions`) sont optionnels côté contrat Pydantic
-    donc la v2 continue de valider sans les émettre.
+- `prompt_bank.investigator/analyze_fail v3` existe au statut
+  `'draft'` avec `validator_user_id IS NULL`.
+- Aucun appel Gemini ne charge v3 : `load_active_prompt` filtre
+  `status='active'`. La v2 reste active jusqu'à la promotion.
+- Le garde post-LLM (Lot A.1 + A.2.2) reste opérant sur la v2
+  actuelle ; les nouveaux champs (`rubrique_incriminee_cells`,
+  `causal_attributions`) sont optionnels côté contrat Pydantic
+  donc la v2 continue de valider sans les émettre.
 
 **Suite — A.3.active.** Pas tant que `_VALIDATED_BY.txt` n'est pas
 signé. Claude Code ne créera jamais ce fichier ; c'est strictement
