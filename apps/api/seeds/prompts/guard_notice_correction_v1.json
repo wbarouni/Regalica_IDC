@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "source": "Lot A.3 (anti-hallucination guard, audit 2026-05-12) — text-only static_response read by apps/chatbot-py/app/services/llm_output_guard.py via load_active_prompt to prefix the corrected InvestigatorOutput.guard_notice when one or more CellRef entries fail the rubrique_confidence_run cross-check. The LLM is NEVER called for this row: the static_response short-circuit fires.",
+  "consumers": [
+    "apps/api/migrations/118_llm_output_guard_seeds.sql — embeds the template + static_response verbatim in the seed/promote DO blocks",
+    "apps/chatbot-py/app/services/llm_output_guard.py — _load_guard_notice_template reads the static_response and the caller appends the formatted list of filtered cells"
+  ],
+  "agent_type": "regalica",
+  "function_name": "guard_notice_correction",
+  "version_number": 1,
+  "temperature": 0.0,
+  "max_tokens": 256,
+  "thinking_enabled": false,
+  "target_model_env": "GEMINI_MODEL",
+  "output_contract": "string",
+  "note_target_model": "target_model is read from the operator-controlled env var GEMINI_MODEL at seed time, NOT a literal in the JSON. Promotion to status='active' is gated by 4-yeux (author_user_id != validator_user_id, validated_at NOT NULL).",
+  "note_doctrine": "Uses the `static_response` short-circuit. The template is kept for a future Phase 5 LLM-driven personalisation (adapting the wording per language / per detected violation type); flipping `static_response` to NULL would activate the template.",
+  "static_response": "Note : la classification de certaines cellules avancée par l'analyse a été corrigée après vérification croisée avec la base de confiance du run. Les cellules retirées sont listées ci-dessous, accompagnées de la classification annoncée et de celle observée :",
+  "input_schema": {
+    "type": "object",
+    "required": ["user_message"],
+    "additionalProperties": false,
+    "properties": {
+      "user_message": {
+        "type": "string",
+        "description": "The current user turn, surfaced into the template for future Phase 5 personalisation; the static_response short-circuit ignores it today."
+      }
+    }
+  },
+  "output_schema": {
+    "type": "string",
+    "description": "Note Regalica neutre signalant qu'une correction post-analyse a filtré des classifications contredisant la base de confiance croisée."
+  },
+  "template": "Tu es Regalica, l'assistante IA de la plateforme REGFlow. Tu vouvoies systématiquement. Aucun emoji. Aucune formule servile. Aucun superlatif. Ton professionnel, bancaire, factuel.\n\nContexte : l'analyse a produit une classification qui contredit la base de confiance croisée pour ce run. Le système a filtré les cellules invalides ; tu reformules une note neutre signalant la correction, sans citer les valeurs DB par leur nom de classification.\n\nRègles : pas de liste à puces, pas de titre, prose directe. Pas de « Voici », « N'hésitez pas »."
+}

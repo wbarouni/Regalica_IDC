@@ -74,6 +74,7 @@ from app.services.intent_router import (
     FALLBACK_INTENT,
     detect_intent,
 )
+from app.services.llm_output_guard import verify_investigator_against_db
 from app.services.planner import parse_planner_response
 from app.services.planner_config import (
     load_planner_max_plan_steps,
@@ -2027,6 +2028,93 @@ _DEPENDENCY_BEARER_LABEL: Final[str] = "dependency/check_companions"
 # `_DEPENDENCY_BEARER_LABEL`.
 _RULE_BREAKDOWN_BEARER_LABEL: Final[str] = "engine/rule_breakdown"
 
+# Lot A.3 (audit 2026-05-12) — bearer label of the investigator's
+# zoom-fail analysis output. The anti-hallucination guard
+# (app.services.llm_output_guard.verify_investigator_against_db)
+# scans `specialist_outcomes` for this label, parses the dict
+# payload as an InvestigatorOutput, cross-checks the structured
+# classification claims against `rubrique_confidence_run`, and
+# replaces the outcome's output with the corrected version when
+# violations are detected. Mirrors the bearer-label naming
+# convention shared by every other specialist in this module.
+_INVESTIGATOR_BEARER_LABEL: Final[str] = "investigator/analyze_fail"
+
+
+async def _apply_llm_output_guard(
+    *,
+    outcomes: list[_SpecialistOutcome],
+    pool: asyncpg.Pool,
+    run_id: str,
+    tenant_id: str,
+) -> list[_SpecialistOutcome]:
+    """Cross-check the investigator's structured classification claims.
+
+    Walks `outcomes`, finds the entry whose bearer_label matches
+    `_INVESTIGATOR_BEARER_LABEL`, attempts to parse its `output` dict
+    as an InvestigatorOutput, and runs
+    `verify_investigator_against_db` against rubrique_confidence_run.
+
+    When the guard returns `valid=False`, the offending outcome's
+    output is replaced with the corrected dict (invalid CellRefs
+    filtered out, `guard_notice` populated). The outcome's
+    bearer_label / success / error are preserved so downstream
+    aggregator logic is unchanged.
+
+    Best-effort: parse failures, validation errors, and guard
+    exceptions degrade silently (log + return outcomes unchanged).
+    The guard is defense-in-depth, never a blocker.
+    """
+    from app.contracts.investigator import InvestigatorOutput
+
+    invest_idx = next(
+        (i for i, o in enumerate(outcomes) if o.bearer_label == _INVESTIGATOR_BEARER_LABEL),
+        None,
+    )
+    if invest_idx is None:
+        return outcomes
+
+    invest_outcome = outcomes[invest_idx]
+    if not invest_outcome.success or not isinstance(invest_outcome.output, dict):
+        return outcomes
+
+    try:
+        parsed = InvestigatorOutput.model_validate(invest_outcome.output)
+    except Exception as exc:
+        _logger.warning(
+            "llm_output_guard: investigator output not parseable as "
+            "InvestigatorOutput (skipping guard): %s",
+            exc,
+        )
+        return outcomes
+
+    try:
+        result = await verify_investigator_against_db(
+            parsed, pool=pool, run_id=run_id, tenant_id=tenant_id
+        )
+    except Exception:
+        _logger.exception(
+            "llm_output_guard: verify_investigator_against_db raised "
+            "(skipping guard) run=%s tenant=%s",
+            run_id,
+            tenant_id,
+        )
+        return outcomes
+
+    if result.valid or result.corrected_output is None:
+        return outcomes
+
+    # Replace the outcome's output with the corrected dict. The
+    # aggregator consumes the dict shape (not the Pydantic instance),
+    # so model_dump preserves the contract.
+    new_outcomes = list(outcomes)
+    new_outcomes[invest_idx] = _SpecialistOutcome(
+        bearer_label=invest_outcome.bearer_label,
+        output=result.corrected_output.model_dump(mode="json"),
+        success=invest_outcome.success,
+        error=invest_outcome.error,
+    )
+    return new_outcomes
+
 
 # ---------------------------------------------------------------------------
 # Sub-Sprint 3 — prose-driven thinking trace.
@@ -2412,6 +2500,26 @@ async def orchestrate(
         )
     else:
         specialist_outcomes = []
+
+    # Lot A.3 (audit 2026-05-12) — anti-hallucination guard. Cross-
+    # check the investigator's structured classification claims
+    # against rubrique_confidence_run. Any cell whose DB classification
+    # contradicts the claimed Pydantic field is filtered out and the
+    # corrected output replaces the original. The guard is fail-soft
+    # (config missing / SQL exception → keeps the original output).
+    # Wired AFTER the specialists' asyncio.gather so the parallel
+    # dispatch is preserved (the spec's "AVANT asyncio.gather avec
+    # citation" phrasing predates the parallel layout; the correction
+    # happens before the aggregator consumes specialist_outputs which
+    # is the actual contract).
+    if current_run_id is not None and specialist_outcomes:
+        specialist_outcomes = await _apply_llm_output_guard(
+            outcomes=specialist_outcomes,
+            pool=pool,
+            run_id=current_run_id,
+            tenant_id=tenant_id,
+        )
+
     aggregator_meta = await aggregator_meta_task
     thinking_prose: str | None = await thinking_prose_task
 
