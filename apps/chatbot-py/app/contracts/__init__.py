@@ -6,6 +6,7 @@ Re-exported here so callers can import from a single namespace.
 """
 
 from app.contracts.investigator import (
+    CausalAttribution,
     CellRef,
     Citation,
     ConfidenceClassification,
@@ -21,6 +22,7 @@ from app.contracts.investigator import (
 )
 
 __all__ = [
+    "CausalAttribution",
     "CellRef",
     "Citation",
     "ConfidenceClassification",

@@ -138,6 +138,29 @@ class CellRef(BaseModel):
     colonne: Annotated[str, Field(min_length=1, max_length=20)]
 
 
+class CausalAttribution(BaseModel):
+    """One LLM claim that a specific rule incriminates a specific cell.
+
+    Lot A.2 (anti-hallucination guard, causal dimension, audit
+    2026-05-12) — the InvestigatorOutput may carry a list of these
+    attributions so the guard can cross-check whether each attributed
+    rule is actually present in `rubrique_confidence_run.
+    contributing_rule_ids` for the targeted cell. The check fires in
+    `llm_output_guard.verify_causal_attributions_against_db` (Lot
+    A.2.2); structurally this contract carries only the identifiers,
+    no verdict and no weight.
+
+    Field bounds mirror the underlying DB columns (rules.ax_term
+    varchar(10) NOT NULL, rules.num_regle integer NOT NULL ≥ 1).
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    cell: CellRef
+    attributed_rule_ax_term: Annotated[str, Field(min_length=1, max_length=10)]
+    attributed_rule_num_regle: Annotated[int, Field(ge=1)]
+
+
 class SuspectRanking(BaseModel):
     """Per-rubrique suspect rank, computed post-LLM by the orchestrator.
 
@@ -264,6 +287,39 @@ class InvestigatorOutput(BaseModel):
     # hardcoded in source. None when the guard found no violations.
     guard_notice: str | None = None
 
+    # Lot A.2 (causal-dimension guard, audit 2026-05-12) — the LLM
+    # may explicitly attribute the incrimination of a specific cell
+    # to a specific rule (ax_term + num_regle pair). The Lot A.2.2
+    # guard cross-checks each attribution against
+    # `rubrique_confidence_run.contributing_rule_ids` and rejects
+    # attributions where the named rule does NOT appear among the
+    # cell's contributing rules.
+    #
+    # Three distinct semantic states:
+    #
+    #   * None  — the LLM did NOT emit causal_attributions at all
+    #             (legacy prompt v1/v2 outputs). The guard skips the
+    #             causal pass and validates only the classification
+    #             dimension (Lot A.1). This is the default for
+    #             backward compatibility.
+    #
+    #   * []    — the LLM ran the field but produced zero attributions
+    #             (e.g. no incriminated cell to attribute). The guard
+    #             treats this as "no claims to check" and returns
+    #             valid.
+    #
+    #   * [...] — every entry is cross-checked against the run's
+    #             contributing_rule_ids; mismatches become Violation
+    #             rows with kind 'attribution_causale_invalide'.
+    #
+    # When `regalica_guard_causal_attributions_mode = 'strict_when_present'`
+    # (migration 119, default) and at least one cell is in
+    # `rubrique_incriminee_cells`, the guard expects at least one
+    # CausalAttribution naming that cell. A missing attribution is
+    # logged but does NOT generate a violation in 'strict_when_present'
+    # mode; it would in a future 'mandatory' mode.
+    causal_attributions: list[CausalAttribution] | None = None
+
     @field_validator(
         "rubrique_incriminee_cells",
         "rubriques_innocentees_cells",
@@ -286,6 +342,42 @@ class InvestigatorOutput(BaseModel):
                 )
             seen.add(key)
         return cells
+
+    @field_validator("causal_attributions")
+    @classmethod
+    def _no_duplicate_attributions(
+        cls,
+        attributions: list[CausalAttribution] | None,
+    ) -> list[CausalAttribution] | None:
+        """Reject duplicate (cell, rule) tuples inside causal_attributions.
+
+        Structure-only — the DB cross-check
+        (`verify_causal_attributions_against_db`, Lot A.2.2) does the
+        rule_id ↔ contributing_rule_ids join. Pure Pydantic can only
+        reject obvious shape violations: two entries claiming the
+        same cell + same (ax_term, num_regle) are noise the LLM
+        should never produce.
+
+        Returns None unchanged (None = field omitted, distinct from []).
+        """
+        if attributions is None:
+            return None
+        seen: set[tuple[str, str, str, int]] = set()
+        for attr in attributions:
+            key = (
+                attr.cell.rubrique,
+                attr.cell.colonne,
+                attr.attributed_rule_ax_term,
+                attr.attributed_rule_num_regle,
+            )
+            if key in seen:
+                raise ValueError(
+                    "duplicate causal_attribution "
+                    f"({attr.cell.rubrique}/{attr.cell.colonne} → "
+                    f"{attr.attributed_rule_ax_term}/{attr.attributed_rule_num_regle})"
+                )
+            seen.add(key)
+        return attributions
 
     @model_validator(mode="before")
     @classmethod

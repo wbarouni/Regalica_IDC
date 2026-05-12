@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import pytest
 from app.contracts.investigator import (
+    CausalAttribution,
     CellRef,
     ConfidenceClassification,
     InvestigatorInput,
@@ -237,6 +238,162 @@ class TestCellRef:
         cell = CellRef.model_validate({"rubrique": "PA01", "colonne": "C1"})
         with pytest.raises(ValidationError):
             cell.rubrique = "MUTATED"  # type: ignore[misc]
+
+
+class TestCausalAttribution:
+    """Lot A.2.1 — structure-only validation of CausalAttribution.
+
+    The DB cross-check (rule_id ∈ contributing_rule_ids) lives in
+    `app.services.llm_output_guard.verify_causal_attributions_against_db`
+    and is covered by `test_llm_output_guard.py`.
+    """
+
+    def test_accepts_canonical_payload(self) -> None:
+        attr = CausalAttribution.model_validate(
+            {
+                "cell": {"rubrique": "63099000000000", "colonne": "10"},
+                "attributed_rule_ax_term": "630",
+                "attributed_rule_num_regle": 330,
+            }
+        )
+        assert attr.cell == CellRef(rubrique="63099000000000", colonne="10")
+        assert attr.attributed_rule_ax_term == "630"
+        assert attr.attributed_rule_num_regle == 330
+
+    def test_rejects_empty_ax_term(self) -> None:
+        with pytest.raises(ValidationError):
+            CausalAttribution.model_validate(
+                {
+                    "cell": {"rubrique": "PA01", "colonne": "C1"},
+                    "attributed_rule_ax_term": "",
+                    "attributed_rule_num_regle": 1,
+                }
+            )
+
+    def test_rejects_num_regle_below_one(self) -> None:
+        with pytest.raises(ValidationError):
+            CausalAttribution.model_validate(
+                {
+                    "cell": {"rubrique": "PA01", "colonne": "C1"},
+                    "attributed_rule_ax_term": "630",
+                    "attributed_rule_num_regle": 0,
+                }
+            )
+
+    def test_rejects_ax_term_too_long(self) -> None:
+        # DB column is varchar(10) — anything longer is contract drift.
+        with pytest.raises(ValidationError):
+            CausalAttribution.model_validate(
+                {
+                    "cell": {"rubrique": "PA01", "colonne": "C1"},
+                    "attributed_rule_ax_term": "X" * 11,
+                    "attributed_rule_num_regle": 330,
+                }
+            )
+
+    def test_rejects_extra_field(self) -> None:
+        with pytest.raises(ValidationError):
+            CausalAttribution.model_validate(
+                {
+                    "cell": {"rubrique": "PA01", "colonne": "C1"},
+                    "attributed_rule_ax_term": "630",
+                    "attributed_rule_num_regle": 330,
+                    "extra": "boom",
+                }
+            )
+
+    def test_is_frozen(self) -> None:
+        attr = CausalAttribution.model_validate(
+            {
+                "cell": {"rubrique": "PA01", "colonne": "C1"},
+                "attributed_rule_ax_term": "630",
+                "attributed_rule_num_regle": 330,
+            }
+        )
+        with pytest.raises(ValidationError):
+            attr.attributed_rule_num_regle = 999  # type: ignore[misc]
+
+
+class TestInvestigatorOutputCausalAttributions:
+    """Lot A.2.1 — InvestigatorOutput surface for causal attributions.
+
+    Three semantic states tested: None (legacy), [] (no claims),
+    [...] (claims to be DB-validated downstream by the guard).
+    """
+
+    def test_causal_attributions_defaults_to_none(self) -> None:
+        """None ≠ [] — None means the LLM did not emit the field
+        (legacy prompt v1/v2); [] means it emitted but with zero
+        attributions. The guard distinguishes these states."""
+        model = InvestigatorOutput.model_validate(_canonical_output())
+        assert model.causal_attributions is None
+
+    def test_accepts_empty_causal_attributions_list(self) -> None:
+        """Explicit [] is distinct from None and is permitted."""
+        payload = _canonical_output()
+        payload["causal_attributions"] = []
+        model = InvestigatorOutput.model_validate(payload)
+        assert model.causal_attributions == []
+
+    def test_accepts_populated_causal_attributions(self) -> None:
+        payload = _canonical_output()
+        payload["causal_attributions"] = [
+            {
+                "cell": {"rubrique": "63099000000000", "colonne": "10"},
+                "attributed_rule_ax_term": "630",
+                "attributed_rule_num_regle": 380,
+            },
+            {
+                "cell": {"rubrique": "63099000000000", "colonne": "10"},
+                "attributed_rule_ax_term": "630",
+                "attributed_rule_num_regle": 382,
+            },
+        ]
+        model = InvestigatorOutput.model_validate(payload)
+        assert model.causal_attributions is not None
+        assert len(model.causal_attributions) == 2
+        assert model.causal_attributions[0].attributed_rule_num_regle == 380
+
+    def test_rejects_duplicate_cell_rule_pair(self) -> None:
+        """Two entries for the same (cell, ax_term, num_regle) tuple
+        are noise — Pydantic structure rejects them so the guard
+        does not have to dedupe."""
+        payload = _canonical_output()
+        payload["causal_attributions"] = [
+            {
+                "cell": {"rubrique": "PA01", "colonne": "C1"},
+                "attributed_rule_ax_term": "630",
+                "attributed_rule_num_regle": 330,
+            },
+            {
+                "cell": {"rubrique": "PA01", "colonne": "C1"},
+                "attributed_rule_ax_term": "630",
+                "attributed_rule_num_regle": 330,
+            },
+        ]
+        with pytest.raises(ValidationError):
+            InvestigatorOutput.model_validate(payload)
+
+    def test_accepts_same_cell_different_rules(self) -> None:
+        """Same cell attributed to TWO distinct rules is legitimate
+        (a cell may be incriminated by multiple rules); only the
+        full (cell, ax_term, num_regle) tuple must be unique."""
+        payload = _canonical_output()
+        payload["causal_attributions"] = [
+            {
+                "cell": {"rubrique": "PA01", "colonne": "C1"},
+                "attributed_rule_ax_term": "630",
+                "attributed_rule_num_regle": 330,
+            },
+            {
+                "cell": {"rubrique": "PA01", "colonne": "C1"},
+                "attributed_rule_ax_term": "630",
+                "attributed_rule_num_regle": 380,
+            },
+        ]
+        model = InvestigatorOutput.model_validate(payload)
+        assert model.causal_attributions is not None
+        assert len(model.causal_attributions) == 2
 
 
 class TestEnumDistinction:
