@@ -1,0 +1,24 @@
+{
+  "version": 3,
+  "source": "Lot A.3.draft (audit 2026-05-12) — extends investigator/analyze_fail v2 (migration 111) with four structured output fields the anti-hallucination guard (Lot A.1 + Lot A.2.2) cross-checks against rubrique_confidence_run.",
+  "consumers": [
+    "apps/api/migrations/120_seed_investigator_analyze_fail_v3_draft.sql — embeds the template + JSON schemas verbatim in the seed DO block (status='draft')",
+    "apps/api/migrations/121_promote_investigator_analyze_fail_v3.sql (NOT YET WRITTEN, Lot A.3.active) — gates promotion to 'active' on human-signed docs/prompts/investigator_analyze_fail_v3_VALIDATED_BY.txt",
+    "apps/chatbot-py/app/agents/t2/investigator.py — loads the active row at runtime, no change required when the prompt rev lands (output contract is backward-compatible)",
+    "apps/chatbot-py/app/contracts/investigator.py — InvestigatorOutput.rubrique_incriminee_cells / rubriques_innocentees_cells / rubriques_indeterminees_cells / causal_attributions mirror the four new output fields"
+  ],
+  "agent_type": "investigator",
+  "function_name": "analyze_fail",
+  "version_number": 3,
+  "temperature": 0.3,
+  "max_tokens": 4096,
+  "thinking_enabled": false,
+  "target_model_env": "GEMINI_MODEL",
+  "output_contract": "json",
+  "note_target_model": "target_model is read from the operator-controlled env var GEMINI_MODEL at seed time. Promotion to status='active' is gated by 4-yeux: author_user_id ≠ validator_user_id, validated_at NOT NULL, AND a human-signed VALIDATED_BY file present per the Lot A.3 protocol.",
+  "note_doctrine": "Strictly ADDITIVE on v2: every v2 instruction is preserved verbatim. The four new sections (EXIGENCES DE SORTIE STRUCTURÉE, EXEMPLE POSITIF, EXEMPLE NÉGATIF, INTERDITS) extend the contract without removing any v2 requirement. The four new output fields (rubrique_incriminee_cells, rubriques_innocentees_cells, rubriques_indeterminees_cells, causal_attributions) are REQUIRED in the v3 output_schema; the Pydantic side accepts them as optional with default [] / None for backward compat during the v2→v3 transition window. After v3 promotion, the guard becomes operative on real Gemini outputs (currently dormant — A.1+A.2.2 catch hallucinations only when the structured fields are populated, which v2 does not emit).",
+  "static_response": null,
+  "human_review_required": true,
+  "review_file": "docs/prompts/investigator_analyze_fail_v3_REVIEW.md",
+  "validated_by_file": "docs/prompts/investigator_analyze_fail_v3_VALIDATED_BY.txt (NOT yet created; must be signed by a human operator distinct from author_user_id before migration 121 promotes the row)"
+}
